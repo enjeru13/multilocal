@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int              @id @default(autoincrement())
+  email             String           @unique
+  password          String
+  name              String?
+  role              Role             @default(EMPLOYEE)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  ordenesEntregadas Orden[]          @relation("DeliveredBy")
+  cajaSesiones      CajaSesion[]
+  cajaMovimientos   CajaMovimiento[]
+}
+
+model Cliente {
+  id                  Int          @id @default(autoincrement())
+  nombre              String
+  apellido            String?
+  tipo                TipoCliente?
+  telefono            String?
+  telefono_secundario String?
+  direccion           String?
+  identificacion      String?      @unique
+  email               String?
+  fechaRegistro       DateTime     @default(now())
+  ordenes             Orden[]
+}
+
+model Categoria {
+  id        String     @id @default(uuid())
+  nombre    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  servicios Servicio[]
+}
+
+// "Servicio" es el catálogo genérico: puede ser un servicio puro (lavandería),
+// un producto con stock (repuestos/minimarket), o ambos. Los campos de
+// inventario quedan sin uso cuando controlaStock=false.
+model Servicio {
+  id               Int            @id @default(autoincrement())
+  nombreServicio   String
+  descripcion      String?
+  precioBase       Float
+  permiteDecimales Boolean        @default(false)
+  categoriaId      String
+
+  tipo         ItemTipo @default(SERVICIO)
+  unidadMedida String   @default("unidad")
+
+  controlaStock Boolean  @default(false)
+  sku           String?  @unique
+  codigoBarras  String?  @unique
+  costoBase     Float?
+  stockActual   Float    @default(0)
+  stockMinimo   Float?
+
+  detalleOrdenes  DetalleOrden[]
+  categoria       Categoria              @relation(fields: [categoriaId], references: [id])
+  compraDetalles  CompraDetalle[]
+  movimientos     InventarioMovimiento[]
+
+  @@index([categoriaId], map: "Servicio_categoriaId_fkey")
+}
+
+// "Orden" es el documento genérico: ticket de servicio (lavandería, con
+// flujo de entrega) o venta instantánea (repuestos/minimarket, sin flujo
+// de entrega). El campo tipo distingue el comportamiento esperado.
+model Orden {
+  id                  Int            @id @default(autoincrement())
+  clienteId           Int?
+  tipo                DocumentoTipo  @default(ORDEN_LAVANDERIA)
+  estado              EstadoOrden    @default(PENDIENTE)
+  fechaIngreso        DateTime       @default(now())
+  fechaEntrega        DateTime?
+  observaciones       String?
+  total               Float
+  abonado             Float          @default(0)
+  faltante            Float          @default(0)
+  estadoPago          EstadoPago     @default(INCOMPLETO)
+  deliveredByUserId   Int?
+  deliveredByUserName String?
+  cajaSesionId        Int?
+
+  detalles    DetalleOrden[]
+  cliente     Cliente?    @relation(fields: [clienteId], references: [id])
+  deliveredBy User?       @relation("DeliveredBy", fields: [deliveredByUserId], references: [id])
+  cajaSesion  CajaSesion? @relation(fields: [cajaSesionId], references: [id])
+  pagos       Pago[]
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([deliveredByUserId])
+  @@index([cajaSesionId])
+}
+
+model DetalleOrden {
+  id         Int      @id @default(autoincrement())
+  ordenId    Int
+  servicioId Int
+  cantidad   Float
+  precioUnit Float
+  costoUnit  Float?
+  subtotal   Float
+  orden      Orden    @relation(fields: [ordenId], references: [id])
+  servicio   Servicio @relation(fields: [servicioId], references: [id])
+
+  @@index([ordenId], map: "DetalleOrden_ordenId_fkey")
+  @@index([servicioId], map: "DetalleOrden_servicioId_fkey")
+}
+
+model Pago {
+  id           Int               @id @default(autoincrement())
+  ordenId      Int
+  monto        Float
+  moneda       Moneda
+  metodoPago   MetodoPago
+  tasa         Float             @default(0.00)
+  nota         String?
+  fechaPago    DateTime          @default(now())
+  cajaSesionId Int?
+  orden        Orden             @relation(fields: [ordenId], references: [id])
+  cajaSesion   CajaSesion?       @relation(fields: [cajaSesionId], references: [id])
+  vueltos      VueltoEntregado[]
+
+  @@index([ordenId], map: "Pago_ordenId_fkey")
+  @@index([cajaSesionId])
+}
+
+model VueltoEntregado {
+  id     Int    @id @default(autoincrement())
+  pagoId Int
+  monto  Float
+  moneda String
+  pago   Pago   @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+
+  @@index([pagoId])
+}
+
+// Antes "Configuracion": ahora además guarda el perfil de negocio (rubro,
+// qué módulos están activos, terminología a mostrar en la UI).
+model Configuracion {
+  id                 Int     @id @default(1)
+  nombreNegocio      String?
+  monedaPrincipal    Moneda  @default(USD)
+  tasaUSD            Float?
+  tasaVES            Float?
+  tasaCOP            Float?
+  rif                String?
+  direccion          String?
+  telefonoPrincipal  String?
+  telefonoSecundario String?
+  mensajePieRecibo   String?
+
+  rubro               Rubro             @default(GENERICO)
+  moduloInventario    Boolean           @default(false)
+  moduloProveedores   Boolean           @default(false)
+  moduloCaja          Boolean           @default(false)
+  moduloFechaEntrega  Boolean           @default(true)
+  moduloClienteTipo   Boolean           @default(true)
+  clienteObligatorio  Boolean           @default(true)
+  deduccionStockEn    MomentoDeduccion  @default(ENTREGA)
+  terminologia        String?
+}
+
+model Proveedor {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  identificacion String?  @unique
+  telefono       String?
+  direccion      String?
+  email          String?
+  createdAt      DateTime @default(now())
+  compras        Compra[]
+}
+
+model Compra {
+  id            Int             @id @default(autoincrement())
+  proveedorId   Int
+  proveedor     Proveedor       @relation(fields: [proveedorId], references: [id])
+  fecha         DateTime        @default(now())
+  estado        EstadoCompra    @default(PENDIENTE)
+  total         Float           @default(0)
+  observaciones String?
+  detalles      CompraDetalle[]
+
+  @@index([proveedorId])
+}
+
+model CompraDetalle {
+  id         Int      @id @default(autoincrement())
+  compraId   Int
+  servicioId Int
+  cantidad   Float
+  costoUnit  Float
+  subtotal   Float
+  compra     Compra   @relation(fields: [compraId], references: [id])
+  servicio   Servicio @relation(fields: [servicioId], references: [id])
+
+  @@index([compraId])
+  @@index([servicioId])
+}
+
+model InventarioMovimiento {
+  id              Int              @id @default(autoincrement())
+  servicioId      Int
+  servicio        Servicio         @relation(fields: [servicioId], references: [id])
+  tipo            TipoMovimiento
+  cantidad        Float
+  motivo          MotivoMovimiento
+  ordenId         Int?
+  compraId        Int?
+  stockResultante Float
+  userId          Int?
+  fecha           DateTime         @default(now())
+  nota            String?
+
+  @@index([servicioId])
+  @@index([ordenId])
+  @@index([compraId])
+}
+
+model CajaSesion {
+  id                Int      @id @default(autoincrement())
+  usuarioAperturaId Int
+  usuarioApertura   User     @relation(fields: [usuarioAperturaId], references: [id])
+  fechaApertura     DateTime @default(now())
+  montoInicial      Float    @default(0)
+
+  fechaCierre       DateTime?
+  montoFinalContado Float?
+  montoFinalSistema Float?
+  diferencia        Float?
+
+  estado            EstadoCaja @default(ABIERTA)
+  observacionCierre String?
+
+  ordenes     Orden[]
+  pagos       Pago[]
+  movimientos CajaMovimiento[]
+
+  @@index([estado])
+}
+
+model CajaMovimiento {
+  id           Int                @id @default(autoincrement())
+  cajaSesionId Int
+  cajaSesion   CajaSesion         @relation(fields: [cajaSesionId], references: [id])
+  tipo         TipoCajaMovimiento
+  monto        Float
+  moneda       Moneda             @default(USD)
+  concepto     String
+  userId       Int?
+  usuario      User?              @relation(fields: [userId], references: [id])
+  fecha        DateTime           @default(now())
+
+  @@index([cajaSesionId])
+}
+
+enum TipoCliente {
+  NATURAL
+  EMPRESA
+}
+
+enum EstadoOrden {
+  PENDIENTE
+  LISTO
+  ENTREGADO
+  CANCELADO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  PAGO_MOVIL
+}
+
+enum Moneda {
+  USD
+  VES
+  COP
+}
+
+enum EstadoPago {
+  COMPLETO
+  INCOMPLETO
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+  CAJERO
+}
+
+enum ItemTipo {
+  PRODUCTO
+  SERVICIO
+  AMBOS
+}
+
+enum DocumentoTipo {
+  ORDEN_LAVANDERIA
+  VENTA
+  TICKET_SERVICIO
+}
+
+enum Rubro {
+  LAVANDERIA
+  REPUESTOS
+  MINIMARKET
+  GENERICO
+}
+
+enum MomentoDeduccion {
+  CREACION
+  ENTREGA
+}
+
+enum EstadoCompra {
+  PENDIENTE
+  RECIBIDA
+  CANCELADA
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+}
+
+enum MotivoMovimiento {
+  COMPRA
+  VENTA
+  AJUSTE_MANUAL
+  DEVOLUCION
+}
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+enum TipoCajaMovimiento {
+  INGRESO
+  EGRESO
+}

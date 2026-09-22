@@ -1,0 +1,22 @@
+{
+  "name": "mostrador-app",
+  "private": true,
+  "devDependencies": {
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter frontend --filter backend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:desktop": "pnpm --filter desktop dev",
+    "build": "pnpm --filter @lavanderia/shared build && pnpm --filter backend build && pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "backend:prisma": "pnpm --filter backend exec prisma generate",
+    "backend:migrate": "pnpm --filter backend exec prisma migrate dev"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.19"
+  }
+}
