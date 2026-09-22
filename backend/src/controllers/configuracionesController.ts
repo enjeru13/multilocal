@@ -2,6 +2,20 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { ConfiguracionSchema } from "../schemas/configuracion.schema";
 
+// terminologia se guarda como TEXT en SQLite (Prisma no soporta Json ahí de
+// forma confiable); se serializa/deserializa al cruzar la frontera HTTP.
+function serializarConfig(config: any) {
+  let terminologia = null;
+  if (config.terminologia) {
+    try {
+      terminologia = JSON.parse(config.terminologia);
+    } catch {
+      terminologia = null;
+    }
+  }
+  return { ...config, terminologia };
+}
+
 export async function getConfiguracion(req: Request, res: Response) {
   try {
     let config = await prisma.configuracion.findFirst();
@@ -19,11 +33,12 @@ export async function getConfiguracion(req: Request, res: Response) {
           telefonoPrincipal: "",
           telefonoSecundario: "",
           mensajePieRecibo: "",
+          rubro: "GENERICO",
         },
       });
     }
 
-    return res.json(config);
+    return res.json(serializarConfig(config));
   } catch (error) {
     console.error("Error al obtener configuración:", error);
     return res.status(500).json({ message: "Error al obtener configuración" });
@@ -40,7 +55,7 @@ export async function updateConfiguracion(req: Request, res: Response) {
     });
   }
 
-  const data = result.data;
+  const { terminologia, ...data } = result.data;
 
   try {
     const config = await prisma.configuracion.findFirst();
@@ -53,10 +68,13 @@ export async function updateConfiguracion(req: Request, res: Response) {
       data: {
         ...data,
         tasaUSD: 1,
+        ...(terminologia !== undefined && {
+          terminologia: terminologia ? JSON.stringify(terminologia) : null,
+        }),
       },
     });
 
-    return res.json(actualizada);
+    return res.json(serializarConfig(actualizada));
   } catch (error) {
     console.error("Error al actualizar configuración:", error);
     return res

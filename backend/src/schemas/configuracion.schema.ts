@@ -15,6 +15,23 @@ const parseTasa = z
   })
   .nullable();
 
+export const RubroSchema = z.enum([
+  "LAVANDERIA",
+  "REPUESTOS",
+  "MINIMARKET",
+  "GENERICO",
+]);
+export const MomentoDeduccionSchema = z.enum(["CREACION", "ENTREGA"]);
+
+export const TerminologiaSchema = z
+  .object({
+    servicio: z.string().optional(),
+    orden: z.string().optional(),
+    cliente: z.string().optional(),
+  })
+  .nullable()
+  .optional();
+
 export const ConfiguracionSchema = z.object({
   nombreNegocio: z.string().min(1, "Debes indicar el nombre del negocio"),
   monedaPrincipal: MonedaSchema,
@@ -26,4 +43,14 @@ export const ConfiguracionSchema = z.object({
   telefonoPrincipal: z.string().nullable().optional(),
   telefonoSecundario: z.string().nullable().optional(),
   mensajePieRecibo: z.string().nullable().optional(),
+
+  rubro: RubroSchema.optional(),
+  moduloInventario: z.boolean().optional(),
+  moduloProveedores: z.boolean().optional(),
+  moduloCaja: z.boolean().optional(),
+  moduloFechaEntrega: z.boolean().optional(),
+  moduloClienteTipo: z.boolean().optional(),
+  clienteObligatorio: z.boolean().optional(),
+  deduccionStockEn: MomentoDeduccionSchema.optional(),
+  terminologia: TerminologiaSchema,
 });

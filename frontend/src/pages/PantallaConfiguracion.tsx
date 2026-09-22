@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
 import {
@@ -9,11 +9,14 @@ import {
   type Moneda,
 } from "../utils/monedaHelpers";
 import { configuracionService } from "../services/configuracionService";
-import type { Configuracion } from "@lavanderia/shared/types/types";
+import { useConfiguracion } from "../context/ConfiguracionContext";
+import { RUBRO_PRESETS } from "../constants/rubroPresets";
+import type { Configuracion, Rubro, Terminologia } from "@lavanderia/shared/types/types";
 import { FormSkeleton } from "../components/Skeleton";
-import Button from "../components/ui/Button"; // 1. Importamos el Button
+import Button from "../components/ui/Button";
 
 export default function PantallaConfiguracion() {
+  const { refetch } = useConfiguracion();
   const [tasas, setTasas] = useState({ VES: "", COP: "" });
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
   const [nombreNegocio, setNombreNegocio] = useState("");
@@ -24,6 +27,17 @@ export default function PantallaConfiguracion() {
   const [mensajePieRecibo, setMensajePieRecibo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [rubro, setRubro] = useState<Rubro>("GENERICO");
+  const [moduloInventario, setModuloInventario] = useState(false);
+  const [moduloProveedores, setModuloProveedores] = useState(false);
+  const [moduloCaja, setModuloCaja] = useState(false);
+  const [moduloFechaEntrega, setModuloFechaEntrega] = useState(true);
+  const [moduloClienteTipo, setModuloClienteTipo] = useState(true);
+  const [clienteObligatorio, setClienteObligatorio] = useState(true);
+  const [terminologia, setTerminologia] = useState<Terminologia>(
+    RUBRO_PRESETS.GENERICO.terminologia
+  );
 
   useEffect(() => {
     async function cargarConfiguracion() {
@@ -42,6 +56,19 @@ export default function PantallaConfiguracion() {
         setTelefonoPrincipal(config.telefonoPrincipal ?? "");
         setTelefonoSecundario(config.telefonoSecundario ?? "");
         setMensajePieRecibo(config.mensajePieRecibo ?? "");
+
+        const rubroActual = config.rubro ?? "GENERICO";
+        setRubro(rubroActual);
+        setModuloInventario(config.moduloInventario ?? false);
+        setModuloProveedores(config.moduloProveedores ?? false);
+        setModuloCaja(config.moduloCaja ?? false);
+        setModuloFechaEntrega(config.moduloFechaEntrega ?? true);
+        setModuloClienteTipo(config.moduloClienteTipo ?? true);
+        setClienteObligatorio(config.clienteObligatorio ?? true);
+        setTerminologia({
+          ...RUBRO_PRESETS[rubroActual].terminologia,
+          ...config.terminologia,
+        });
       } catch (error) {
         console.error("Error al cargar configuración:", error);
         toast.error("Error al cargar la configuración.");
@@ -51,6 +78,18 @@ export default function PantallaConfiguracion() {
     }
     cargarConfiguracion();
   }, []);
+
+  const aplicarPresetRubro = (nuevoRubro: Rubro) => {
+    const preset = RUBRO_PRESETS[nuevoRubro];
+    setRubro(nuevoRubro);
+    setModuloInventario(preset.moduloInventario);
+    setModuloProveedores(preset.moduloProveedores);
+    setModuloCaja(preset.moduloCaja);
+    setModuloFechaEntrega(preset.moduloFechaEntrega);
+    setModuloClienteTipo(preset.moduloClienteTipo);
+    setClienteObligatorio(preset.clienteObligatorio);
+    setTerminologia(preset.terminologia);
+  };
 
   const guardarConfiguracion = async () => {
     setCargando(true);
@@ -66,7 +105,16 @@ export default function PantallaConfiguracion() {
         telefonoPrincipal: telefonoPrincipal.trim() || null,
         telefonoSecundario: telefonoSecundario.trim() || null,
         mensajePieRecibo: mensajePieRecibo.trim() || null,
+        rubro,
+        moduloInventario,
+        moduloProveedores,
+        moduloCaja,
+        moduloFechaEntrega,
+        moduloClienteTipo,
+        clienteObligatorio,
+        terminologia,
       });
+      await refetch();
       toast.success("Configuración guardada correctamente.");
     } catch (error) {
       console.error("Error al guardar configuración:", error);
@@ -178,6 +226,133 @@ export default function PantallaConfiguracion() {
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 resize-y min-h-[100px] shadow-sm transition duration-200"
               placeholder="Ej. Gracias por su preferencia. Este ticket es indispensable para reclamos."
               rows={4}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100">
+            <FaLayerGroup size={26} className="text-purple-500 dark:text-purple-400" />
+            Rubro y módulos
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Elige a qué se dedica el negocio para precargar qué está activo. Puedes ajustar cada cosa después.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {(Object.keys(RUBRO_PRESETS) as Rubro[]).map((r) => {
+            const preset = RUBRO_PRESETS[r];
+            const activo = rubro === r;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => aplicarPresetRubro(r)}
+                className={`text-left p-4 rounded-lg border transition-colors ${
+                  activo
+                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-500"
+                    : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+              >
+                <p className="font-semibold text-gray-900 dark:text-gray-100">{preset.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{preset.descripcion}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 pt-2">
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Control de inventario/stock
+            <input
+              type="checkbox"
+              checked={moduloInventario}
+              onChange={(e) => setModuloInventario(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Proveedores y compras
+            <input
+              type="checkbox"
+              checked={moduloProveedores}
+              onChange={(e) => setModuloProveedores(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Caja (apertura/cierre)
+            <input
+              type="checkbox"
+              checked={moduloCaja}
+              onChange={(e) => setModuloCaja(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Fecha de entrega en órdenes
+            <input
+              type="checkbox"
+              checked={moduloFechaEntrega}
+              onChange={(e) => setModuloFechaEntrega(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Tipo de cliente (natural/empresa)
+            <input
+              type="checkbox"
+              checked={moduloClienteTipo}
+              onChange={(e) => setModuloClienteTipo(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+            Cliente obligatorio para vender
+            <input
+              type="checkbox"
+              checked={clienteObligatorio}
+              onChange={(e) => setClienteObligatorio(e.target.checked)}
+              className="accent-purple-600 w-5 h-5 cursor-pointer"
+            />
+          </label>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
+              Cómo llamar a "Servicios"
+            </label>
+            <input
+              type="text"
+              value={terminologia.servicio ?? ""}
+              onChange={(e) => setTerminologia({ ...terminologia, servicio: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
+              Cómo llamar a "Órdenes"
+            </label>
+            <input
+              type="text"
+              value={terminologia.orden ?? ""}
+              onChange={(e) => setTerminologia({ ...terminologia, orden: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
+              Cómo llamar a "Clientes"
+            </label>
+            <input
+              type="text"
+              value={terminologia.cliente ?? ""}
+              onChange={(e) => setTerminologia({ ...terminologia, cliente: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
             />
           </div>
         </div>

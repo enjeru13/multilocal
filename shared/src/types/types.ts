@@ -192,6 +192,17 @@ export interface VueltoEntregadoCreate {
   moneda: Moneda;
 }
 
+export type Rubro = "LAVANDERIA" | "REPUESTOS" | "MINIMARKET" | "GENERICO";
+export type MomentoDeduccion = "CREACION" | "ENTREGA";
+
+// Etiquetas de UI que cambian según el rubro (ej. "Servicio" -> "Producto").
+// Todas opcionales: si falta una, el frontend usa el default del rubro.
+export interface Terminologia {
+  servicio?: string;
+  orden?: string;
+  cliente?: string;
+}
+
 export interface Configuracion {
   id: number;
   nombreNegocio: string | null;
@@ -204,6 +215,16 @@ export interface Configuracion {
   telefonoPrincipal: string | null;
   telefonoSecundario: string | null;
   mensajePieRecibo: string | null;
+
+  rubro: Rubro;
+  moduloInventario: boolean;
+  moduloProveedores: boolean;
+  moduloCaja: boolean;
+  moduloFechaEntrega: boolean;
+  moduloClienteTipo: boolean;
+  clienteObligatorio: boolean;
+  deduccionStockEn: MomentoDeduccion;
+  terminologia: Terminologia | null;
 }
 
 export interface ConfiguracionCreate {

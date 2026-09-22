@@ -19,6 +19,7 @@ import PantallaRegister from "./pages/PantallaRegister";
 import PantallaEstadoOrdenes from "./pages/PantallaEstadoOrdenes";
 import PantallaEditarOrden from "./pages/PantallaEditarOrden";
 import { AuthProvider } from "./context/AuthContext";
+import { ConfiguracionProvider } from "./context/ConfiguracionContext";
 import { useAuth } from "./hooks/useAuth";
 import type { Role } from "@lavanderia/shared/types/types";
 
@@ -53,6 +54,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
 function App() {
   return (
     <AuthProvider>
+      <ConfiguracionProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<PantallaLogin />} />
@@ -109,6 +111,7 @@ function App() {
           pauseOnHover
         />
       </Router>
+      </ConfiguracionProvider>
     </AuthProvider>
   );
 }

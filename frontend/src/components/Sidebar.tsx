@@ -9,12 +9,14 @@ import {
   FaMoneyBillWave,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
+import { useConfiguracion } from "../context/ConfiguracionContext";
 import type { Role } from "@lavanderia/shared/types/types";
 import type { JSX } from "react";
 
 export default function Sidebar() {
   const location = useLocation();
   const { hasRole, isAuthenticated } = useAuth();
+  const { t } = useConfiguracion();
 
   const links: {
     section: string;
@@ -31,19 +33,19 @@ export default function Sidebar() {
           },
           {
             to: "/ordenes",
-            label: "Órdenes",
+            label: t("orden"),
             icon: <FaClipboardList />,
             roles: ["ADMIN", "EMPLOYEE"],
           },
           {
             to: "/clientes",
-            label: "Clientes",
+            label: t("cliente"),
             icon: <FaUsers />,
             roles: ["ADMIN", "EMPLOYEE"],
           },
           {
             to: "/servicios",
-            label: "Servicios",
+            label: t("servicio"),
             icon: <FaTshirt />,
             roles: ["ADMIN", "EMPLOYEE"],
           },
