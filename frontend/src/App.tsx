@@ -19,6 +19,8 @@ import PantallaRegister from "./pages/PantallaRegister";
 import PantallaSetup from "./pages/PantallaSetup";
 import PantallaEstadoOrdenes from "./pages/PantallaEstadoOrdenes";
 import PantallaEditarOrden from "./pages/PantallaEditarOrden";
+import PantallaInventario from "./pages/PantallaInventario";
+import PantallaProveedores from "./pages/PantallaProveedores";
 import { AuthProvider } from "./context/AuthContext";
 import { ConfiguracionProvider } from "./context/ConfiguracionContext";
 import { useAuth } from "./hooks/useAuth";
@@ -74,6 +76,15 @@ function App() {
             <Route path="servicios" element={<PantallaServicios />} />
             <Route path="ordenes" element={<PantallaOrdenes />} />
             <Route path="pagos" element={<PantallaPagos />} />
+            <Route path="inventario" element={<PantallaInventario />} />
+            <Route
+              path="proveedores"
+              element={
+                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                  <PantallaProveedores />
+                </ProtectedRoute>
+              }
+            />
             <Route 
               path="ordenes/editar/:id" 
               element={

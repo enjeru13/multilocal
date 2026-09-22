@@ -112,6 +112,10 @@ export async function createOrden(req: Request, res: Response) {
     result.data;
 
   try {
+    const config = await prisma.configuracion.findFirst();
+    const deducirAhora =
+      !!config?.moduloInventario && config?.deduccionStockEn === "CREACION";
+
     let total = 0;
     const detalleData: Array<{
       servicioId: number;
@@ -119,6 +123,7 @@ export async function createOrden(req: Request, res: Response) {
       precioUnit: number;
       subtotal: number;
     }> = [];
+    const serviciosParaDescontar: Array<{ id: number; cantidad: number }> = [];
 
     for (const item of servicios) {
       const servicio = await prisma.servicio.findUnique({
@@ -128,6 +133,15 @@ export async function createOrden(req: Request, res: Response) {
         return res.status(400).json({
           message: `Servicio con ID ${item.servicioId} no encontrado.`,
         });
+      }
+
+      if (deducirAhora && servicio.controlaStock) {
+        if (servicio.stockActual < item.cantidad) {
+          return res.status(400).json({
+            message: `Stock insuficiente de "${servicio.nombreServicio}" (disponible: ${servicio.stockActual}).`,
+          });
+        }
+        serviciosParaDescontar.push({ id: servicio.id, cantidad: item.cantidad });
       }
 
       // CAMBIO CLAVE: Priorizamos el precio personalizado enviado desde el frontend (item.precio)
@@ -149,35 +163,59 @@ export async function createOrden(req: Request, res: Response) {
       total += subtotal;
     }
 
-    const orden = await prisma.orden.create({
-      data: {
-        clienteId: clienteId,
-        estado,
-        total: parseFloat(total.toFixed(2)),
-        observaciones,
-        fechaEntrega: fechaEntrega ? dayjs(fechaEntrega).toDate() : null,
-        abonado: 0,
-        faltante: parseFloat(total.toFixed(2)),
-        estadoPago: "INCOMPLETO",
-        detalles: { create: detalleData },
-      },
-      include: {
-        cliente: true,
-        detalles: {
-          include: {
-            servicio: {
-              select: {
-                id: true,
-                nombreServicio: true,
-                descripcion: true,
-                precioBase: true,
-                permiteDecimales: true,
-                categoriaId: true,
+    const orden = await prisma.$transaction(async (tx) => {
+      const nuevaOrden = await tx.orden.create({
+        data: {
+          clienteId: clienteId,
+          estado,
+          total: parseFloat(total.toFixed(2)),
+          observaciones,
+          fechaEntrega: fechaEntrega ? dayjs(fechaEntrega).toDate() : null,
+          abonado: 0,
+          faltante: parseFloat(total.toFixed(2)),
+          estadoPago: "INCOMPLETO",
+          detalles: { create: detalleData },
+        },
+      });
+
+      for (const { id, cantidad } of serviciosParaDescontar) {
+        const actualizado = await tx.servicio.update({
+          where: { id },
+          data: { stockActual: { decrement: cantidad } },
+        });
+        await tx.inventarioMovimiento.create({
+          data: {
+            servicioId: id,
+            tipo: "SALIDA",
+            cantidad,
+            motivo: "VENTA",
+            ordenId: nuevaOrden.id,
+            stockResultante: actualizado.stockActual,
+            nota: `Orden #${nuevaOrden.id}`,
+          },
+        });
+      }
+
+      return tx.orden.findUnique({
+        where: { id: nuevaOrden.id },
+        include: {
+          cliente: true,
+          detalles: {
+            include: {
+              servicio: {
+                select: {
+                  id: true,
+                  nombreServicio: true,
+                  descripcion: true,
+                  precioBase: true,
+                  permiteDecimales: true,
+                  categoriaId: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
 
     return res.status(201).json(orden);
@@ -216,7 +254,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
     // 1. Buscar la orden actual para tener referencias
     const ordenActual = await prisma.orden.findUnique({
       where: { id: Number(id) },
-      include: { pagos: true },
+      include: { pagos: true, detalles: { include: { servicio: true } } },
     });
 
     if (!ordenActual) {
@@ -224,6 +262,10 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         .status(404)
         .json({ message: "Orden no encontrada para actualizar." });
     }
+
+    const config = await prisma.configuracion.findFirst();
+    const deducirAlEntregar =
+      !!config?.moduloInventario && config?.deduccionStockEn === "ENTREGA";
 
     // 2. Usamos una transacción para asegurar la integridad de los datos
     const ordenActualizada = await prisma.$transaction(async (tx) => {
@@ -250,6 +292,30 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         datosActualizados.fechaEntrega = dayjs().toDate();
         datosActualizados.deliveredByUserId = req.user.id;
         datosActualizados.deliveredByUserName = req.user.name || req.user.email;
+
+        // Descuento de stock al momento de entrega (si el perfil está
+        // configurado así), usando las prendas/items actuales de la orden.
+        if (deducirAlEntregar && !(servicios && Array.isArray(servicios) && servicios.length > 0)) {
+          for (const detalle of ordenActual.detalles) {
+            if (!detalle.servicio.controlaStock) continue;
+            const actualizado = await tx.servicio.update({
+              where: { id: detalle.servicioId },
+              data: { stockActual: { decrement: detalle.cantidad } },
+            });
+            await tx.inventarioMovimiento.create({
+              data: {
+                servicioId: detalle.servicioId,
+                tipo: "SALIDA",
+                cantidad: detalle.cantidad,
+                motivo: "VENTA",
+                ordenId: ordenActual.id,
+                stockResultante: actualizado.stockActual,
+                userId: req.user.id,
+                nota: `Orden #${ordenActual.id} (entrega)`,
+              },
+            });
+          }
+        }
       }
 
       // 3. LÓGICA DE REEMPLAZO DE PRENDAS (Si se envía array de servicios)

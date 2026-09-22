@@ -7,6 +7,8 @@ import {
   FaCog,
   FaChartBar,
   FaMoneyBillWave,
+  FaBoxes,
+  FaTruck,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/ConfiguracionContext";
@@ -16,11 +18,11 @@ import type { JSX } from "react";
 export default function Sidebar() {
   const location = useLocation();
   const { hasRole, isAuthenticated } = useAuth();
-  const { t } = useConfiguracion();
+  const { t, config } = useConfiguracion();
 
   const links: {
     section: string;
-    items: { to: string; label: string; icon: JSX.Element; roles: Role[] }[];
+    items: { to: string; label: string; icon: JSX.Element; roles: Role[]; visible?: boolean }[];
   }[] = [
       {
         section: "Gestión",
@@ -48,6 +50,20 @@ export default function Sidebar() {
             label: t("servicio"),
             icon: <FaTshirt />,
             roles: ["ADMIN", "EMPLOYEE"],
+          },
+          {
+            to: "/inventario",
+            label: "Inventario",
+            icon: <FaBoxes />,
+            roles: ["ADMIN", "EMPLOYEE"],
+            visible: !!config?.moduloInventario,
+          },
+          {
+            to: "/proveedores",
+            label: "Proveedores",
+            icon: <FaTruck />,
+            roles: ["ADMIN", "EMPLOYEE"],
+            visible: !!config?.moduloProveedores,
           },
         ],
       },
@@ -92,8 +108,8 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-5 flex flex-col gap-6">
         {links.map((grupo) => {
-          const visibleItems = grupo.items.filter((link) =>
-            hasRole(link.roles)
+          const visibleItems = grupo.items.filter(
+            (link) => hasRole(link.roles) && link.visible !== false
           );
 
           if (visibleItems.length === 0) {

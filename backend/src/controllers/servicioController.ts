@@ -57,6 +57,14 @@ export async function createServicio(req: Request, res: Response) {
     precioBase,
     permiteDecimales,
     categoriaId,
+    tipo,
+    unidadMedida,
+    controlaStock,
+    sku,
+    codigoBarras,
+    costoBase,
+    stockActual,
+    stockMinimo,
   } = result.data;
 
   try {
@@ -67,6 +75,14 @@ export async function createServicio(req: Request, res: Response) {
         precioBase,
         permiteDecimales: permiteDecimales || false,
         categoriaId,
+        tipo: tipo ?? "SERVICIO",
+        unidadMedida: unidadMedida ?? "unidad",
+        controlaStock: controlaStock ?? false,
+        sku: sku || null,
+        codigoBarras: codigoBarras || null,
+        costoBase: costoBase ?? null,
+        stockActual: stockActual ?? 0,
+        stockMinimo: stockMinimo ?? null,
       },
       include: {
         categoria: true,
@@ -104,6 +120,14 @@ export async function updateServicio(req: Request, res: Response) {
     precioBase,
     permiteDecimales,
     categoriaId,
+    tipo,
+    unidadMedida,
+    controlaStock,
+    sku,
+    codigoBarras,
+    costoBase,
+    stockActual,
+    stockMinimo,
   } = result.data;
 
   try {
@@ -115,6 +139,14 @@ export async function updateServicio(req: Request, res: Response) {
         precioBase,
         permiteDecimales: permiteDecimales || false,
         categoriaId,
+        ...(tipo !== undefined && { tipo }),
+        ...(unidadMedida !== undefined && { unidadMedida }),
+        ...(controlaStock !== undefined && { controlaStock }),
+        ...(sku !== undefined && { sku: sku || null }),
+        ...(codigoBarras !== undefined && { codigoBarras: codigoBarras || null }),
+        ...(costoBase !== undefined && { costoBase }),
+        ...(stockActual !== undefined && { stockActual }),
+        ...(stockMinimo !== undefined && { stockMinimo }),
       },
       include: {
         categoria: true,

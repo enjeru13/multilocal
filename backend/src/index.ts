@@ -16,6 +16,8 @@ import pagoRouter from "./routes/pagoRoute";
 import configuracionRouter from "./routes/configuracionRoute";
 import authRoute from "./routes/authRoute";
 import categoriaRouter from "./routes/categoriaRoute";
+import proveedorRouter from "./routes/proveedorRoute";
+import compraRouter from "./routes/compraRoute";
 
 // App 100% local: sin orígenes cloud, CORS abierto solo porque el server
 // nunca sale de 127.0.0.1 (ver startServer). No hay nada externo que bloquear.
@@ -41,6 +43,8 @@ export function createApp() {
   app.use("/api/detalleOrdenes", detalleRouter);
   app.use("/api/pagos", pagoRouter);
   app.use("/api/configuracion", configuracionRouter);
+  app.use("/api/proveedores", proveedorRouter);
+  app.use("/api/compras", compraRouter);
 
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Error global:", err);

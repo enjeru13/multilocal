@@ -55,6 +55,8 @@ export interface ClienteResumen {
   apellido: string;
 }
 
+export type ItemTipo = "PRODUCTO" | "SERVICIO" | "AMBOS";
+
 export interface Servicio {
   id: number;
   nombreServicio: string;
@@ -63,6 +65,15 @@ export interface Servicio {
   permiteDecimales: boolean;
   categoriaId: string;
   categoria?: Categoria;
+
+  tipo: ItemTipo;
+  unidadMedida: string;
+  controlaStock: boolean;
+  sku: string | null;
+  codigoBarras: string | null;
+  costoBase: number | null;
+  stockActual: number;
+  stockMinimo: number | null;
 
   detalleOrdenes?: DetalleOrden[];
 }
@@ -73,9 +84,67 @@ export interface ServicioCreate {
   precioBase: number;
   permiteDecimales: boolean;
   categoriaId: string;
+  tipo?: ItemTipo;
+  unidadMedida?: string;
+  controlaStock?: boolean;
+  sku?: string | null;
+  codigoBarras?: string | null;
+  costoBase?: number | null;
+  stockActual?: number;
+  stockMinimo?: number | null;
 }
 
 export type ServicioUpdatePayload = Partial<ServicioCreate>;
+
+export interface Proveedor {
+  id: number;
+  nombre: string;
+  identificacion: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  email: string | null;
+  createdAt: string;
+  compras?: Compra[];
+}
+
+export type ProveedorCreate = Omit<Proveedor, "id" | "createdAt" | "compras">;
+export type ProveedorUpdatePayload = Partial<ProveedorCreate>;
+
+export type EstadoCompra = "PENDIENTE" | "RECIBIDA" | "CANCELADA";
+
+export interface CompraDetalle {
+  id: number;
+  compraId: number;
+  servicioId: number;
+  cantidad: number;
+  costoUnit: number;
+  subtotal: number;
+  servicio?: Servicio;
+}
+
+export interface CompraDetalleCreate {
+  servicioId: number;
+  cantidad: number;
+  costoUnit: number;
+}
+
+export interface Compra {
+  id: number;
+  proveedorId: number;
+  proveedor?: Proveedor;
+  fecha: string;
+  estado: EstadoCompra;
+  total: number;
+  observaciones: string | null;
+  detalles: CompraDetalle[];
+}
+
+export interface CompraCreate {
+  proveedorId: number;
+  observaciones?: string | null;
+  estado?: EstadoCompra;
+  detalles: CompraDetalleCreate[];
+}
 
 export type ServicioSeleccionado = {
   servicioId: number;
@@ -247,7 +316,7 @@ export interface TasasConversion {
   COP?: number | null;
 }
 
-export type Role = "ADMIN" | "EMPLOYEE";
+export type Role = "ADMIN" | "EMPLOYEE" | "CAJERO";
 
 export interface User {
   id: number;

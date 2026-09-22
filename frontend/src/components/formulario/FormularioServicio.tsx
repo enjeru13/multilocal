@@ -10,6 +10,7 @@ import type {
 import { AxiosError } from "axios";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { useConfiguracion } from "../../context/ConfiguracionContext";
 
 type FormularioServicioProps = {
   servicio?: Servicio;
@@ -36,6 +37,14 @@ export default function FormularioServicio({
     string | ""
   >("");
 
+  const { config } = useConfiguracion();
+  const inventarioActivo = !!config?.moduloInventario;
+
+  const [controlaStock, setControlaStock] = useState(false);
+  const [sku, setSku] = useState("");
+  const [stockActual, setStockActual] = useState<number | null>(0);
+  const [stockMinimo, setStockMinimo] = useState<number | null>(null);
+
   const [errores, setErrores] = useState<{
     nombre?: string;
     precio?: string;
@@ -50,12 +59,20 @@ export default function FormularioServicio({
       setDescripcion(servicio.descripcion || "");
       setPermiteDecimales(servicio.permiteDecimales ?? false);
       setCategoriaSeleccionadaId(servicio.categoriaId || "");
+      setControlaStock(servicio.controlaStock ?? false);
+      setSku(servicio.sku || "");
+      setStockActual(servicio.stockActual ?? 0);
+      setStockMinimo(servicio.stockMinimo ?? null);
     } else {
       setNombre("");
       setPrecio(null);
       setDescripcion("");
       setPermiteDecimales(false);
       setCategoriaSeleccionadaId("");
+      setControlaStock(false);
+      setSku("");
+      setStockActual(0);
+      setStockMinimo(null);
     }
     setErrores({});
   }, [servicio]);
@@ -79,6 +96,18 @@ export default function FormularioServicio({
 
     const descripcionFinal = descripcion.trim() || null;
 
+    const camposInventario = inventarioActivo
+      ? {
+          tipo: "PRODUCTO" as const,
+          controlaStock,
+          sku: sku.trim() || null,
+          ...(controlaStock && {
+            stockActual: stockActual ?? 0,
+            stockMinimo: stockMinimo ?? null,
+          }),
+        }
+      : {};
+
     if (servicio?.id) {
       data = {
         id: servicio.id,
@@ -87,6 +116,7 @@ export default function FormularioServicio({
         descripcion: descripcionFinal,
         permiteDecimales,
         categoriaId: categoriaSeleccionadaId,
+        ...camposInventario,
       };
     } else {
       data = {
@@ -95,6 +125,7 @@ export default function FormularioServicio({
         descripcion: descripcionFinal,
         permiteDecimales,
         categoriaId: categoriaSeleccionadaId,
+        ...camposInventario,
       };
     }
 
@@ -233,6 +264,83 @@ export default function FormularioServicio({
               <span>¿Permite cantidades decimales?</span>
             </label>
           </div>
+
+          {inventarioActivo && (
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
+              <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={controlaStock}
+                  onChange={(e) => setControlaStock(e.target.checked)}
+                  className="accent-blue-600 dark:accent-blue-500 w-5 h-5 cursor-pointer"
+                  disabled={cargando}
+                />
+                <span>Controlar stock de este ítem</span>
+              </label>
+
+              {controlaStock && (
+                <div className="grid grid-cols-2 gap-4 pl-8">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+                      SKU / código (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={sku}
+                      onChange={(e) => setSku(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                      placeholder="Ej. FIL-001"
+                      disabled={cargando}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+                      Stock mínimo (alerta)
+                    </label>
+                    <input
+                      type="number"
+                      value={stockMinimo ?? ""}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setStockMinimo(isNaN(v) ? null : v);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                      placeholder="Ej. 5"
+                      disabled={cargando}
+                    />
+                  </div>
+                  {!servicio && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+                        Stock inicial
+                      </label>
+                      <input
+                        type="number"
+                        value={stockActual ?? ""}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setStockActual(isNaN(v) ? 0 : v);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                        placeholder="0"
+                        disabled={cargando}
+                      />
+                    </div>
+                  )}
+                  {servicio && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+                        Stock actual
+                      </p>
+                      <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        {servicio.stockActual} — usa "Registrar compra" en Proveedores para sumar stock.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3 text-sm font-medium">
