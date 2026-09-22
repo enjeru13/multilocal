@@ -55,6 +55,15 @@ export const authService = {
       return false;
     }
   },
+  getSetupStatus: async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.get("/auth/setup-status");
+      return !!response.data.needsSetup;
+    } catch (error) {
+      console.error("Error al verificar estado de configuración inicial:", error);
+      return false;
+    }
+  },
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const response = await apiClient.get("/auth/me");

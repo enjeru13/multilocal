@@ -16,6 +16,7 @@ import PantallaPagos from "./pages/PantallaPagos";
 import PantallaConfiguracion from "./pages/PantallaConfiguracion";
 import PantallaLogin from "./pages/PantallaLogin";
 import PantallaRegister from "./pages/PantallaRegister";
+import PantallaSetup from "./pages/PantallaSetup";
 import PantallaEstadoOrdenes from "./pages/PantallaEstadoOrdenes";
 import PantallaEditarOrden from "./pages/PantallaEditarOrden";
 import { AuthProvider } from "./context/AuthContext";
@@ -59,6 +60,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<PantallaLogin />} />
           <Route path="/register" element={<PantallaRegister />} />
+          <Route path="/setup" element={<PantallaSetup />} />
           <Route
             path="/"
             element={

@@ -25,6 +25,22 @@ if (!JWT_SECRET) {
   );
 }
 /**
+ * Indica si el sistema aun no tiene ningun usuario creado, para que el
+ * frontend muestre el wizard de primer uso en vez del login normal.
+ */
+export const getSetupStatus = async (req: Request, res: Response) => {
+  try {
+    const totalUsuarios = await prisma.user.count();
+    return res.status(200).json({ needsSetup: totalUsuarios === 0 });
+  } catch (error) {
+    console.error("Error al verificar estado de configuración inicial:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al verificar estado de configuración inicial." });
+  }
+};
+
+/**
  * @route
  * @desc
  * @access

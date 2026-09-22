@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-toastify";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { authService } from "../services/authService";
 
 const loginSchema = z.object({
   email: z
@@ -26,6 +27,17 @@ export default function LoginPage() {
 
   // Estado para controlar si se muestra la contraseña
   const [showPassword, setShowPassword] = useState(false);
+  const [verificandoSetup, setVerificandoSetup] = useState(true);
+
+  useEffect(() => {
+    authService.getSetupStatus().then((needsSetup) => {
+      if (needsSetup) {
+        navigate("/setup", { replace: true });
+      } else {
+        setVerificandoSetup(false);
+      }
+    });
+  }, [navigate]);
 
   const {
     register,
@@ -67,7 +79,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthenticated) {
+  if (isAuthenticated || verificandoSetup) {
     return null;
   }
 
