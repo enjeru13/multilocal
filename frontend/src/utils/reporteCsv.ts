@@ -31,6 +31,9 @@ export function construirReporteCsv(
   l.push(fila("Descuentos", d.ventas.descuentos));
   l.push(fila("Impuestos", d.ventas.impuestos));
   l.push(fila("Devoluciones", d.devoluciones.total));
+  l.push(fila("Gastos", d.gastos.total));
+  l.push(fila("Ganancia neta (después de gastos)", d.gastos.gananciaNeta));
+  l.push(fila("Por pagar a proveedores", d.porPagar.monto));
   l.push(fila("Cobrado", d.cobros.total));
   l.push(fila("Ganancia (líneas con costo)", d.ganancia.ganancia));
   l.push(fila("Margen %", d.ganancia.margen));
@@ -48,6 +51,10 @@ export function construirReporteCsv(
   l.push(fila(etiquetas.cliente, "Cantidad", "Total"));
   for (const c of d.clientes.top) l.push(fila(c.nombre, c.ventas, c.total));
   if (d.clientes.sinCliente.ventas > 0) l.push(fila("(sin cliente)", d.clientes.sinCliente.ventas, d.clientes.sinCliente.total));
+  l.push("");
+
+  l.push(fila("Gasto por categoría", `Monto (${d.moneda})`));
+  for (const g of d.gastos.porCategoria) l.push(fila(g.categoria, g.monto));
   l.push("");
 
   l.push(fila("Método de pago", `Monto (${d.moneda})`));

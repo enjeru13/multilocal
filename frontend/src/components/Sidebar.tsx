@@ -7,6 +7,8 @@ import {
   FaCog,
   FaChartBar,
   FaChartLine,
+  FaMoneyCheckAlt,
+  FaFileInvoiceDollar,
   FaMoneyBillWave,
   FaBoxes,
   FaTruck,
@@ -88,6 +90,19 @@ export default function Sidebar() {
             icon: <FaCashRegister />,
             roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
             visible: !!config?.moduloCaja,
+          },
+          {
+            to: "/gastos",
+            label: "Gastos",
+            icon: <FaMoneyCheckAlt />,
+            roles: ["ADMIN", "EMPLOYEE"],
+          },
+          {
+            to: "/por-pagar",
+            label: "Por pagar",
+            icon: <FaFileInvoiceDollar />,
+            roles: ["ADMIN", "EMPLOYEE"],
+            visible: !!config?.moduloProveedores,
           },
           {
             to: "/reportes",

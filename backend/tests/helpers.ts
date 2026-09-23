@@ -7,6 +7,8 @@ export const api = () => request(app);
 export { prisma };
 
 export async function resetDb() {
+  await prisma.pagoCompra.deleteMany();
+  await prisma.gasto.deleteMany();
   await prisma.inventarioMovimiento.deleteMany();
   await prisma.compraDetalle.deleteMany();
   await prisma.compra.deleteMany();

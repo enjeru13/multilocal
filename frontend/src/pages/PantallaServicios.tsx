@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { toast } from "react-toastify";
-import { FaPlus, FaTags, FaSearch } from "react-icons/fa";
+import { FaPlus, FaTags, FaSearch, FaPercent } from "react-icons/fa";
 import TablaServicios from "../components/tabla/TablaServicios";
 import FormularioServicio from "../components/formulario/FormularioServicio";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
@@ -18,11 +18,15 @@ import type {
 import CategoriasModal from "../components/modal/ModalCategorias";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
-import { useEtiquetas } from "../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
+import ModalAjustePrecios from "../components/modal/ModalAjustePrecios";
+import { estadoStock } from "../utils/stockHelpers";
 import Button from "../components/ui/Button"; // 1. Importamos el Button
 
 export default function PantallaServicios() {
   const et = useEtiquetas();
+  const { config } = useConfiguracion();
+  const inventario = !!config?.moduloInventario;
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -42,7 +46,8 @@ export default function PantallaServicios() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(15);
-  const [totalFilteredItems, setTotalFilteredItems] = useState(0);
+  const [filtroStock, setFiltroStock] = useState<"TODOS" | "BAJO" | "AGOTADO">("TODOS");
+  const [mostrarAjustePrecios, setMostrarAjustePrecios] = useState(false);
 
   const { hasRole } = useAuth();
 
@@ -90,32 +95,32 @@ export default function PantallaServicios() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [busqueda]);
+  }, [busqueda, filtroStock]);
 
-  const serviciosFiltradosYPaginados = useMemo(() => {
-    const serviciosProcesados = servicios.filter((s) => {
-      const nombreServicio = (s.nombreServicio || "").toLowerCase();
-      const descripcion = (s.descripcion || "").toLowerCase();
-      const categoria = (s.categoria?.nombre || "").toLowerCase();
-      const terminoBusqueda = busqueda.toLowerCase();
-
-      return (
-        nombreServicio.includes(terminoBusqueda) ||
-        descripcion.includes(terminoBusqueda) ||
-        categoria.includes(terminoBusqueda)
-      );
+  const serviciosFiltrados = useMemo(() => {
+    const termino = busqueda.toLowerCase();
+    return servicios.filter((s) => {
+      const coincide =
+        (s.nombreServicio || "").toLowerCase().includes(termino) ||
+        (s.descripcion || "").toLowerCase().includes(termino) ||
+        (s.categoria?.nombre || "").toLowerCase().includes(termino) ||
+        (s.sku || "").toLowerCase().includes(termino) ||
+        (s.codigoBarras || "").toLowerCase().includes(termino);
+      if (!coincide) return false;
+      if (filtroStock === "TODOS") return true;
+      const estado = estadoStock(s);
+      return filtroStock === "BAJO" ? estado === "bajo" || estado === "sin" : estado === "sin";
     });
+  }, [servicios, busqueda, filtroStock]);
 
-    setTotalFilteredItems(serviciosProcesados.length);
+  const totalFilteredItems = serviciosFiltrados.length;
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return serviciosProcesados.slice(startIndex, endIndex);
-  }, [servicios, busqueda, currentPage, itemsPerPage]);
+  const serviciosFiltradosYPaginados = useMemo(
+    () => serviciosFiltrados.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [serviciosFiltrados, currentPage, itemsPerPage]
+  );
 
-  const totalPages = useMemo(() => {
-    return Math.ceil(totalFilteredItems / itemsPerPage);
-  }, [totalFilteredItems, itemsPerPage]);
+  const totalPages = Math.ceil(totalFilteredItems / itemsPerPage);
 
   const abrirNuevoServicio = useCallback(() => {
     if (hasRole(["ADMIN"])) {
@@ -225,6 +230,12 @@ export default function PantallaServicios() {
             Gestionar Categorías
           </Button>
 
+          {hasRole(["ADMIN"]) && (
+            <Button onClick={() => setMostrarAjustePrecios(true)} variant="secondary" leftIcon={<FaPercent className="w-4 h-4" />}>
+              Ajustar precios
+            </Button>
+          )}
+
           <Button
             onClick={abrirNuevoServicio}
             variant="primary"
@@ -241,7 +252,7 @@ export default function PantallaServicios() {
             htmlFor="filtroBusquedaServicio"
             className="text-xs text-gray-500 dark:text-gray-400 mb-1"
           >
-            Buscar por Nombre, Descripción o Categoría
+            {inventario ? "Buscar por nombre, código o categoría" : "Buscar por Nombre, Descripción o Categoría"}
           </label>
           <div className="relative w-72">
             <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
@@ -250,12 +261,35 @@ export default function PantallaServicios() {
               id="filtroBusquedaServicio"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Nombre, descripción o categoría"
+              placeholder={inventario ? "Nombre, SKU, código de barras…" : "Nombre, descripción o categoría"}
               className="pl-9 pr-3 py-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-900 text-sm dark:text-gray-200"
             />
           </div>
         </div>
       </div>
+
+      {inventario && (
+        <div className="-mt-2 mb-4 inline-flex rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-1 gap-1">
+          {(
+            [
+              ["TODOS", "Todos"],
+              ["BAJO", "Stock bajo"],
+              ["AGOTADO", "Agotados"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setFiltroStock(id)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                filtroStock === id ? "bg-blue-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {serviciosFiltradosYPaginados.length === 0 && totalFilteredItems > 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
@@ -284,6 +318,15 @@ export default function PantallaServicios() {
             </div>
           )}
         </>
+      )}
+
+      {mostrarAjustePrecios && (
+        <ModalAjustePrecios
+          categorias={categorias}
+          monedaPrincipal={monedaPrincipal}
+          onClose={() => setMostrarAjustePrecios(false)}
+          onAplicado={cargarServicios}
+        />
       )}
 
       {mostrarFormulario && (

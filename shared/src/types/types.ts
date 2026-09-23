@@ -130,6 +130,19 @@ export interface CompraDetalleCreate {
   costoUnit: number;
 }
 
+export interface PagoCompra {
+  id: number;
+  compraId: number;
+  fecha: string;
+  /** En moneda principal: es lo que baja el saldo. */
+  monto: number;
+  moneda: Moneda;
+  montoMoneda: number;
+  tasa: number;
+  metodoPago: MetodoPago;
+  nota: string | null;
+}
+
 export interface Compra {
   id: number;
   proveedorId: number;
@@ -137,8 +150,13 @@ export interface Compra {
   fecha: string;
   estado: EstadoCompra;
   total: number;
+  montoPagado: number;
+  /** Lo que aún se le debe al proveedor (0 si está cancelada o saldada). */
+  saldo: number;
+  fechaVencimiento: string | null;
   observaciones: string | null;
   detalles: CompraDetalle[];
+  pagos?: PagoCompra[];
 }
 
 export interface CompraCreate {
@@ -146,6 +164,60 @@ export interface CompraCreate {
   observaciones?: string | null;
   estado?: EstadoCompra;
   detalles: CompraDetalleCreate[];
+  /** Pagado al registrar (moneda principal). Sin indicar: todo si se recibe, nada si queda pendiente. */
+  pagoInicial?: number;
+  fechaVencimiento?: string | null;
+  metodoPago?: MetodoPago;
+  desdeCaja?: boolean;
+}
+
+export interface PagoCompraCreate {
+  monto: number;
+  moneda?: Moneda;
+  metodoPago?: MetodoPago;
+  nota?: string | null;
+  desdeCaja?: boolean;
+}
+
+export interface CuentasPorPagar {
+  moneda: Moneda;
+  total: number;
+  vencido: number;
+  proveedores: { proveedorId: number; nombre: string; saldo: number; vencido: number; compras: number }[];
+  compras: (Compra & { vencida: boolean })[];
+}
+
+export interface Gasto {
+  id: number;
+  fecha: string;
+  concepto: string;
+  categoria: string;
+  monto: number;
+  moneda: Moneda;
+  montoMoneda: number;
+  tasa: number;
+  metodoPago: MetodoPago;
+  nota: string | null;
+  cajaMovimientoId: number | null;
+}
+
+export interface GastoCreate {
+  concepto: string;
+  categoria: string;
+  monto: number;
+  moneda?: Moneda;
+  metodoPago?: MetodoPago;
+  fecha?: string;
+  nota?: string | null;
+  desdeCaja?: boolean;
+}
+
+export interface GastosListado {
+  moneda: Moneda;
+  total: number;
+  porCategoria: { categoria: string; monto: number }[];
+  categoriasSugeridas: string[];
+  gastos: Gasto[];
 }
 
 export type ServicioSeleccionado = {
@@ -498,6 +570,14 @@ export interface ReporteResumen {
     impuestos: number;
   };
   devoluciones: { cantidad: number; total: number };
+  gastos: {
+    cantidad: number;
+    total: number;
+    porCategoria: { categoria: string; monto: number }[];
+    /** Ganancia (líneas con costo) menos los gastos del periodo. */
+    gananciaNeta: number;
+  };
+  porPagar: PorCobrarResumen;
   cobros: {
     total: number;
     cantidad: number;
@@ -540,5 +620,6 @@ export interface DashboardData {
   // Solo para ADMIN/EMPLOYEE
   ultimos7?: SerieReportePunto[];
   porCobrar?: PorCobrarResumen;
+  porPagar?: PorCobrarResumen;
   stockBajo?: StockBajoResumen;
 }

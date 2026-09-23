@@ -25,6 +25,8 @@ import PantallaProveedores from "./pages/PantallaProveedores";
 import PantallaCaja from "./pages/PantallaCaja";
 import PantallaVenta from "./pages/PantallaVenta";
 import PantallaReportes from "./pages/PantallaReportes";
+import PantallaGastos from "./pages/PantallaGastos";
+import PantallaCuentasPorPagar from "./pages/PantallaCuentasPorPagar";
 import { AuthProvider } from "./context/AuthContext";
 import { ConfiguracionProvider } from "./context/ConfiguracionContext";
 import { useAuth } from "./hooks/useAuth";
@@ -103,6 +105,22 @@ function App() {
             />
             <Route path="caja" element={<PantallaCaja />} />
             <Route path="venta" element={<PantallaVenta />} />
+            <Route
+              path="gastos"
+              element={
+                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                  <PantallaGastos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="por-pagar"
+              element={
+                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                  <PantallaCuentasPorPagar />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="reportes"
               element={

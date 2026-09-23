@@ -20,6 +20,7 @@ import usuarioRouter from "./routes/usuarioRoute";
 import respaldoRouter from "./routes/respaldoRoute";
 import inventarioRouter from "./routes/inventarioRoute";
 import reporteRouter from "./routes/reporteRoute";
+import gastoRouter from "./routes/gastoRoute";
 
 // App 100% local: sin orígenes cloud, CORS abierto solo porque el server
 // nunca sale de 127.0.0.1 (ver startServer). No hay nada externo que bloquear.
@@ -52,6 +53,7 @@ export function createApp() {
   app.use("/api/respaldos", respaldoRouter);
   app.use("/api/inventario", inventarioRouter);
   app.use("/api/reportes", reporteRouter);
+  app.use("/api/gastos", gastoRouter);
 
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Error global:", err);

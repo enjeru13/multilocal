@@ -79,6 +79,31 @@ async function stockBajo(limite = 20) {
   return { cantidad: bajos.length, items: bajos.slice(0, limite) };
 }
 
+async function porPagarGlobal() {
+  const compras = await prisma.compra.findMany({
+    where: { estado: { not: "CANCELADA" } },
+    select: { total: true, montoPagado: true },
+  });
+  const pendientes = compras.map((c) => c.total - c.montoPagado).filter((s) => s > 0.005);
+  return { cantidad: pendientes.length, monto: Math.round(pendientes.reduce((s, n) => s + n, 0) * 100) / 100 };
+}
+
+async function gastosDelRango(desde: Date, hasta: Date) {
+  const gastos = await prisma.gasto.findMany({
+    where: { fecha: { gte: desde, lte: hasta } },
+    select: { categoria: true, monto: true },
+  });
+  const porCategoria = new Map<string, number>();
+  for (const g of gastos) porCategoria.set(g.categoria, (porCategoria.get(g.categoria) ?? 0) + g.monto);
+  return {
+    cantidad: gastos.length,
+    total: Math.round(gastos.reduce((s, g) => s + g.monto, 0) * 100) / 100,
+    porCategoria: [...porCategoria.entries()]
+      .map(([categoria, monto]) => ({ categoria, monto: Math.round(monto * 100) / 100 }))
+      .sort((a, b) => b.monto - a.monto),
+  };
+}
+
 async function porCobrarGlobal() {
   const agg = await prisma.orden.aggregate({
     where: { estado: { not: "CANCELADO" }, faltante: { gt: 0.005 } },
@@ -113,7 +138,7 @@ export async function getResumen(req: Request, res: Response) {
     const hastaPrev = new Date(desde.getTime() - 1);
     const desdePrev = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() - dias);
 
-    const [actual, previo, sinCobrar, bajos, porEstado, devs] = await Promise.all([
+    const [actual, previo, sinCobrar, bajos, porEstado, devs, gastos, sinPagar] = await Promise.all([
       cargarRango(desde, hasta),
       cargarRango(desdePrev, hastaPrev),
       porCobrarGlobal(),
@@ -128,6 +153,8 @@ export async function getResumen(req: Request, res: Response) {
         _sum: { total: true },
         _count: true,
       }),
+      gastosDelRango(desde, hasta),
+      porPagarGlobal(),
     ]);
 
     const ventas = resumirVentas(actual.ordenes);
@@ -147,6 +174,8 @@ export async function getResumen(req: Request, res: Response) {
         variacionVentas: variacion(ventas.total, ventasPrev.total),
         variacionCobrado: variacion(cobros.total, cobrosPrev.total),
       },
+      gastos: { ...gastos, gananciaNeta: Math.round((resumirGanancia(actual.ordenes).ganancia - gastos.total) * 100) / 100 },
+      porPagar: sinPagar,
       devoluciones: { cantidad: devs._count, total: Math.round((devs._sum.total ?? 0) * 100) / 100 },
       porEstado: porEstado.map((e) => ({ estado: e.estado, cantidad: e._count })),
       serie: serieTemporal(actual.ordenes, actual.pagos, desde, hasta, agrupar, tasas, principal),
@@ -192,12 +221,13 @@ export async function getDashboard(req: Request, res: Response) {
     const desde7 = new Date(inicioHoy);
     desde7.setDate(desde7.getDate() - 6);
     const semana = await cargarRango(desde7, finHoy);
-    const [sinCobrar, bajos] = await Promise.all([porCobrarGlobal(), stockBajo(5)]);
+    const [sinCobrar, bajos, sinPagar] = await Promise.all([porCobrarGlobal(), stockBajo(5), porPagarGlobal()]);
 
     return res.json({
       ...base,
       ultimos7: serieTemporal(semana.ordenes, semana.pagos, desde7, finHoy, "dia", tasas, principal),
       porCobrar: sinCobrar,
+      porPagar: sinPagar,
       stockBajo: bajos,
     });
   } catch (error) {

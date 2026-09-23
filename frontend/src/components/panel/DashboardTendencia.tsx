@@ -3,6 +3,7 @@ import { FaExclamationTriangle } from "react-icons/fa";
 import type { DashboardData } from "@lavanderia/shared/types/types";
 import GraficoBarras from "../charts/GraficoBarras";
 import { useAuth } from "../../hooks/useAuth";
+import { formatearMoneda } from "../../utils/monedaHelpers";
 
 const tarjeta =
   "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-5";
@@ -28,6 +29,15 @@ export default function DashboardTendencia({ data }: { data: DashboardData | nul
 
       <section className={tarjeta}>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Atención</h2>
+        {data.porPagar && data.porPagar.monto > 0 && (
+          <Link
+            to="/por-pagar"
+            className="flex justify-between gap-3 text-sm mb-3 pb-3 border-b border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            <span>Por pagar a proveedores</span>
+            <strong className="tabular-nums">{formatearMoneda(data.porPagar.monto, data.moneda)}</strong>
+          </Link>
+        )}
         {data.stockBajo && data.stockBajo.cantidad > 0 ? (
           <div className="text-sm">
             <p className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium mb-2">
@@ -48,7 +58,9 @@ export default function DashboardTendencia({ data }: { data: DashboardData | nul
             </Link>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Todo en orden por ahora.</p>
+          !(data.porPagar && data.porPagar.monto > 0) && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">Todo en orden por ahora.</p>
+          )
         )}
       </section>
     </div>

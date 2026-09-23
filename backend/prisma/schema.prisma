@@ -219,6 +219,11 @@ model Compra {
   observaciones String?
   detalles      CompraDetalle[]
 
+  // Cuentas por pagar: lo abonado al proveedor y cuándo vence el saldo.
+  montoPagado      Float     @default(0)
+  fechaVencimiento DateTime?
+  pagos            PagoCompra[]
+
   @@index([proveedorId])
 }
 
@@ -409,4 +414,45 @@ model DevolucionDetalle {
 
   @@index([devolucionId])
   @@index([detalleOrdenId])
+}
+
+// Abono a una compra. monto va en moneda principal (es lo que baja el saldo);
+// montoMoneda/moneda/tasa guardan cómo se pagó realmente.
+model PagoCompra {
+  id               Int        @id @default(autoincrement())
+  compraId         Int
+  fecha            DateTime   @default(now())
+  monto            Float
+  moneda           Moneda     @default(USD)
+  montoMoneda      Float
+  tasa             Float      @default(1)
+  metodoPago       MetodoPago @default(EFECTIVO)
+  nota             String?
+  userId           Int?
+  cajaMovimientoId Int?
+
+  compra Compra @relation(fields: [compraId], references: [id])
+
+  @@index([compraId])
+}
+
+// Gasto operativo (alquiler, servicios, sueldos...). Igual que los pagos a
+// proveedores: monto en moneda principal + el detalle de cómo se pagó.
+model Gasto {
+  id               Int        @id @default(autoincrement())
+  fecha            DateTime   @default(now())
+  concepto         String
+  categoria        String
+  monto            Float
+  moneda           Moneda     @default(USD)
+  montoMoneda      Float
+  tasa             Float      @default(1)
+  metodoPago       MetodoPago @default(EFECTIVO)
+  proveedorId      Int?
+  nota             String?
+  userId           Int?
+  cajaMovimientoId Int?
+
+  @@index([fecha])
+  @@index([categoria])
 }

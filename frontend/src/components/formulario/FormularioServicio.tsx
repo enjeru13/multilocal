@@ -45,6 +45,7 @@ export default function FormularioServicio({
   const [controlaStock, setControlaStock] = useState(false);
   const [sku, setSku] = useState("");
   const [codigoBarras, setCodigoBarras] = useState("");
+  const [costo, setCosto] = useState<number | null>(null);
   const [exentoImpuesto, setExentoImpuesto] = useState(false);
   const [stockActual, setStockActual] = useState<number | null>(0);
   const [stockMinimo, setStockMinimo] = useState<number | null>(null);
@@ -66,6 +67,7 @@ export default function FormularioServicio({
       setControlaStock(servicio.controlaStock ?? false);
       setSku(servicio.sku || "");
       setCodigoBarras(servicio.codigoBarras || "");
+      setCosto(servicio.costoBase ?? null);
       setExentoImpuesto(servicio.exentoImpuesto ?? false);
       setStockActual(servicio.stockActual ?? 0);
       setStockMinimo(servicio.stockMinimo ?? null);
@@ -78,6 +80,7 @@ export default function FormularioServicio({
       setControlaStock(false);
       setSku("");
       setCodigoBarras("");
+      setCosto(null);
       setExentoImpuesto(false);
       setStockActual(0);
       setStockMinimo(null);
@@ -110,6 +113,7 @@ export default function FormularioServicio({
           controlaStock,
           sku: sku.trim() || null,
           codigoBarras: codigoBarras.trim() || null,
+          costoBase: costo,
           ...(controlaStock && {
             stockActual: stockActual ?? 0,
             stockMinimo: stockMinimo ?? null,
@@ -248,6 +252,39 @@ export default function FormularioServicio({
               </p>
             )}
           </div>
+
+          {inventarioActivo && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Costo (opcional):
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={costo ?? ""}
+                  onChange={(e) => {
+                    const parsed = parseFloat(e.target.value);
+                    setCosto(isNaN(parsed) ? null : parsed);
+                  }}
+                  className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm"
+                  placeholder="Ej. 8.00"
+                  disabled={cargando}
+                />
+                {costo !== null && precio !== null && precio > 0 && (
+                  <span
+                    className={`text-sm font-semibold ${
+                      precio >= costo ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    Margen {(((precio - costo) / precio) * 100).toFixed(1)}% · ganas {(precio - costo).toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Se guarda con cada venta para calcular tu ganancia. Al registrar una compra se actualiza solo.</p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">

@@ -330,7 +330,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
         cantidad: item.cantidad,
         precioUnit: parseFloat(precioUnit.toFixed(2)),
         // Costo congelado al vender: base para reportes de ganancia.
-        costoUnit: servicio.controlaStock ? servicio.costoBase : null,
+        costoUnit: servicio.costoBase,
         subtotal: r2(precioUnit * item.cantidad),
         exento: servicio.exentoImpuesto,
       });
@@ -538,9 +538,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
               // Conserva el costo con que se vendió si el artículo ya estaba.
               costoUnit: costoPrevio.has(item.servicioId)
                 ? costoPrevio.get(item.servicioId)!
-                : servicioDb.controlaStock
-                ? servicioDb.costoBase
-                : null,
+                : servicioDb.costoBase,
               subtotal: r2(precioUnit * item.cantidad),
               exento: servicioDb.exentoImpuesto,
             });

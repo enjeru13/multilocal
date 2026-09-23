@@ -2,7 +2,8 @@ import { useState } from "react";
 import { FaBoxOpen, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
-import type { Proveedor, Servicio } from "@lavanderia/shared/types/types";
+import type { MetodoPago, Proveedor, Servicio } from "@lavanderia/shared/types/types";
+import { useConfiguracion } from "../../context/configuracionCore";
 import { comprasService } from "../../services/comprasService";
 import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import Modal from "../ui/Modal";
@@ -30,6 +31,12 @@ export default function ModalRegistrarCompra({
   const [cantidadSel, setCantidadSel] = useState<number | "">("");
   const [costoSel, setCostoSel] = useState<number | "">("");
   const [cargando, setCargando] = useState(false);
+  const { config } = useConfiguracion();
+  const [pago, setPago] = useState<"TODO" | "CREDITO" | "ABONO">("TODO");
+  const [abono, setAbono] = useState("");
+  const [vence, setVence] = useState("");
+  const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
+  const [desdeCaja, setDesdeCaja] = useState(true);
 
   const agregarLinea = () => {
     if (!servicioSel || !cantidadSel || cantidadSel <= 0 || costoSel === "" || costoSel < 0) {
@@ -61,10 +68,21 @@ export default function ModalRegistrarCompra({
     }
     setCargando(true);
     try {
+      const abonoNum = parseFloat(abono.replace(",", "."));
+      if (pago === "ABONO" && (isNaN(abonoNum) || abonoNum <= 0 || abonoNum >= total)) {
+        toast.error("El abono debe ser mayor a 0 y menor al total.");
+        setCargando(false);
+        return;
+      }
+      const pagoInicial = pago === "TODO" ? total : pago === "CREDITO" ? 0 : abonoNum;
       await comprasService.create({
         proveedorId: proveedor.id,
         estado: "RECIBIDA",
         detalles: lineas,
+        pagoInicial,
+        fechaVencimiento: pago !== "TODO" && vence ? vence : null,
+        metodoPago: metodo,
+        desdeCaja: pagoInicial > 0 && metodo === "EFECTIVO" && !!config?.moduloCaja ? desdeCaja : false,
       });
       toast.success("Compra registrada, stock actualizado.");
       onGuardada();
@@ -166,6 +184,72 @@ export default function ModalRegistrarCompra({
             ))}
           </div>
         )}
+
+        <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pago al proveedor</p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {(
+              [
+                ["TODO", "Pagada"],
+                ["ABONO", "Abono"],
+                ["CREDITO", "A crédito"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setPago(id)}
+                className={`px-3 py-1.5 rounded-md border font-medium cursor-pointer ${
+                  pago === id
+                    ? "bg-green-600 border-green-600 text-white"
+                    : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {pago === "ABONO" && (
+            <input
+              type="number"
+              step="any"
+              value={abono}
+              onChange={(e) => setAbono(e.target.value)}
+              placeholder={`Monto abonado (${monedaPrincipal})`}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+            />
+          )}
+          {pago !== "CREDITO" && (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <select
+                value={metodo}
+                onChange={(e) => setMetodo(e.target.value as MetodoPago)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+                <option value="PAGO_MOVIL">Pago móvil</option>
+              </select>
+              {config?.moduloCaja && metodo === "EFECTIVO" && (
+                <label className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                  <input type="checkbox" checked={desdeCaja} onChange={(e) => setDesdeCaja(e.target.checked)} className="accent-green-600 w-4 h-4" />
+                  Sale de la caja
+                </label>
+              )}
+            </div>
+          )}
+          {pago !== "TODO" && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Vence el (opcional)</label>
+              <input
+                type="date"
+                value={vence}
+                onChange={(e) => setVence(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-800">
           <span className="font-semibold text-gray-700 dark:text-gray-300">Total compra</span>

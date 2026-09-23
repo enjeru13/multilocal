@@ -46,4 +46,18 @@ export const servicioService = {
    * @returns
    */
   delete: (id: number): Promise<void> => apiClient.delete(`/servicios/${id}`),
+
+  /** Sube o baja precios en %. Con simular=true solo devuelve qué cambiaría. */
+  ajustarPrecios: (datos: {
+    porcentaje: number;
+    categoriaId?: string | null;
+    redondeo: "CENTAVOS" | "ENTERO" | "MEDIO";
+    simular: boolean;
+  }): Promise<{
+    data: {
+      aplicado: boolean;
+      cantidad: number;
+      ejemplos: { id: number; nombre: string; antes: number; despues: number }[];
+    };
+  }> => apiClient.post("/servicios/ajuste-precios", datos),
 };

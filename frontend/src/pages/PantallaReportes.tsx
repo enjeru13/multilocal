@@ -11,36 +11,8 @@ import { useEtiquetas } from "../context/configuracionCore";
 import GraficoBarras from "../components/charts/GraficoBarras";
 import Button from "../components/ui/Button";
 import { exportarReporteCsv } from "../utils/reporteCsv";
-
-type Preset = "hoy" | "7d" | "mes" | "mesPasado" | "anio" | "personalizado";
-
-const PRESETS: { id: Exclude<Preset, "personalizado">; label: string }[] = [
-  { id: "hoy", label: "Hoy" },
-  { id: "7d", label: "7 días" },
-  { id: "mes", label: "Este mes" },
-  { id: "mesPasado", label: "Mes pasado" },
-  { id: "anio", label: "Este año" },
-];
-
-const FMT = "YYYY-MM-DD";
-
-function rangoDePreset(id: Exclude<Preset, "personalizado">): { desde: string; hasta: string } {
-  const hoy = dayjs();
-  switch (id) {
-    case "hoy":
-      return { desde: hoy.format(FMT), hasta: hoy.format(FMT) };
-    case "7d":
-      return { desde: hoy.subtract(6, "day").format(FMT), hasta: hoy.format(FMT) };
-    case "mes":
-      return { desde: hoy.startOf("month").format(FMT), hasta: hoy.format(FMT) };
-    case "mesPasado": {
-      const m = hoy.subtract(1, "month");
-      return { desde: m.startOf("month").format(FMT), hasta: m.endOf("month").format(FMT) };
-    }
-    case "anio":
-      return { desde: hoy.startOf("year").format(FMT), hasta: hoy.format(FMT) };
-  }
-}
+import SelectorPeriodo from "../components/SelectorPeriodo";
+import { rangoDePreset, rangoValido, type PresetPeriodo } from "../utils/rangosFecha";
 
 const METODOS: Record<string, string> = {
   EFECTIVO: "Efectivo",
@@ -90,7 +62,7 @@ function Kpi({
 
 export default function PantallaReportes() {
   const et = useEtiquetas();
-  const [preset, setPreset] = useState<Preset>("mes");
+  const [preset, setPreset] = useState<PresetPeriodo>("mes");
   const [rango, setRango] = useState(() => rangoDePreset("mes"));
   const [data, setData] = useState<ReporteResumen | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -114,20 +86,9 @@ export default function PantallaReportes() {
   }, []);
 
   useEffect(() => {
-    if (rango.desde && rango.hasta && rango.desde <= rango.hasta) cargar(rango.desde, rango.hasta);
+    if (rangoValido(rango)) cargar(rango.desde, rango.hasta);
   }, [rango, cargar]);
 
-  const elegirPreset = (id: Exclude<Preset, "personalizado">) => {
-    setPreset(id);
-    setRango(rangoDePreset(id));
-  };
-
-  const cambiarFecha = (campo: "desde" | "hasta", valor: string) => {
-    setPreset("personalizado");
-    setRango((r) => ({ ...r, [campo]: valor }));
-  };
-
-  const fechasInvalidas = !rango.desde || !rango.hasta || rango.desde > rango.hasta;
   const m = data?.moneda ?? "USD";
   const fmt = (n: number) => formatearMoneda(n, m);
 
@@ -159,47 +120,15 @@ export default function PantallaReportes() {
         </Button>
       </header>
 
-      <section className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex flex-wrap rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-1 gap-1">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => elegirPreset(p.id)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                preset === p.id
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <input
-            type="date"
-            value={rango.desde}
-            max={rango.hasta || undefined}
-            onChange={(e) => cambiarFecha("desde", e.target.value)}
-            aria-label="Desde"
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-          />
-          <span>a</span>
-          <input
-            type="date"
-            value={rango.hasta}
-            min={rango.desde || undefined}
-            onChange={(e) => cambiarFecha("hasta", e.target.value)}
-            aria-label="Hasta"
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-          />
-        </div>
-      </section>
+      <SelectorPeriodo
+        preset={preset}
+        rango={rango}
+        onChange={(r, p) => {
+          setRango(r);
+          setPreset(p);
+        }}
+      />
 
-      {fechasInvalidas && (
-        <p className="text-sm text-amber-600 dark:text-amber-400">La fecha inicial debe ser anterior o igual a la final.</p>
-      )}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {!data && cargando && <div className={`${tarjeta} h-64 animate-pulse`} />}
@@ -275,6 +204,30 @@ export default function PantallaReportes() {
               {data.devoluciones.cantidad > 0 && (
                 <span>
                   Devoluciones: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.devoluciones.total)}</strong> ({data.devoluciones.cantidad})
+                </span>
+              )}
+            </div>
+          )}
+
+          {(data.gastos.total > 0 || data.porPagar.monto > 0) && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+              {data.gastos.total > 0 && (
+                <span>
+                  Gastos: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.gastos.total)}</strong>
+                  {data.gastos.porCategoria[0] && <> (el mayor: {data.gastos.porCategoria[0].categoria})</>}
+                </span>
+              )}
+              {hayCosto && data.gastos.total > 0 && (
+                <span>
+                  Ganancia neta:{" "}
+                  <strong className={data.gastos.gananciaNeta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+                    {fmt(data.gastos.gananciaNeta)}
+                  </strong>
+                </span>
+              )}
+              {data.porPagar.monto > 0 && (
+                <span>
+                  Por pagar a proveedores: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.porPagar.monto)}</strong> ({data.porPagar.cantidad})
                 </span>
               )}
             </div>
