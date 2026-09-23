@@ -9,6 +9,7 @@ import {
   FaMoneyBillWave,
   FaBoxes,
   FaTruck,
+  FaCashRegister,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/ConfiguracionContext";
@@ -70,6 +71,13 @@ export default function Sidebar() {
       {
         section: "Finanzas",
         items: [
+          {
+            to: "/caja",
+            label: "Caja",
+            icon: <FaCashRegister />,
+            roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
+            visible: !!config?.moduloCaja,
+          },
           {
             to: "/pagos",
             label: "Pagos",

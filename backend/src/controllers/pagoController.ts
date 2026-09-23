@@ -148,6 +148,20 @@ export async function createPago(req: Request, res: Response) {
     }
 
     const config = await prisma.configuracion.findFirst();
+
+    let cajaSesionId: number | null = null;
+    if (config?.moduloCaja) {
+      const cajaAbierta = await prisma.cajaSesion.findFirst({
+        where: { estado: "ABIERTA" },
+      });
+      if (!cajaAbierta) {
+        return res.status(409).json({
+          message: "No hay una caja abierta. Abre la caja antes de registrar pagos.",
+        });
+      }
+      cajaSesionId = cajaAbierta.id;
+    }
+
     let tasaSnapshot = 0; // Default to 0 to avoid 1:1 bug
     if (config) {
       switch (moneda) {
@@ -171,6 +185,7 @@ export async function createPago(req: Request, res: Response) {
         metodoPago,
         nota: nota ?? null,
         tasa: tasaSnapshot,
+        cajaSesionId,
       },
     });
 

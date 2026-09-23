@@ -21,6 +21,7 @@ import PantallaEstadoOrdenes from "./pages/PantallaEstadoOrdenes";
 import PantallaEditarOrden from "./pages/PantallaEditarOrden";
 import PantallaInventario from "./pages/PantallaInventario";
 import PantallaProveedores from "./pages/PantallaProveedores";
+import PantallaCaja from "./pages/PantallaCaja";
 import { AuthProvider } from "./context/AuthContext";
 import { ConfiguracionProvider } from "./context/ConfiguracionContext";
 import { useAuth } from "./hooks/useAuth";
@@ -77,6 +78,7 @@ function App() {
             <Route path="ordenes" element={<PantallaOrdenes />} />
             <Route path="pagos" element={<PantallaPagos />} />
             <Route path="inventario" element={<PantallaInventario />} />
+            <Route path="caja" element={<PantallaCaja />} />
             <Route
               path="proveedores"
               element={
