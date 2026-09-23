@@ -3,6 +3,7 @@ import { formatearMoneda } from "../../../shared/src/utils/monedaHelpers";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import type { ReciboData as ReciboProps } from "@lavanderia/shared/types/types";
+import { useEtiquetas } from "../context/configuracionCore";
 
 dayjs.locale("es");
 
@@ -22,8 +23,8 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
     },
     ref
   ) => {
+    const et = useEtiquetas();
     const restante = Math.max(total - abono, 0);
-    console.log(clienteInfo.telefono_secundario, clienteInfo.telefono)
 
     const formatDate = (date: string | Date | undefined | null) => {
       if (!date) return "";
@@ -66,15 +67,15 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
 
             {(lavanderiaInfo.telefonoPrincipal || lavanderiaInfo.telefonoSecundario) && (
               <div className="mt-1">
-                {lavanderiaInfo.telefonoPrincipal && <p>Whatsapp: {lavanderiaInfo.telefonoPrincipal}</p>}
-                {lavanderiaInfo.telefonoSecundario && <p>CANTV: {lavanderiaInfo.telefonoSecundario}</p>}
+                {lavanderiaInfo.telefonoPrincipal && <p>TEL: {lavanderiaInfo.telefonoPrincipal}</p>}
+                {lavanderiaInfo.telefonoSecundario && <p>TEL. 2: {lavanderiaInfo.telefonoSecundario}</p>}
               </div>
             )}
           </div>
 
           {numeroOrden && (
             <div className="mt-3 mb-1">
-              <span className="text-sm font-bold">N° ORDEN: </span>
+              <span className="text-sm font-bold">N° {et.orden}: </span>
               <span className="text-xl font-black">#{numeroOrden}</span>
             </div>
           )}
@@ -85,13 +86,15 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
         {/* --- DATOS DEL CLIENTE --- */}
         <div className="text-xs font-mono uppercase leading-snug space-y-1">
           <div className="flex">
-            <span className="font-bold w-24 shrink-0">CLIENTE:</span>
+            <span className="font-bold w-24 shrink-0">{et.cliente}:</span>
             <span className="truncate">{clienteInfo.nombre} {clienteInfo.apellido}</span>
           </div>
-          <div className="flex">
-            <span className="font-bold w-24 shrink-0">CI/RIF:</span>
-            <span>{clienteInfo.identificacion}</span>
-          </div>
+          {clienteInfo.identificacion && (
+            <div className="flex">
+              <span className="font-bold w-24 shrink-0">CI/RIF:</span>
+              <span>{clienteInfo.identificacion}</span>
+            </div>
+          )}
 
           {/* TELÉFONO PRINCIPAL */}
           {clienteInfo.telefono && (
@@ -155,7 +158,7 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
         {/* --- TOTALES --- */}
         <div className="flex flex-col gap-1 uppercase">
           <LineaTotal
-            label="TOTAL PIEZAS:"
+            label="TOTAL ARTÍCULOS:"
             valor={totalCantidadPiezas}
           />
           <div className="my-1 border-t border-dotted border-gray-400" />

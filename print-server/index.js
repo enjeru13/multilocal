@@ -168,7 +168,7 @@ app.post("/imprimir-recibo", async (req, res) => {
 
   const requestData = {
     printer: PRINTER_ID,
-    title: "Recibo de Lavandería",
+    title: "Recibo",
     contentType: "raw_base64",
     content: contentBase64,
   };

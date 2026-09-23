@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { FaTshirt, FaPlus, FaDollarSign, FaTrashAlt } from "react-icons/fa";
 import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
+import { useEtiquetas } from "../../context/configuracionCore";
 import type {
   Servicio,
   ServicioSeleccionado,
@@ -22,6 +23,7 @@ export default function ServiciosPanel({
   setServiciosSeleccionados,
   monedaPrincipal,
 }: Props) {
+  const et = useEtiquetas();
   const [servicioId, setServicioId] = useState<number | string>("");
   const [cantidad, setCantidad] = useState<number>(1);
   const [precioPersonalizado, setPrecioPersonalizado] = useState<string>("");
@@ -83,7 +85,7 @@ export default function ServiciosPanel({
   return (
     <section className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 transition-all duration-300">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3">
-        <FaTshirt size={28} className="text-blue-600 dark:text-blue-400" /> Selección de Servicios
+        <FaTshirt size={28} className="text-blue-600 dark:text-blue-400" /> Selección de {et.servicios}
       </h2>
 
       {/* --- FILA DE AGREGAR --- */}
@@ -91,7 +93,7 @@ export default function ServiciosPanel({
         {/* SELECTOR SERVICIO */}
         <div className="flex-1 w-full">
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Servicio
+            {et.servicio}
           </label>
           <select
             className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-800 dark:text-gray-100 transition-colors"
@@ -177,7 +179,7 @@ export default function ServiciosPanel({
       <div className="space-y-3">
         {serviciosSeleccionados.length === 0 ? (
           <p className="text-center text-gray-500 dark:text-gray-400 py-6 italic bg-gray-50 dark:bg-gray-950 rounded-lg border border-dashed border-gray-300 dark:border-gray-800 transition-all">
-            No has agregado prendas.
+            Aún no has agregado nada.
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all">
@@ -185,7 +187,7 @@ export default function ServiciosPanel({
               <thead className="bg-gray-100 dark:bg-gray-900 transition-colors">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Servicio
+                    {et.servicio}
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Cant.
@@ -236,7 +238,7 @@ export default function ServiciosPanel({
                         <button
                           onClick={() => eliminarServicio(item.servicioId)}
                           className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/40 p-2 rounded-full transition-all cursor-pointer"
-                          title="Eliminar servicio"
+                          title={`Eliminar ${et.servicioMin}`}
                         >
                           <FaTrashAlt />
                         </button>

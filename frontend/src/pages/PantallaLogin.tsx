@@ -101,7 +101,7 @@ export default function LoginPage() {
             <span className="drop-shadow-sm">Bienvenido</span>
           </h2>
           <p className="text-center text-gray-600 dark:text-gray-400 mb-10 max-w-md mx-auto text-lg transition-colors">
-            Accede a tu cuenta para gestionar tu lavandería.
+            Accede a tu cuenta para gestionar tu negocio.
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

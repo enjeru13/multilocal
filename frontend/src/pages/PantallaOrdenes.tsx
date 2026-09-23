@@ -17,8 +17,10 @@ import { useAuth } from "../hooks/useAuth";
 import type { Orden } from "@lavanderia/shared/types/types";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
+import { useEtiquetas } from "../context/configuracionCore";
 
 export default function PantallaOrdenes() {
+  const et = useEtiquetas();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -52,11 +54,11 @@ export default function PantallaOrdenes() {
       setOrdenes(ordenesEnriquecidas);
     } catch (err) {
       console.error("Error al cargar órdenes:", err);
-      toast.error("Error al cargar órdenes");
+      toast.error(`Error al cargar ${et.ordenesMin}`);
     } finally {
       setLoading(false);
     }
-  }, [tasas, monedaPrincipal]);
+  }, [et, tasas, monedaPrincipal]);
 
   const cargarConfiguracion = useCallback(async () => {
     try {
@@ -131,10 +133,10 @@ export default function PantallaOrdenes() {
         setOrdenAEliminarId(id);
         setMostrarConfirmacionEliminar(true);
       } else {
-        toast.error("No tienes permiso para eliminar órdenes.");
+        toast.error(`No tienes permiso para eliminar ${et.ordenesMin}.`);
       }
     },
-    [hasRole]
+    [et, hasRole]
   );
 
   const ejecutarEliminarOrden = useCallback(async () => {
@@ -142,22 +144,22 @@ export default function PantallaOrdenes() {
 
     try {
       await ordenesService.delete(ordenAEliminarId);
-      toast.success("Orden eliminada correctamente");
+      toast.success(`${et.orden} eliminada correctamente`);
       cargarOrdenes();
     } catch (err) {
-      toast.error("Error al eliminar la orden");
+      toast.error(`Error al eliminar ${et.ordenMin}`);
       console.error(err);
     } finally {
       setMostrarConfirmacionEliminar(false);
       setOrdenAEliminarId(undefined);
     }
-  }, [ordenAEliminarId, cargarOrdenes]);
+  }, [et, ordenAEliminarId, cargarOrdenes]);
 
   const ejecutarAnularOrden = useCallback(async () => {
     if (ordenAAnularId === undefined) return;
     try {
       await ordenesService.anular(ordenAAnularId);
-      toast.success("Orden anulada: stock devuelto y pagos reembolsados.");
+      toast.success(`${et.orden} anulada: stock devuelto y pagos reembolsados.`);
       cargarOrdenes();
     } catch (err) {
       const msg =
@@ -167,7 +169,7 @@ export default function PantallaOrdenes() {
     } finally {
       setOrdenAAnularId(undefined);
     }
-  }, [ordenAAnularId, cargarOrdenes]);
+  }, [et, ordenAAnularId, cargarOrdenes]);
 
   const actualizarOrdenEnLista = useCallback(
     (actualizada: Orden) => {
@@ -185,14 +187,14 @@ export default function PantallaOrdenes() {
   const marcarComoEntregada = useCallback(
     async (id: number) => {
       if (!hasRole(["ADMIN", "EMPLOYEE"])) {
-        toast.error("No tienes permiso para marcar órdenes como entregadas.");
+        toast.error(`No tienes permiso para marcar ${et.ordenesMin} como entregadas.`);
         return;
       }
 
       try {
         const ordenActual = ordenes.find((o) => o.id === id);
         if (!ordenActual) {
-          toast.error("Orden no encontrada para marcar como entregada.");
+          toast.error(`${et.orden} no encontrada.`);
           return;
         }
 
@@ -201,19 +203,19 @@ export default function PantallaOrdenes() {
         };
 
         const res = await ordenesService.update(id, payload);
-        toast.success("Orden marcada como entregada");
+        toast.success(`${et.orden} marcada como entregada`);
         actualizarOrdenEnLista(res.data);
       } catch (err) {
         toast.error("Error al actualizar estado");
         console.error(err);
       }
     },
-    [ordenes, hasRole, actualizarOrdenEnLista]
+    [et, ordenes, hasRole, actualizarOrdenEnLista]
   );
 
   const handleAbrirPagoExtra = useCallback(
     (orden: Orden) => {
-      if (hasRole(["ADMIN", "EMPLOYEE"])) {
+      if (hasRole(["ADMIN", "EMPLOYEE", "CAJERO"])) {
         setOrdenSeleccionada(orden);
         setMostrarModalPago(true);
       } else {
@@ -244,7 +246,7 @@ export default function PantallaOrdenes() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Historial de Órdenes
+          Historial de {et.ordenes}
         </h1>
       </div>
 
@@ -254,7 +256,7 @@ export default function PantallaOrdenes() {
             htmlFor="filtroBusquedaOrdenes"
             className="text-xs text-gray-500 dark:text-gray-400 mb-1"
           >
-            Buscar por Nombre o por N° de Orden
+            Buscar por nombre o por N°
           </label>
           <div className="relative w-72">
             <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
@@ -263,7 +265,7 @@ export default function PantallaOrdenes() {
               id="filtroBusquedaOrdenes"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Orden o cliente"
+              placeholder={`${et.orden} o ${et.clienteMin}`}
               className="pl-9 pr-3 py-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-900 text-sm dark:text-gray-200"
             />
           </div>
@@ -272,12 +274,12 @@ export default function PantallaOrdenes() {
 
       {ordenesFiltradasYPaginadas.length === 0 && totalFilteredItems > 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron órdenes en esta página con los filtros aplicados.
+          No se encontraron {et.ordenesMin} en esta página con los filtros aplicados.
         </p>
       ) : ordenesFiltradasYPaginadas.length === 0 &&
         totalFilteredItems === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron órdenes con los filtros aplicados.
+          No se encontraron {et.ordenesMin} con los filtros aplicados.
         </p>
       ) : (
         <>
@@ -323,9 +325,9 @@ export default function PantallaOrdenes() {
 
       {ordenAAnularId !== undefined && (
         <ConfirmacionModal
-          titulo="Anular orden"
+          titulo={`Anular ${et.ordenMin}`}
           textoConfirmar="Anular"
-          mensaje={`¿Anular la orden #${ordenAAnularId}? Se devolverá el stock y se registrará el reembolso de lo cobrado. La orden queda en el historial como CANCELADO.`}
+          mensaje={`¿Anular ${et.ordenMin} #${ordenAAnularId}? Se devolverá el stock y se registrará el reembolso de lo cobrado. Queda en el historial como CANCELADO.`}
           onConfirm={ejecutarAnularOrden}
           onCancel={() => setOrdenAAnularId(undefined)}
         />
@@ -333,7 +335,7 @@ export default function PantallaOrdenes() {
 
       {mostrarConfirmacionEliminar && (
         <ConfirmacionModal
-          mensaje={`¿Estás segura de que deseas eliminar la orden #${ordenAEliminarId}? Esta acción no se puede deshacer.`}
+          mensaje={`¿Eliminar ${et.ordenMin} #${ordenAEliminarId}? Esta acción no se puede deshacer.`}
           onConfirm={ejecutarEliminarOrden}
           onCancel={() => {
             setMostrarConfirmacionEliminar(false);

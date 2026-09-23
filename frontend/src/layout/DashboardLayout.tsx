@@ -7,7 +7,7 @@ import { configuracionService } from "../services/configuracionService";
 import type { Configuracion } from "@lavanderia/shared/types/types";
 
 export default function DashboardLayout() {
-  const [nombreNegocio, setNombreNegocio] = useState("Lavandería");
+  const [nombreNegocio, setNombreNegocio] = useState("Mostrador");
   const [isDarkMode, setIsDarkMode] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
@@ -18,7 +18,7 @@ export default function DashboardLayout() {
       try {
         const res = await configuracionService.get();
         const config: Configuracion = res.data;
-        setNombreNegocio(config.nombreNegocio || "Lavandería");
+        setNombreNegocio(config.nombreNegocio || "Mostrador");
       } catch (error) {
         console.error("Error al obtener nombre del negocio:", error);
         toast.error("Error al cargar el nombre del negocio.");

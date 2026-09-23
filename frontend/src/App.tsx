@@ -23,6 +23,7 @@ import PantallaEditarOrden from "./pages/PantallaEditarOrden";
 import PantallaInventario from "./pages/PantallaInventario";
 import PantallaProveedores from "./pages/PantallaProveedores";
 import PantallaCaja from "./pages/PantallaCaja";
+import PantallaVenta from "./pages/PantallaVenta";
 import { AuthProvider } from "./context/AuthContext";
 import { ConfiguracionProvider } from "./context/ConfiguracionContext";
 import { useAuth } from "./hooks/useAuth";
@@ -74,11 +75,33 @@ function App() {
           >
             <Route index element={<PantallaPrincipal />} />
             <Route path="clientes" element={<PantallaClientes />} />
-            <Route path="servicios" element={<PantallaServicios />} />
+            <Route
+              path="servicios"
+              element={
+                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                  <PantallaServicios />
+                </ProtectedRoute>
+              }
+            />
             <Route path="ordenes" element={<PantallaOrdenes />} />
-            <Route path="pagos" element={<PantallaPagos />} />
-            <Route path="inventario" element={<PantallaInventario />} />
+            <Route
+              path="pagos"
+              element={
+                <ProtectedRoute roles={["ADMIN"]}>
+                  <PantallaPagos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="inventario"
+              element={
+                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                  <PantallaInventario />
+                </ProtectedRoute>
+              }
+            />
             <Route path="caja" element={<PantallaCaja />} />
+            <Route path="venta" element={<PantallaVenta />} />
             <Route
               path="proveedores"
               element={

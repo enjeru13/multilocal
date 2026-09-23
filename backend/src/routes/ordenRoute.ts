@@ -16,19 +16,19 @@ const router = Router();
 router.get(
   "/",
   protect,
-  authorizeRoles([Role.ADMIN, Role.EMPLOYEE]),
+  authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]),
   getAllOrdenes
 );
 router.get(
   "/:id",
   protect,
-  authorizeRoles([Role.ADMIN, Role.EMPLOYEE]),
+  authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]),
   getOrdenById
 );
 router.post(
   "/",
   protect,
-  authorizeRoles([Role.ADMIN, Role.EMPLOYEE]),
+  authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]),
   createOrden
 );
 router.put(

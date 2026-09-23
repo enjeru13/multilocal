@@ -7,6 +7,7 @@ import { AxiosError } from "axios";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import ConfirmacionModal from "./ConfirmacionModal";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type Props = {
   onClose: () => void;
@@ -18,6 +19,7 @@ interface CategoriaFormState {
 }
 
 export default function CategoriasModal({ onClose }: Props) {
+  const et = useEtiquetas();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function CategoriasModal({ onClose }: Props) {
         if (error.response.status === 400) {
           errorMessage =
             error.response.data.message ||
-            "No se pudo eliminar la categoría. Asegúrate de que no tenga servicios asociados.";
+            `No se pudo eliminar la categoría. Asegúrate de que no tenga ${et.serviciosMin} asociados.`;
         } else if (error.response.status === 404) {
           errorMessage =
             error.response.data.message ||
@@ -265,7 +267,7 @@ export default function CategoriasModal({ onClose }: Props) {
       {mostrarConfirmacionEliminar && (
         <ConfirmacionModal
           titulo="Confirmar Eliminación"
-          mensaje="¿Estás segura de que deseas eliminar esta categoría? Si tiene servicios asociados, NO podrá eliminarse. Esta acción no se puede deshacer."
+          mensaje="¿Eliminar esta categoría? Si tiene elementos asociados, NO podrá eliminarse. Esta acción no se puede deshacer."
           textoConfirmar="Eliminar"
           onConfirm={ejecutarEliminar}
           onCancel={() => setMostrarConfirmacionEliminar(false)}

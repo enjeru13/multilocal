@@ -11,6 +11,7 @@ import { AxiosError } from "axios";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { useConfiguracion } from "../../context/configuracionCore";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type FormularioServicioProps = {
   servicio?: Servicio;
@@ -29,6 +30,7 @@ export default function FormularioServicio({
   categorias,
   cargandoCategorias,
 }: FormularioServicioProps) {
+  const et = useEtiquetas();
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState<number | null>(null);
   const [descripcion, setDescripcion] = useState("");
@@ -42,6 +44,7 @@ export default function FormularioServicio({
 
   const [controlaStock, setControlaStock] = useState(false);
   const [sku, setSku] = useState("");
+  const [codigoBarras, setCodigoBarras] = useState("");
   const [stockActual, setStockActual] = useState<number | null>(0);
   const [stockMinimo, setStockMinimo] = useState<number | null>(null);
 
@@ -61,6 +64,7 @@ export default function FormularioServicio({
       setCategoriaSeleccionadaId(servicio.categoriaId || "");
       setControlaStock(servicio.controlaStock ?? false);
       setSku(servicio.sku || "");
+      setCodigoBarras(servicio.codigoBarras || "");
       setStockActual(servicio.stockActual ?? 0);
       setStockMinimo(servicio.stockMinimo ?? null);
     } else {
@@ -71,6 +75,7 @@ export default function FormularioServicio({
       setCategoriaSeleccionadaId("");
       setControlaStock(false);
       setSku("");
+      setCodigoBarras("");
       setStockActual(0);
       setStockMinimo(null);
     }
@@ -80,7 +85,7 @@ export default function FormularioServicio({
   const guardar = async () => {
     const nuevosErrores: typeof errores = {};
     if (!nombre.trim()) {
-      nuevosErrores.nombre = "El nombre del servicio es obligatorio.";
+      nuevosErrores.nombre = `El nombre del ${et.servicioMin} es obligatorio.`;
     }
     if (precio === null || isNaN(precio) || precio < 0) {
       nuevosErrores.precio = "El precio base debe ser un número positivo.";
@@ -101,6 +106,7 @@ export default function FormularioServicio({
           tipo: "PRODUCTO" as const,
           controlaStock,
           sku: sku.trim() || null,
+          codigoBarras: codigoBarras.trim() || null,
           ...(controlaStock && {
             stockActual: stockActual ?? 0,
             stockMinimo: stockMinimo ?? null,
@@ -134,7 +140,7 @@ export default function FormularioServicio({
       await onSubmit(data);
     } catch (error: unknown) {
       console.error("Error al guardar servicio:", error);
-      let errorMessage = "Ocurrió un error al guardar el servicio.";
+      let errorMessage = `Ocurrió un error al guardar ${et.servicioMin}.`;
       if (error instanceof AxiosError) {
         errorMessage = error.response?.data?.message || errorMessage;
       } else if (error instanceof Error) {
@@ -151,7 +157,7 @@ export default function FormularioServicio({
         <div className="bg-blue-600 dark:bg-blue-800 text-white px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold flex items-center gap-3">
             <MdOutlineLocalLaundryService className="text-2xl" />
-            {servicio ? "Editar Servicio" : "Registrar Servicio"}
+            {servicio ? `Editar ${et.servicio}` : `Registrar ${et.servicio}`}
           </h2>
           <button
             onClick={onClose}
@@ -165,7 +171,7 @@ export default function FormularioServicio({
         <div className="px-6 py-6 flex-1 overflow-y-auto space-y-6 text-base text-gray-800 dark:text-gray-200">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Nombre del servicio:
+              Nombre del {et.servicioMin}:
             </label>
             <input
               type="text"
@@ -247,7 +253,7 @@ export default function FormularioServicio({
               onChange={(e) => setDescripcion(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 resize-y min-h-[80px] shadow-sm"
               rows={3}
-              placeholder="Ej. Incluye lavado, secado y doblado de ropa."
+              placeholder="Detalles que quieras recordar"
               disabled={cargando}
             />
           </div>
@@ -267,6 +273,19 @@ export default function FormularioServicio({
 
           {inventarioActivo && (
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+                  Código de barras (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={codigoBarras}
+                  onChange={(e) => setCodigoBarras(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                  placeholder="Escanéalo o escríbelo"
+                  disabled={cargando}
+                />
+              </div>
               <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input
                   type="checkbox"
@@ -348,7 +367,7 @@ export default function FormularioServicio({
             Cancelar
           </Button>
           <Button onClick={guardar} variant="primary" isLoading={cargando}>
-            Guardar Servicio
+            Guardar {et.servicio}
           </Button>
         </div>
     </Modal>

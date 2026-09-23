@@ -3,6 +3,7 @@ import { FiX } from "react-icons/fi";
 import type { Cliente } from "@lavanderia/shared/types/types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type Props = {
   cliente: Cliente;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ModalInfoCliente({ cliente, onClose }: Props) {
+  const et = useEtiquetas();
   return (
     <Modal
       open
@@ -21,7 +23,7 @@ export default function ModalInfoCliente({ cliente, onClose }: Props) {
         <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
           <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
             <FaUser className="text-2xl sm:text-3xl" />
-            Detalles del cliente
+            Detalle: {et.clienteMin}
           </h2>
           {/* Botón X se mantiene nativo para estilo de icono limpio */}
           <button

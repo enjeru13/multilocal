@@ -25,8 +25,10 @@ import type {
 import { normalizarMoneda } from "../utils/monedaHelpers";
 import dayjs from "dayjs";
 import { FormSkeleton } from "../components/Skeleton";
+import { useEtiquetas } from "../context/configuracionCore";
 
 export default function EditarOrdenPage() {
+  const et = useEtiquetas();
   const { id } = useParams(); // ID DE LA ORDEN A EDITAR
   const navigate = useNavigate();
 
@@ -130,7 +132,7 @@ export default function EditarOrdenPage() {
 
     try {
       await ordenesService.update(Number(id), payload);
-      toast.success(`Orden #${id} actualizada exitosamente.`);
+      toast.success(`${et.orden} #${id} actualizada exitosamente.`);
       navigate("/ordenes"); // Volvemos al historial
     } catch (error) {
       console.error("Error al actualizar:", error);
@@ -162,14 +164,14 @@ export default function EditarOrdenPage() {
             Volver al historial
           </button>
         </div>
-        <p className="text-gray-500 dark:text-gray-400">Modifica los detalles de la orden según sea necesario.</p>
+        <p className="text-gray-500 dark:text-gray-400">Modifica los detalles según sea necesario.</p>
       </header>
 
       <ClientePanel
         cliente={cliente}
         onAbrirFormulario={() => { }}
         onAbrirLista={() =>
-          toast.info("Para cambiar el cliente, crea una orden nueva.")
+          toast.info(`Para cambiar el ${et.clienteMin}, crea ${et.ordenMin === "orden" ? "una orden nueva" : `otra ${et.ordenMin}`}.`)
         }
       />
 

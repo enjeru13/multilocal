@@ -7,6 +7,7 @@ import type {
 import { FaClipboardList, FaTshirt, FaTag, FaInfoCircle } from "react-icons/fa";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 dayjs.locale("es");
 
@@ -27,6 +28,7 @@ export default function ResumenOrdenPanel({
   fechaEntrega,
   monedaPrincipal,
 }: Props) {
+  const et = useEtiquetas();
   // --- LÓGICA CORREGIDA ---
   // Calcular subtotal real considerando precio personalizado si existe
   const calcularSubtotalServicio = (s: ServicioSeleccionado) => {
@@ -71,7 +73,7 @@ export default function ResumenOrdenPanel({
         {/* SECCIÓN CLIENTE */}
         <div className="bg-gray-100 dark:bg-gray-950 p-4 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
           <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">
-            Cliente:
+            {et.cliente}:
           </span>
           {cliente ? (
             <span className="text-gray-900 dark:text-gray-100 font-medium text-lg">
@@ -85,11 +87,11 @@ export default function ResumenOrdenPanel({
         {/* SECCIÓN SERVICIOS */}
         <div>
           <span className="text-gray-700 dark:text-gray-300 block mb-3 font-semibold">
-            Servicios seleccionados:
+            {et.servicios} seleccionados:
           </span>
           {serviciosSeleccionados.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 italic bg-gray-100 dark:bg-gray-950 p-4 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all">
-              Ningún servicio seleccionado
+              Nada seleccionado
             </p>
           ) : (
             <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm transition-all">
@@ -113,7 +115,7 @@ export default function ResumenOrdenPanel({
                     >
                       <div className="flex flex-col">
                         <span className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                          {servicio?.nombreServicio ?? "Servicio desconocido"}
+                          {servicio?.nombreServicio ?? `${et.servicio} desconocido`}
 
                           <span className="font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-800 px-2 py-0.5 rounded text-sm transition-colors">
                             × {s.cantidad}
@@ -157,7 +159,7 @@ export default function ResumenOrdenPanel({
               <div className="bg-blue-50 dark:bg-blue-900/10 p-4 border-t border-blue-100 dark:border-blue-900/30 flex justify-between items-center transition-all">
                 <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-bold">
                   <FaTshirt />
-                  <span>Total de prendas/items:</span>
+                  <span>Total de artículos:</span>
                 </div>
                 <span className="bg-white dark:bg-gray-800 text-blue-900 dark:text-blue-100 font-extrabold px-4 py-1 rounded-full border border-blue-200 dark:border-blue-700 text-lg shadow-sm transition-all">
                   {totalPrendas}

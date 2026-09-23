@@ -18,9 +18,11 @@ import type {
 import CategoriasModal from "../components/modal/ModalCategorias";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
+import { useEtiquetas } from "../context/configuracionCore";
 import Button from "../components/ui/Button"; // 1. Importamos el Button
 
 export default function PantallaServicios() {
+  const et = useEtiquetas();
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -51,11 +53,11 @@ export default function PantallaServicios() {
       setServicios(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error al cargar servicios:", error);
-      toast.error("No se pudieron cargar los servicios");
+      toast.error(`No se pudieron cargar ${et.serviciosMin}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [et]);
 
   const cargarCategoriasEnPantalla = useCallback(async () => {
     setCargandoCategorias(true);
@@ -120,9 +122,9 @@ export default function PantallaServicios() {
       setServicioSeleccionado(undefined);
       setMostrarFormulario(true);
     } else {
-      toast.error("No tienes permiso para registrar nuevos servicios.");
+      toast.error(`No tienes permiso para registrar ${et.serviciosMin}.`);
     }
-  }, [hasRole]);
+  }, [et, hasRole]);
 
   const editarServicio = useCallback(
     (servicio: Servicio) => {
@@ -130,10 +132,10 @@ export default function PantallaServicios() {
         setServicioSeleccionado(servicio);
         setMostrarFormulario(true);
       } else {
-        toast.error("No tienes permiso para editar servicios.");
+        toast.error(`No tienes permiso para editar ${et.serviciosMin}.`);
       }
     },
-    [hasRole]
+    [et, hasRole]
   );
 
   const guardarServicio = useCallback(
@@ -141,10 +143,10 @@ export default function PantallaServicios() {
       try {
         if ("id" in data && data.id) {
           await servicioService.update(data.id, data as ServicioUpdatePayload);
-          toast.success("Servicio actualizado correctamente");
+          toast.success(`${et.servicio} actualizado correctamente`);
         } else {
           await servicioService.create(data as ServicioCreate);
-          toast.success("Servicio registrado correctamente");
+          toast.success(`${et.servicio} registrado correctamente`);
         }
         setMostrarFormulario(false);
         setServicioSeleccionado(undefined);
@@ -152,10 +154,10 @@ export default function PantallaServicios() {
         cargarCategoriasEnPantalla();
       } catch (error) {
         console.error("Error al guardar servicio:", error);
-        toast.error("Error al guardar servicio");
+        toast.error(`Error al guardar ${et.servicioMin}`);
       }
     },
-    [cargarServicios, cargarCategoriasEnPantalla]
+    [et, cargarServicios, cargarCategoriasEnPantalla]
   );
 
   const confirmarEliminarServicio = useCallback(
@@ -164,10 +166,10 @@ export default function PantallaServicios() {
         setServicioAEliminarId(id);
         setMostrarConfirmacionEliminar(true);
       } else {
-        toast.error("No tienes permiso para eliminar servicios.");
+        toast.error(`No tienes permiso para eliminar ${et.serviciosMin}.`);
       }
     },
-    [hasRole]
+    [et, hasRole]
   );
 
   const ejecutarEliminarServicio = useCallback(async () => {
@@ -175,16 +177,16 @@ export default function PantallaServicios() {
 
     try {
       await servicioService.delete(servicioAEliminarId);
-      toast.success("Servicio eliminado correctamente");
+      toast.success(`${et.servicio} eliminado correctamente`);
       cargarServicios();
     } catch (error) {
       console.error("Error al eliminar servicio:", error);
-      toast.error("Error al eliminar servicio");
+      toast.error(`Error al eliminar ${et.servicioMin}`);
     } finally {
       setMostrarConfirmacionEliminar(false);
       setServicioAEliminarId(undefined);
     }
-  }, [servicioAEliminarId, cargarServicios]);
+  }, [et, servicioAEliminarId, cargarServicios]);
 
   const abrirCategoriasModal = useCallback(() => {
     if (hasRole(["ADMIN"])) {
@@ -211,7 +213,7 @@ export default function PantallaServicios() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Servicios</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{et.servicios}</h1>
 
         {/* 2. Botones actualizados */}
         <div className="flex gap-4 flex-wrap">
@@ -228,7 +230,7 @@ export default function PantallaServicios() {
             variant="primary"
             leftIcon={<FaPlus className="w-4 h-4" />}
           >
-            Nuevo Servicio
+            Nuevo {et.servicio}
           </Button>
         </div>
       </div>
@@ -257,12 +259,12 @@ export default function PantallaServicios() {
 
       {serviciosFiltradosYPaginados.length === 0 && totalFilteredItems > 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron servicios en esta página con los filtros aplicados.
+          No se encontraron {et.serviciosMin} en esta página con los filtros aplicados.
         </p>
       ) : serviciosFiltradosYPaginados.length === 0 &&
         totalFilteredItems === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron servicios con los filtros aplicados.
+          No se encontraron {et.serviciosMin} con los filtros aplicados.
         </p>
       ) : (
         <>
@@ -301,7 +303,7 @@ export default function PantallaServicios() {
 
       {mostrarConfirmacionEliminar && (
         <ConfirmacionModal
-          mensaje="¿Estás segura de que deseas eliminar este servicio? Esta acción no se puede deshacer."
+          mensaje={`¿Eliminar ${et.servicioMin}? Esta acción no se puede deshacer.`}
           onConfirm={ejecutarEliminarServicio}
           onCancel={() => {
             setMostrarConfirmacionEliminar(false);

@@ -12,7 +12,7 @@ const router = Router();
 
 router.get("/", protect, getAllClientes);
 router.get("/:id", protect, getClienteById);
-router.post("/", protect, authorizeRoles(["ADMIN", "EMPLOYEE"]), createCliente);
+router.post("/", protect, authorizeRoles(["ADMIN", "EMPLOYEE", "CAJERO"]), createCliente);
 router.put(
   "/:id",
   protect,

@@ -9,6 +9,8 @@ import type {
 } from "@lavanderia/shared/types/types";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { nombreCliente } from "../utils/clienteHelpers";
+import { useEtiquetas } from "../context/configuracionCore";
 
 dayjs.locale("es");
 
@@ -26,10 +28,11 @@ export const OrdenesPrintable = forwardRef<
   HTMLDivElement,
   OrdenesPrintableProps
 >(({ ordenes, monedaPrincipal, configuracion, filtros }, ref) => {
+  const et = useEtiquetas();
   const fechaGeneracion = dayjs().format("DD [de] MMMM [de] YYYY - hh:mm A");
 
   // Datos del negocio
-  const nombreNegocio = configuracion?.nombreNegocio || "Mi Lavandería";
+  const nombreNegocio = configuracion?.nombreNegocio || "Mi negocio";
   const rif = configuracion?.rif || "RIF: J-00000000-0";
   const direccion = configuracion?.direccion || "Dirección no configurada";
   const telefono = configuracion?.telefonoPrincipal || "";
@@ -44,7 +47,7 @@ export const OrdenesPrintable = forwardRef<
       <div className="flex justify-between items-end border-b-2 border-gray-800 pb-6 mb-8">
         <div>
           <h1 className="text-3xl font-extrabold uppercase tracking-tight text-blue-900">
-            Reporte de Órdenes
+            Reporte de {et.ordenes}
           </h1>
           <p className="text-sm text-gray-500 mt-2">
             Generado el:{" "}
@@ -106,7 +109,7 @@ export const OrdenesPrintable = forwardRef<
         <thead>
           <tr className="bg-gray-100 text-gray-700 border-y border-gray-300">
             <th className="py-2 px-2 font-bold w-16">N°</th>
-            <th className="py-2 px-2 font-bold">Cliente</th>
+            <th className="py-2 px-2 font-bold">{et.cliente}</th>
             <th className="py-2 px-2 font-bold">Fecha Ingreso</th>
             <th className="py-2 px-2 font-bold">Estado</th>
             <th className="py-2 px-2 font-bold">Pago</th>
@@ -133,7 +136,7 @@ export const OrdenesPrintable = forwardRef<
                   #{orden.id}
                 </td>
                 <td className="py-2 px-2 truncate max-w-[180px]">
-                  {orden.cliente?.nombre} {orden.cliente?.apellido}
+                  {nombreCliente(orden.cliente)}
                 </td>
                 <td className="py-2 px-2 text-gray-600">
                   {dayjs(orden.fechaIngreso).format("DD/MM/YYYY")}

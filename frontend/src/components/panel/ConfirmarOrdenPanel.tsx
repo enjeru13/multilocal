@@ -11,6 +11,7 @@ import {
 } from "../../utils/monedaHelpers";
 import { FaDollarSign, FaRegTimesCircle, FaPlusCircle } from "react-icons/fa";
 import Button from "../ui/Button";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 interface Props {
   serviciosSeleccionados: ServicioSeleccionado[];
@@ -34,6 +35,7 @@ export default function ConfirmarOrdenPanel({
   isFormValid,
   isSaving,
 }: Props) {
+  const et = useEtiquetas();
   // --- 1. CALCULAMOS EL TOTAL AQUÍ ---
   const totalCalculado = useMemo(() => {
     return serviciosSeleccionados.reduce((acc, item) => {
@@ -69,10 +71,10 @@ export default function ConfirmarOrdenPanel({
       <div className="text-center pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 mb-2">
           <FaDollarSign size={32} className="text-green-600 dark:text-green-500" />
-          Total de la orden
+          Total
         </h2>
         <p className="text-base text-gray-600 dark:text-gray-400 mb-2">
-          Monto final a cobrar por los servicios.
+          Monto final a cobrar.
         </p>
         <p className="text-4xl font-extrabold text-green-700 dark:text-green-500 tracking-tight">
           {formatearMoneda(totalCalculado, monedaPrincipal)}
@@ -124,7 +126,7 @@ export default function ConfirmarOrdenPanel({
           size="lg"
           leftIcon={<FaPlusCircle size={18} />}
         >
-          Crear Orden
+          Crear {et.orden}
         </Button>
       </div>
     </section>

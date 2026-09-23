@@ -9,6 +9,8 @@ import type {
 } from "@lavanderia/shared/types/types";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { nombreCliente } from "../utils/clienteHelpers";
+import { useEtiquetas } from "../context/configuracionCore";
 
 dayjs.locale("es");
 
@@ -37,10 +39,11 @@ const metodoPagoDisplay: Record<MetodoPago, string> = {
 
 export const PagosPrintable = forwardRef<HTMLDivElement, PagosPrintableProps>(
   ({ pagos, monedaPrincipal, totalIngresos, configuracion }, ref) => {
+  const et = useEtiquetas();
     const fechaGeneracion = dayjs().format("DD [de] MMMM [de] YYYY - hh:mm A");
 
     // Datos con fallback por si están null
-    const nombreNegocio = configuracion?.nombreNegocio || "Mi Lavandería";
+    const nombreNegocio = configuracion?.nombreNegocio || "Mi negocio";
     const rif = configuracion?.rif || "RIF: J-00000000-0";
     const direccion = configuracion?.direccion || "Dirección no configurada";
     const telefono = configuracion?.telefonoPrincipal || "";
@@ -103,8 +106,8 @@ export const PagosPrintable = forwardRef<HTMLDivElement, PagosPrintableProps>(
           <thead>
             <tr className="bg-gray-100 text-gray-700 border-y border-gray-300 print:bg-gray-200">
               <th className="py-3 px-4 font-bold">Fecha</th>
-              <th className="py-3 px-4 font-bold">Orden</th>
-              <th className="py-3 px-4 font-bold">Cliente</th>
+              <th className="py-3 px-4 font-bold">{et.orden}</th>
+              <th className="py-3 px-4 font-bold">{et.cliente}</th>
               <th className="py-3 px-4 font-bold">Método</th>
               <th className="py-3 px-4 font-bold text-right">Tasa</th>
               <th className="py-3 px-4 font-bold text-center">Divisa</th>
@@ -138,8 +141,8 @@ export const PagosPrintable = forwardRef<HTMLDivElement, PagosPrintableProps>(
                     </td>
                     <td className="py-2 px-4 truncate max-w-[180px] text-gray-800">
                       {pago.orden?.cliente
-                        ? `${pago.orden.cliente.nombre} ${pago.orden.cliente.apellido}`
-                        : "N/A"}
+                        ? nombreCliente(pago.orden.cliente)
+                        : "Sin cliente"}
                     </td>
                     <td className="py-2 px-4 capitalize text-gray-600">
                       {metodoPagoDisplay[pago.metodoPago]}

@@ -3,6 +3,7 @@ import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import type { Servicio } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../ui/Button";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type Props = {
   servicios: Servicio[];
@@ -17,6 +18,7 @@ export default function TablaServicios({
   onEliminar,
   monedaPrincipal,
 }: Props) {
+  const et = useEtiquetas();
   const { hasRole } = useAuth();
 
   if (servicios.length === 0) {
@@ -25,7 +27,7 @@ export default function TablaServicios({
         <table className="min-w-full text-sm transition-colors">
           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 transition-colors">
             <tr>
-              <th className="px-6 py-3 text-left">Servicio</th>
+              <th className="px-6 py-3 text-left">{et.servicio}</th>
               <th className="px-6 py-3 text-left">Categoría</th>
               <th className="px-6 py-3 text-left">Precio</th>
               <th className="px-6 py-3 text-left">Descripción</th>
@@ -38,7 +40,7 @@ export default function TablaServicios({
                 colSpan={5}
                 className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 italic bg-white dark:bg-gray-900 transition-colors"
               >
-                No hay servicios registrados.
+                No hay {et.serviciosMin} registrados.
               </td>
             </tr>
           </tbody>
@@ -53,7 +55,7 @@ export default function TablaServicios({
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 transition-colors">
             <tr>
-              <th className="px-6 py-3 text-left">Servicio</th>
+              <th className="px-6 py-3 text-left">{et.servicio}</th>
               <th className="px-6 py-3 text-left">Categoría</th>
               <th className="px-6 py-3 text-left">Precio</th>
               <th className="px-6 py-3 text-left">Descripción</th>
@@ -90,7 +92,7 @@ export default function TablaServicios({
                     {hasRole(["ADMIN"]) && (
                       <Button
                         onClick={() => onEditar(s)}
-                        title="Editar servicio"
+                        title={`Editar ${et.servicioMin}`}
                         variant="iconInfo"
                         size="icon"
                       >
@@ -100,7 +102,7 @@ export default function TablaServicios({
                     {hasRole(["ADMIN"]) && (
                       <Button
                         onClick={() => onEliminar(s.id)}
-                        title="Eliminar servicio"
+                        title={`Eliminar ${et.servicioMin}`}
                         variant="iconDanger"
                         size="icon"
                       >

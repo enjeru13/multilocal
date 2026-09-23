@@ -31,10 +31,12 @@ import type {
   Configuracion,
 } from "@lavanderia/shared/types/types";
 import { useAuth } from "../hooks/useAuth";
+import { useEtiquetas } from "../context/configuracionCore";
 
 type SortKeys = "id" | "cliente" | "estado" | "estadoPago";
 
 export default function PantallaEstadoOrdenes() {
+  const et = useEtiquetas();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -112,11 +114,11 @@ export default function PantallaEstadoOrdenes() {
       setOrdenes(ordenesConEstadoPago);
     } catch (err) {
       console.error("Error al cargar órdenes:", err);
-      toast.error("Error al cargar el historial de órdenes.");
+      toast.error(`Error al cargar ${et.ordenesMin}.`);
     } finally {
       setLoading(false);
     }
-  }, [tasas, monedaPrincipal]);
+  }, [et, tasas, monedaPrincipal]);
 
   useEffect(() => {
     cargarConfiguracion().then(() => {
@@ -292,9 +294,9 @@ export default function PantallaEstadoOrdenes() {
 
       setMostrarModalPago(false);
       setOrdenSeleccionada(null);
-      toast.success("Orden actualizada con el nuevo pago.");
+      toast.success(`${et.orden} actualizada con el nuevo pago.`);
     },
-    [tasas, monedaPrincipal]
+    [et, tasas, monedaPrincipal]
   );
 
   if (loading) {
@@ -308,7 +310,7 @@ export default function PantallaEstadoOrdenes() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        Estado de las Órdenes
+        Estado de {et.ordenes}
       </h1>
 
       <div className="mb-5 flex flex-wrap items-center gap-4 font-semibold">
@@ -326,7 +328,7 @@ export default function PantallaEstadoOrdenes() {
               id="filtroBusquedaOrdenes"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="N° Orden o Cliente"
+              placeholder={`N° ${et.orden} o ${et.cliente}`}
               className="pl-9 pr-3 py-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-900 text-sm dark:text-gray-200"
             />
           </div>
@@ -387,11 +389,11 @@ export default function PantallaEstadoOrdenes() {
       </div>
 
       {loading || cargandoOrdenDetalle ? (
-        <p className="text-gray-500 dark:text-gray-400">Cargando órdenes...</p>
+        <p className="text-gray-500 dark:text-gray-400">Cargando {et.ordenesMin}...</p>
       ) : ordenesFiltradasYSorteadas.length === 0 ? (
         <EmptyState
-          title="No se encontraron órdenes"
-          description="Ajusta los filtros de búsqueda o registra una nueva orden para comenzar."
+          title={`No se encontraron ${et.ordenesMin}`}
+          description="Ajusta los filtros de búsqueda para ver resultados."
           icon={FaSearch}
         />
       ) : (
@@ -413,7 +415,7 @@ export default function PantallaEstadoOrdenes() {
                     onClick={() => handleSort("cliente")}
                   >
                     <div className="flex items-center gap-1">
-                      Cliente {getSortIcon("cliente")}
+                      {et.cliente} {getSortIcon("cliente")}
                     </div>
                   </th>
                   <th
@@ -457,7 +459,7 @@ export default function PantallaEstadoOrdenes() {
                       <td className="px-4 py-3 text-center">
                         <Button
                           onClick={() => handleVerDetallesOrden(o.id)}
-                          title="Ver detalles de la orden"
+                          title={`Ver detalles de ${et.ordenMin}`}
                           variant="iconInfo"
                           size="icon"
                         >

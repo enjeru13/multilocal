@@ -135,7 +135,7 @@ export default function ModalPago({
     }
 
     if (resumen.faltante <= 0) {
-      toast.info("La orden ya ha sido saldada.");
+      toast.info("Ya está saldado.");
       onClose();
       return;
     }
@@ -391,7 +391,7 @@ export default function ModalPago({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
             <div className="p-4 bg-blue-50 rounded-lg shadow-sm flex flex-col justify-between">
               <span className="text-sm text-blue-800 font-semibold mb-1">
-                Total Orden:
+                Total:
               </span>
               <span className="block text-blue-900 font-bold text-xl">
                 {formatearMoneda(orden.total, principalSegura)}

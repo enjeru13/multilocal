@@ -5,6 +5,7 @@ import type { Cliente } from "@lavanderia/shared/types/types";
 import { toast } from "react-toastify";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type Props = {
   onSelect: (cliente: Cliente) => void;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function ListaClientesModal({ onSelect, onClose }: Props) {
+  const et = useEtiquetas();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
@@ -28,14 +30,14 @@ export default function ListaClientesModal({ onSelect, onClose }: Props) {
       .catch((err) => {
         console.error("Error al cargar clientes:", err);
         setErrorCarga(
-          "No se pudieron cargar los clientes. Inténtalo de nuevo más tarde."
+          `No se pudieron cargar ${et.clientesMin}. Inténtalo de nuevo más tarde.`
         );
-        toast.error("Error al cargar clientes.");
+        toast.error(`Error al cargar ${et.clientesMin}.`);
       })
       .finally(() => {
         setCargando(false);
       });
-  }, []);
+  }, [et]);
 
   const clientesFiltrados = clientes.filter((c) => {
     const nombreCompleto =
@@ -49,7 +51,7 @@ export default function ListaClientesModal({ onSelect, onClose }: Props) {
         <div className="bg-indigo-600 dark:bg-indigo-800 text-white px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold flex items-center gap-3">
             <FaUser className="text-2xl" />
-            Seleccionar Cliente
+            Seleccionar {et.cliente}
           </h2>
           <button
             onClick={onClose}
@@ -74,7 +76,7 @@ export default function ListaClientesModal({ onSelect, onClose }: Props) {
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
             {cargando ? (
               <p className="text-center text-indigo-600 dark:text-indigo-400 font-semibold py-8">
-                Cargando clientes...
+                Cargando {et.clientesMin}...
               </p>
             ) : errorCarga ? (
               <p className="text-center text-red-600 dark:text-red-400 font-semibold py-8">
@@ -82,7 +84,7 @@ export default function ListaClientesModal({ onSelect, onClose }: Props) {
               </p>
             ) : clientesFiltrados.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-500 italic text-center py-8">
-                No se encontraron clientes que coincidan con la búsqueda.
+                No se encontraron {et.clientesMin} que coincidan con la búsqueda.
               </p>
             ) : (
               clientesFiltrados.map((c) => (

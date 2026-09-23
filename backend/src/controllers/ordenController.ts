@@ -49,7 +49,7 @@ async function devolverStockDeOrden(
         ordenId,
         stockResultante: actualizado.stockActual,
         userId: userId ?? null,
-        nota: `${motivo} de la orden #${ordenId}`,
+        nota: `${motivo} - ref. #${ordenId}`,
       },
     });
   }
@@ -95,7 +95,7 @@ export async function anularOrden(req: AuthRequest, res: Response) {
             moneda: p.moneda,
             metodoPago: p.metodoPago,
             tasa: p.tasa,
-            nota: `Reembolso por anulación de la orden #${id}`,
+            nota: `Reembolso por anulación - ref. #${id}`,
             cajaSesionId,
           },
         });
@@ -214,19 +214,45 @@ export async function createOrden(req: AuthRequest, res: Response) {
     });
   }
 
-  const { clienteId, estado, observaciones, servicios, fechaEntrega } =
-    result.data;
+  const {
+    clienteId,
+    estado,
+    observaciones,
+    servicios,
+    fechaEntrega,
+    entregaInmediata,
+  } = result.data;
 
   try {
     const config = await prisma.configuracion.findFirst();
+
+    if (!clienteId) {
+      if (config?.clienteObligatorio !== false) {
+        return res
+          .status(400)
+          .json({ message: "Debes seleccionar un cliente para crear la orden." });
+      }
+    } else if (!(await prisma.cliente.findUnique({ where: { id: clienteId } }))) {
+      return res.status(400).json({ message: "El cliente indicado no existe." });
+    }
+
+    // Una venta inmediata ya sale del negocio: descuenta stock al crearla
+    // sin importar en qué momento descuente el perfil las órdenes normales.
     const deducirAhora =
-      !!config?.moduloInventario && config?.deduccionStockEn === "CREACION";
+      !!config?.moduloInventario &&
+      (entregaInmediata || config?.deduccionStockEn === "CREACION");
+    const estadoFinal = entregaInmediata ? "ENTREGADO" : estado;
+    const tipoDocumento =
+      entregaInmediata || config?.moduloFechaEntrega === false
+        ? "VENTA"
+        : "ORDEN_LAVANDERIA";
 
     let total = 0;
     const detalleData: Array<{
       servicioId: number;
       cantidad: number;
       precioUnit: number;
+      costoUnit: number | null;
       subtotal: number;
     }> = [];
     const serviciosParaDescontar: Array<{ id: number; cantidad: number }> = [];
@@ -264,6 +290,8 @@ export async function createOrden(req: AuthRequest, res: Response) {
         servicioId: item.servicioId,
         cantidad: item.cantidad,
         precioUnit: parseFloat(precioUnit.toFixed(2)),
+        // Costo congelado al vender: base para reportes de ganancia.
+        costoUnit: servicio.controlaStock ? servicio.costoBase : null,
         subtotal: parseFloat(subtotal.toFixed(2)),
       });
       total += subtotal;
@@ -272,11 +300,22 @@ export async function createOrden(req: AuthRequest, res: Response) {
     const orden = await prisma.$transaction(async (tx) => {
       const nuevaOrden = await tx.orden.create({
         data: {
-          clienteId: clienteId,
-          estado,
+          clienteId: clienteId ?? null,
+          tipo: tipoDocumento,
+          estado: estadoFinal,
           total: parseFloat(total.toFixed(2)),
           observaciones,
-          fechaEntrega: fechaEntrega ? dayjs(fechaEntrega).toDate() : null,
+          fechaEntrega: entregaInmediata
+            ? new Date()
+            : fechaEntrega
+            ? dayjs(fechaEntrega).toDate()
+            : null,
+          ...(entregaInmediata && req.user
+            ? {
+                deliveredByUserId: req.user.id,
+                deliveredByUserName: req.user.name || req.user.email,
+              }
+            : {}),
           abonado: 0,
           faltante: parseFloat(total.toFixed(2)),
           estadoPago: "INCOMPLETO",
@@ -298,7 +337,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
             ordenId: nuevaOrden.id,
             stockResultante: actualizado.stockActual,
             userId: req.user?.id ?? null,
-            nota: `Orden #${nuevaOrden.id}`,
+            nota: `Ref. #${nuevaOrden.id}`,
           },
         });
       }
@@ -424,7 +463,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
                 ordenId: ordenActual.id,
                 stockResultante: actualizado.stockActual,
                 userId: req.user.id,
-                nota: `Orden #${ordenActual.id} (entrega)`,
+                nota: `Ref. #${ordenActual.id} (entrega)`,
               },
             });
           }

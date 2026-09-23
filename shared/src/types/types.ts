@@ -175,7 +175,8 @@ export interface DetalleOrdenCreate {
 export type DetalleOrdenUpdatePayload = Partial<DetalleOrdenCreate>;
 
 export interface OrdenCreate {
-  clienteId: number;
+  clienteId?: number | null;
+  entregaInmediata?: boolean;
   estado: EstadoOrden;
   observaciones?: string | null;
   fechaEntrega?: string | null;
@@ -183,7 +184,7 @@ export interface OrdenCreate {
 }
 
 export interface OrdenUpdatePayload {
-  clienteId?: number;
+  clienteId?: number | null;
   estado?: EstadoOrden;
   observaciones?: string | null;
   fechaEntrega?: string | null;
@@ -194,7 +195,7 @@ export interface OrdenUpdatePayload {
 
 export interface Orden {
   id: number;
-  clienteId: number;
+  clienteId: number | null;
   estado: EstadoOrden;
   fechaIngreso: string;
   fechaEntrega: string | null;
@@ -267,9 +268,14 @@ export type MomentoDeduccion = "CREACION" | "ENTREGA";
 // Etiquetas de UI que cambian según el rubro (ej. "Servicio" -> "Producto").
 // Todas opcionales: si falta una, el frontend usa el default del rubro.
 export interface Terminologia {
+  // Plurales: los usa el menú y los títulos de lista
   servicio?: string;
   orden?: string;
   cliente?: string;
+  // Singulares: botones y formularios ("Nueva venta", "Nuevo producto")
+  servicioUno?: string;
+  ordenUno?: string;
+  clienteUno?: string;
 }
 
 export interface Configuracion {

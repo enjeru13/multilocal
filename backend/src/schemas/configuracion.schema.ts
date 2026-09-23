@@ -28,6 +28,9 @@ export const TerminologiaSchema = z
     servicio: z.string().optional(),
     orden: z.string().optional(),
     cliente: z.string().optional(),
+    servicioUno: z.string().optional(),
+    ordenUno: z.string().optional(),
+    clienteUno: z.string().optional(),
   })
   .nullable()
   .optional();

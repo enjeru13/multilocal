@@ -11,7 +11,7 @@ const router = Router();
 router.get(
   "/",
   protect,
-  authorizeRoles([Role.ADMIN, Role.EMPLOYEE]),
+  authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]),
   getConfiguracion
 );
 

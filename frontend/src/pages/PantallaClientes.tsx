@@ -15,8 +15,10 @@ import { useAuth } from "../hooks/useAuth";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
 import Button from "../components/ui/Button";
+import { useEtiquetas } from "../context/configuracionCore";
 
 export default function PantallaClientes() {
+  const et = useEtiquetas();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -44,11 +46,11 @@ export default function PantallaClientes() {
       setClientes(res.data);
     } catch (err) {
       console.error("Error al cargar clientes:", err);
-      toast.error("Error al cargar clientes");
+      toast.error(`Error al cargar ${et.clientesMin}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [et]);
 
   useEffect(() => {
     cargarClientes();
@@ -88,27 +90,22 @@ export default function PantallaClientes() {
       setClienteSeleccionado(undefined);
       setMostrarFormulario(true);
     } else {
-      toast.error("No tienes permiso para registrar nuevos clientes.");
+      toast.error(`No tienes permiso para registrar ${et.clientesMin}.`);
     }
-  }, [hasRole]);
+  }, [et, hasRole]);
 
+  // El formulario muestra los avisos de éxito/error; aquí solo se guarda y
+  // se deja propagar el error para que el formulario no se cierre en falso.
   const guardarCliente = useCallback(
     async (data: ClienteCreate | (ClienteUpdatePayload & { id: number })) => {
-      try {
-        if ("id" in data && data.id) {
-          await clientesService.update(data.id, data as ClienteUpdatePayload);
-          toast.success("Cliente actualizado correctamente");
-        } else {
-          await clientesService.create(data as ClienteCreate);
-          toast.success("Cliente registrado correctamente");
-        }
-        setMostrarFormulario(false);
-        setClienteSeleccionado(undefined);
-        cargarClientes();
-      } catch (error) {
-        console.error("Error al guardar cliente:", error);
-        toast.error("Error al guardar cliente");
+      if ("id" in data && data.id) {
+        await clientesService.update(data.id, data as ClienteUpdatePayload);
+      } else {
+        await clientesService.create(data as ClienteCreate);
       }
+      setMostrarFormulario(false);
+      setClienteSeleccionado(undefined);
+      cargarClientes();
     },
     [cargarClientes]
   );
@@ -119,10 +116,10 @@ export default function PantallaClientes() {
         setClienteSeleccionado(cliente);
         setMostrarFormulario(true);
       } else {
-        toast.error("No tienes permiso para editar clientes.");
+        toast.error(`No tienes permiso para editar ${et.clientesMin}.`);
       }
     },
-    [hasRole]
+    [et, hasRole]
   );
 
   const handleEliminarCliente = useCallback(
@@ -131,10 +128,10 @@ export default function PantallaClientes() {
         setClienteAEliminarId(id);
         setMostrarConfirmacionEliminar(true);
       } else {
-        toast.error("No tienes permiso para eliminar clientes.");
+        toast.error(`No tienes permiso para eliminar ${et.clientesMin}.`);
       }
     },
-    [hasRole]
+    [et, hasRole]
   );
 
   const ejecutarEliminarCliente = useCallback(async () => {
@@ -142,16 +139,16 @@ export default function PantallaClientes() {
 
     try {
       await clientesService.delete(clienteAEliminarId);
-      toast.success("Cliente eliminado correctamente");
+      toast.success(`${et.cliente} eliminado correctamente`);
       cargarClientes();
     } catch (error) {
       console.error("Error al eliminar cliente:", error);
-      toast.error("Error al eliminar cliente");
+      toast.error(`Error al eliminar ${et.clienteMin}`);
     } finally {
       setMostrarConfirmacionEliminar(false);
       setClienteAEliminarId(undefined);
     }
-  }, [clienteAEliminarId, cargarClientes]);
+  }, [et, clienteAEliminarId, cargarClientes]);
 
   if (loading) {
     return (
@@ -164,7 +161,7 @@ export default function PantallaClientes() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Clientes</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{et.clientes}</h1>
 
         {/* 2. Botón reemplazado usando el componente UI */}
         <Button
@@ -172,7 +169,7 @@ export default function PantallaClientes() {
           variant="primary"
           leftIcon={<FaPlus className="w-4 h-4" />}
         >
-          Nuevo Cliente
+          Nuevo {et.cliente}
         </Button>
       </div>
 
@@ -200,12 +197,12 @@ export default function PantallaClientes() {
 
       {clientesFiltradosYPaginados.length === 0 && totalFilteredItems > 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron clientes en esta página con los filtros aplicados.
+          No se encontraron {et.clientesMin} en esta página con los filtros aplicados.
         </p>
       ) : clientesFiltradosYPaginados.length === 0 &&
         totalFilteredItems === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">
-          No se encontraron clientes con los filtros aplicados.
+          No se encontraron {et.clientesMin} con los filtros aplicados.
         </p>
       ) : (
         <>
@@ -242,7 +239,7 @@ export default function PantallaClientes() {
 
       {mostrarConfirmacionEliminar && (
         <ConfirmacionModal
-          mensaje="¿Estás segura de que deseas eliminar este cliente? Esta acción no se puede deshacer."
+          mensaje={`¿Eliminar ${et.clienteMin}? Esta acción no se puede deshacer.`}
           onConfirm={ejecutarEliminarCliente}
           onCancel={() => {
             setMostrarConfirmacionEliminar(false);

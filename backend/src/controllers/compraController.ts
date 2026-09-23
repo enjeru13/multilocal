@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { CompraSchema } from "../schemas/compra.schema";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { esErrorPrisma } from "../lib/prismaErrors";
 import { Role } from "@prisma/client";
 
 interface AuthRequest extends Request {
@@ -116,7 +116,7 @@ export async function createCompra(req: AuthRequest, res: Response) {
 
     return res.status(201).json(compra);
   } catch (error: any) {
-    if (error instanceof PrismaClientKnownRequestError && error.code === "P2003") {
+    if (esErrorPrisma(error, "P2003")) {
       return res.status(400).json({ message: "Proveedor o producto inválido." });
     }
     console.error("Error al crear compra:", error);

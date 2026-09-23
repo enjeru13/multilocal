@@ -43,7 +43,12 @@ const servicioItemSchema = z.object({
 });
 
 export const ordenSchema = z.object({
-  clienteId: z.number().int().positive("ID de cliente inválido"),
+  // Opcional: en negocios de mostrador se puede vender sin cliente
+  // (el controller exige cliente si el perfil tiene clienteObligatorio).
+  clienteId: z.number().int().positive("ID de cliente inválido").nullable().optional(),
+
+  // Venta de mostrador: nace entregada, sin flujo de entrega posterior.
+  entregaInmediata: z.boolean().optional(),
 
   estado: z.enum(["PENDIENTE", "ENTREGADO"], {
     errorMap: () => ({ message: "Estado de orden inválido" }),

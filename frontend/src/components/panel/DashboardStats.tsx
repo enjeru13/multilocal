@@ -1,4 +1,5 @@
-import { IconType } from "react-icons";
+import type { IconType } from "react-icons";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { FaClipboardList, FaClock, FaCheckCircle, FaMoneyBillWave, FaHandHoldingUsd } from "react-icons/fa";
 
 interface StatCardProps {
@@ -60,29 +61,37 @@ interface DashboardStatsProps {
 }
 
 export default function DashboardStats({ stats }: DashboardStatsProps) {
+    const { config } = useConfiguracion();
+    const et = useEtiquetas();
+    const conEntrega = config?.moduloFechaEntrega !== false;
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
             <StatCard
-                title="Total Órdenes"
+                title={`Total ${et.ordenes}`}
                 value={stats.totalOrdenes}
                 icon={FaClipboardList}
                 colorName="blue"
                 description="Historial total"
             />
-            <StatCard
-                title="Pendientes"
-                value={stats.pendientes}
-                icon={FaClock}
-                colorName="yellow"
-                description="Por entregar"
-            />
-            <StatCard
-                title="Entregadas"
-                value={stats.entregadas}
-                icon={FaCheckCircle}
-                colorName="green"
-                description="Listas para cliente"
-            />
+            {conEntrega && (
+                <>
+                    <StatCard
+                        title="Pendientes"
+                        value={stats.pendientes}
+                        icon={FaClock}
+                        colorName="yellow"
+                        description="Por entregar"
+                    />
+                    <StatCard
+                        title="Entregadas"
+                        value={stats.entregadas}
+                        icon={FaCheckCircle}
+                        colorName="green"
+                        description={`Listas para ${et.clienteMin}`}
+                    />
+                </>
+            )}
             <StatCard
                 title="Ventas Hoy"
                 value={stats.ventasHoy}

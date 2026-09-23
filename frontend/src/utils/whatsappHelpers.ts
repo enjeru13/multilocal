@@ -69,7 +69,7 @@ export const generarEnlaceWhatsApp = (
   if (!telefonoParaLink) return null;
   // --------------------------------------------
 
-  const nombreCliente = `${cliente.nombre} ${cliente.apellido}`.trim();
+  const nombreCliente = `${cliente.nombre} ${cliente.apellido ?? ""}`.trim();
 
   let cuentaPendiente =
     orden.faltante > 0 ? formatearMoneda(orden.faltante, "USD") : "Pagada";
@@ -94,7 +94,7 @@ export const generarEnlaceWhatsApp = (
 
   const mensaje = `Hola ${nombreCliente} 👋
 
-Te escribimos de la ${nombreNegocio} para informarte que tu orden #${orden.id} ya está lista para retirar ✅.
+Te escribimos de ${nombreNegocio} para informarte que tu pedido #${orden.id} ya está lista para retirar ✅.
 
 Cuenta pendiente: ${cuentaPendiente}
 

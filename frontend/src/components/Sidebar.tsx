@@ -12,6 +12,7 @@ import {
   FaCashRegister,
   FaUserShield,
   FaDatabase,
+  FaBarcode,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/configuracionCore";
@@ -34,19 +35,26 @@ export default function Sidebar() {
             to: "/",
             label: "Inicio",
             icon: <FaHome />,
-            roles: ["ADMIN", "EMPLOYEE"],
+            roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
+          },
+          {
+            to: "/venta",
+            label: "Vender",
+            icon: <FaBarcode />,
+            roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
+            visible: !!config && config.moduloFechaEntrega === false,
           },
           {
             to: "/ordenes",
             label: t("orden"),
             icon: <FaClipboardList />,
-            roles: ["ADMIN", "EMPLOYEE"],
+            roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
           },
           {
             to: "/clientes",
             label: t("cliente"),
             icon: <FaUsers />,
-            roles: ["ADMIN", "EMPLOYEE"],
+            roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
           },
           {
             to: "/servicios",
@@ -88,7 +96,7 @@ export default function Sidebar() {
           },
           {
             to: "/estado-ordenes",
-            label: "Estado de Órdenes",
+            label: `Estado de ${t("orden")}`,
             icon: <FaChartBar />,
             roles: ["ADMIN"],
           },

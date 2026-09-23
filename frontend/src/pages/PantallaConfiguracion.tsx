@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { FaCoins, FaStore, FaSave, FaLayerGroup } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -160,7 +160,7 @@ export default function PantallaConfiguracion() {
               value={nombreNegocio}
               onChange={(e) => setNombreNegocio(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
-              placeholder="Ej. Lavandería Estrella"
+              placeholder="Ej. Mi Negocio C.A."
             />
           </div>
 
@@ -293,7 +293,7 @@ export default function PantallaConfiguracion() {
             />
           </label>
           <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Fecha de entrega en órdenes
+            Fecha de entrega (trabajos que se entregan después)
             <input
               type="checkbox"
               checked={moduloFechaEntrega}
@@ -302,7 +302,7 @@ export default function PantallaConfiguracion() {
             />
           </label>
           <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Tipo de cliente (natural/empresa)
+            Ficha de cliente completa (natural/empresa, RIF, etc.)
             <input
               type="checkbox"
               checked={moduloClienteTipo}
@@ -321,39 +321,34 @@ export default function PantallaConfiguracion() {
           </label>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-gray-200 dark:border-gray-800">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
-              Cómo llamar a "Servicios"
-            </label>
-            <input
-              type="text"
-              value={terminologia.servicio ?? ""}
-              onChange={(e) => setTerminologia({ ...terminologia, servicio: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
-              Cómo llamar a "Órdenes"
-            </label>
-            <input
-              type="text"
-              value={terminologia.orden ?? ""}
-              onChange={(e) => setTerminologia({ ...terminologia, orden: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 mt-4">
-              Cómo llamar a "Clientes"
-            </label>
-            <input
-              type="text"
-              value={terminologia.cliente ?? ""}
-              onChange={(e) => setTerminologia({ ...terminologia, cliente: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
-            />
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 mb-3">
+            Nombres que se muestran en los menús, botones y recibos.
+          </p>
+          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3 items-center">
+            <span />
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Plural</span>
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Singular</span>
+            {(
+              [
+                ["Lo que vendes", "servicio", "servicioUno"],
+                ["Cada transacción", "orden", "ordenUno"],
+                ["A quién le vendes", "cliente", "clienteUno"],
+              ] as const
+            ).map(([etiqueta, plural, singular]) => (
+              <Fragment key={plural}>
+                <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{etiqueta}</span>
+                {[plural, singular].map((clave) => (
+                  <input
+                    key={clave}
+                    type="text"
+                    value={terminologia[clave] ?? ""}
+                    onChange={(e) => setTerminologia({ ...terminologia, [clave]: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100"
+                  />
+                ))}
+              </Fragment>
+            ))}
           </div>
         </div>
       </section>

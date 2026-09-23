@@ -10,6 +10,9 @@ import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import FormularioClienteSimple from "./FormularioClienteSimple";
+import { useConfiguracion } from "../../context/configuracionCore";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 type ClienteFormState = ClienteCreate & {
   id?: number;
@@ -24,11 +27,12 @@ type Props = {
   ) => Promise<void>;
 };
 
-export default function FormularioCliente({
+function FormularioClienteCompleto({
   cliente,
   onClose,
   onSubmit,
 }: Props) {
+  const et = useEtiquetas();
   const [form, setForm] = useState<ClienteFormState>({
     nombre: "",
     apellido: "",
@@ -245,13 +249,13 @@ export default function FormularioCliente({
           ...datosParaBackend,
         };
         await onSubmit(updateData);
-        toast.success("Cliente actualizado correctamente.");
+        toast.success(`${et.cliente} actualizado correctamente.`);
       } else {
         const createData: ClienteCreate = {
           ...datosParaBackend,
         };
         await onSubmit(createData);
-        toast.success("Cliente registrado correctamente.");
+        toast.success(`${et.cliente} registrado correctamente.`);
       }
       resetForm();
       onClose();
@@ -269,8 +273,10 @@ export default function FormularioCliente({
         }
         setErrores(erroresFormateados);
         toast.error("Error en la validación de datos.");
+      } else if (isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else {
-        toast.error("Error inesperado al guardar el cliente.");
+        toast.error(`Error inesperado al guardar ${et.clienteMin}.`);
       }
     } finally {
       setEstaGuardando(false);
@@ -282,7 +288,7 @@ export default function FormularioCliente({
         <div className="bg-indigo-600 dark:bg-indigo-800 text-white px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold flex items-center gap-3">
             <FaUserEdit className="text-2xl" />
-            {cliente ? "Editar Cliente" : "Registrar Cliente"}
+            {cliente ? `Editar ${et.cliente}` : `Registrar ${et.cliente}`}
           </h2>
           <button
             onClick={onClose}
@@ -490,9 +496,19 @@ export default function FormularioCliente({
             variant="primary"
             isLoading={estaGuardando}
           >
-            {cliente ? "Actualizar Cliente" : "Registrar Cliente"}
+            {cliente ? `Actualizar ${et.cliente}` : `Registrar ${et.cliente}`}
           </Button>
         </div>
     </Modal>
   );
+}
+
+// El perfil decide la ficha: con "tipo de cliente" (lavandería) se pide la
+// ficha completa; sin él, una ficha simple con solo el nombre obligatorio.
+export default function FormularioCliente(props: Props) {
+  const { config } = useConfiguracion();
+  if (config && config.moduloClienteTipo === false) {
+    return <FormularioClienteSimple {...props} />;
+  }
+  return <FormularioClienteCompleto {...props} />;
 }

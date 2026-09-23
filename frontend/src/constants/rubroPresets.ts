@@ -22,7 +22,14 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloFechaEntrega: true,
     moduloClienteTipo: true,
     clienteObligatorio: true,
-    terminologia: { servicio: "Servicios", orden: "Órdenes", cliente: "Clientes" },
+    terminologia: {
+      servicio: "Servicios",
+      orden: "Órdenes",
+      cliente: "Clientes",
+      servicioUno: "Servicio",
+      ordenUno: "Orden",
+      clienteUno: "Cliente",
+    },
   },
   REPUESTOS: {
     label: "Venta de repuestos",
@@ -33,7 +40,14 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloFechaEntrega: false,
     moduloClienteTipo: false,
     clienteObligatorio: false,
-    terminologia: { servicio: "Productos", orden: "Ventas", cliente: "Clientes" },
+    terminologia: {
+      servicio: "Productos",
+      orden: "Ventas",
+      cliente: "Clientes",
+      servicioUno: "Producto",
+      ordenUno: "Venta",
+      clienteUno: "Cliente",
+    },
   },
   MINIMARKET: {
     label: "Minimarket / tienda",
@@ -44,7 +58,14 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloFechaEntrega: false,
     moduloClienteTipo: false,
     clienteObligatorio: false,
-    terminologia: { servicio: "Productos", orden: "Ventas", cliente: "Clientes" },
+    terminologia: {
+      servicio: "Productos",
+      orden: "Ventas",
+      cliente: "Clientes",
+      servicioUno: "Producto",
+      ordenUno: "Venta",
+      clienteUno: "Cliente",
+    },
   },
   GENERICO: {
     label: "Genérico",
@@ -55,6 +76,13 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloFechaEntrega: true,
     moduloClienteTipo: true,
     clienteObligatorio: true,
-    terminologia: { servicio: "Servicios", orden: "Órdenes", cliente: "Clientes" },
+    terminologia: {
+      servicio: "Servicios",
+      orden: "Órdenes",
+      cliente: "Clientes",
+      servicioUno: "Servicio",
+      ordenUno: "Orden",
+      clienteUno: "Cliente",
+    },
   },
 };

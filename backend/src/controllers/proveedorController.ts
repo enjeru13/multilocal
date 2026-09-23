@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { ProveedorSchema, ProveedorUpdateSchema } from "../schemas/proveedor.schema";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { esErrorPrisma } from "../lib/prismaErrors";
 
 export async function getAllProveedores(req: Request, res: Response) {
   try {
@@ -49,7 +49,7 @@ export async function createProveedor(req: Request, res: Response) {
     });
     return res.status(201).json(proveedor);
   } catch (error: any) {
-    if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
+    if (esErrorPrisma(error, "P2002")) {
       return res.status(409).json({ message: "Ya existe un proveedor con esa identificación." });
     }
     console.error("Error al crear proveedor:", error);
@@ -70,7 +70,7 @@ export async function updateProveedor(req: Request, res: Response) {
     });
     return res.json(proveedor);
   } catch (error) {
-    if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
+    if (esErrorPrisma(error, "P2025")) {
       return res.status(404).json({ message: "Proveedor no encontrado para actualizar." });
     }
     console.error("Error al actualizar proveedor:", error);

@@ -15,6 +15,8 @@ import type { Orden } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import dayjs from "dayjs";
 import Button from "../ui/Button";
+import { nombreCliente } from "../../utils/clienteHelpers";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 
 interface Props {
   ordenes: Orden[];
@@ -37,6 +39,9 @@ export default function TablaOrdenes({
 }: Props) {
   const principalSeguro: Moneda = normalizarMoneda(monedaPrincipal);
   const { hasRole } = useAuth();
+  const { config } = useConfiguracion();
+  const et = useEtiquetas();
+  const conEntrega = config?.moduloFechaEntrega !== false;
 
   return (
     <>
@@ -44,12 +49,14 @@ export default function TablaOrdenes({
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 transition-colors">
             <tr>
-              <th className="px-4 py-2 text-left whitespace-nowrap">Orden</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap">Cliente</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap">{et.orden}</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap">{et.cliente}</th>
               <th className="px-4 py-2 text-left whitespace-nowrap">Estado</th>
               <th className="px-4 py-2 text-left whitespace-nowrap">Balance</th>
               <th className="px-4 py-2 text-left whitespace-nowrap">Ingreso</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap">Entrega</th>
+              {conEntrega && (
+                <th className="px-4 py-2 text-left whitespace-nowrap">Entrega</th>
+              )}
               <th className="px-4 py-2 text-left whitespace-nowrap">Total</th>
               <th className="px-4 py-2 text-left whitespace-nowrap">
                 Observaciones
@@ -63,10 +70,10 @@ export default function TablaOrdenes({
             {ordenes.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={conEntrega ? 9 : 8}
                   className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 italic bg-white dark:bg-gray-900 transition-colors"
                 >
-                  No se encontraron órdenes registradas.
+                  {`No se encontraron ${et.ordenesMin} registradas.`}
                 </td>
               </tr>
             ) : (
@@ -79,7 +86,7 @@ export default function TablaOrdenes({
                     #{o.id}
                   </td>
                   <td className="px-4 py-3">
-                    {o.cliente?.nombre} {o.cliente?.apellido}
+                    {nombreCliente(o.cliente)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
@@ -116,13 +123,15 @@ export default function TablaOrdenes({
                   <td className="px-4 py-3 whitespace-nowrap">
                     {dayjs(o.fechaIngreso).format("DD/MM/YYYY")}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400">
-                    {o.fechaEntrega ? (
-                      dayjs(o.fechaEntrega).format("DD/MM/YYYY")
-                    ) : (
-                      <span className="text-gray-400 dark:text-gray-600">—</span>
-                    )}
-                  </td>
+                  {conEntrega && (
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400">
+                      {o.fechaEntrega ? (
+                        dayjs(o.fechaEntrega).format("DD/MM/YYYY")
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-600">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-indigo-700 dark:text-indigo-400 font-extrabold whitespace-nowrap">
                     {formatearMoneda(o.total ?? 0, principalSeguro)}
                   </td>
@@ -140,7 +149,7 @@ export default function TablaOrdenes({
                     <div className="inline-flex gap-2">
                       <Button
                         onClick={() => onVerDetalles(o)}
-                        title="Ver detalles de la orden"
+                        title={`Ver detalles de ${et.ordenMin === "orden" ? "la orden" : `la ${et.ordenMin}`}`}
                         variant="iconInfo"
                         size="icon"
                       >
@@ -160,7 +169,7 @@ export default function TablaOrdenes({
                           </Button>
                         )}
 
-                      {o.estado !== "ENTREGADO" && o.estado !== "CANCELADO" && (
+                      {conEntrega && o.estado !== "ENTREGADO" && o.estado !== "CANCELADO" && (
                         <Button
                           onClick={() => onMarcarEntregada(o.id)}
                           title="Marcar como entregada"
@@ -174,7 +183,7 @@ export default function TablaOrdenes({
                       {hasRole(["ADMIN"]) && o.estado !== "CANCELADO" && (
                         <Button
                           onClick={() => onAnular(o.id)}
-                          title="Anular orden (devuelve stock y reembolsa)"
+                          title={`Anular ${et.ordenMin} (devuelve stock y reembolsa)`}
                           variant="iconWarning"
                           size="icon"
                         >
@@ -185,7 +194,7 @@ export default function TablaOrdenes({
                       {hasRole(["ADMIN"]) && (
                         <Button
                           onClick={() => onEliminar(o.id)}
-                          title="Eliminar orden"
+                          title={`Eliminar ${et.ordenMin}`}
                           variant="iconDanger"
                           size="icon"
                         >

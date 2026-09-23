@@ -185,7 +185,7 @@ export default function PantallaSetup() {
                 value={nombreNegocio}
                 onChange={(e) => setNombreNegocio(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-base dark:text-gray-100"
-                placeholder="Ej. Lavandería Estrella"
+                placeholder="Ej. Mi Negocio C.A."
               />
             </div>
 

@@ -22,6 +22,7 @@ import EmptyState from "../components/EmptyState";
 import { FaMoneyBillWave } from "react-icons/fa";
 import type { Pago, Orden, Configuracion } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
+import { useEtiquetas } from "../context/configuracionCore";
 
 interface PagoConOrden extends Pago {
   orden?: Orden & { cliente?: { nombre: string; apellido: string } };
@@ -32,6 +33,7 @@ type SortKeys = "fechaPago" | "ordenId" | "monto";
 type SortDirection = "asc" | "desc";
 
 export default function PantallaPagos() {
+  const et = useEtiquetas();
   const [pagos, setPagos] = useState<PagoConOrden[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
@@ -222,7 +224,7 @@ export default function PantallaPagos() {
               id="filtroBusqueda"
               value={filtroBusqueda}
               onChange={(e) => setFiltroBusqueda(e.target.value)}
-              placeholder="Orden o cliente"
+              placeholder={`${et.orden} o ${et.clienteMin}`}
               className="pl-9 pr-3 py-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-900 text-sm dark:text-gray-200"
             />
           </div>

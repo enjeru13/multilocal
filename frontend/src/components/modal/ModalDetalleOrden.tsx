@@ -28,6 +28,8 @@ import { generarEnlaceWhatsApp } from "../../utils/whatsappHelpers";
 import { FaWhatsapp } from "react-icons/fa";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { nombreCliente } from "../../utils/clienteHelpers";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 
 interface Props {
   orden: Orden;
@@ -47,6 +49,9 @@ export default function ModalDetalleOrden({
   onPagoRegistrado,
 }: Props) {
   const navigate = useNavigate();
+  const { config: perfil } = useConfiguracion();
+  const et = useEtiquetas();
+  const conEntrega = perfil?.moduloFechaEntrega !== false;
   const [observacionesEditadas, setObservacionesEditadas] = useState(
     orden.observaciones ?? ""
   );
@@ -167,7 +172,7 @@ export default function ModalDetalleOrden({
   };
 
   const handleWhatsAppClick = () => {
-    const nombreNegocio = configuracion?.nombreNegocio || "Nuestra Lavandería";
+    const nombreNegocio = configuracion?.nombreNegocio || "Mi negocio";
     const link = generarEnlaceWhatsApp(orden, nombreNegocio, tasas);
 
     if (link) {
@@ -187,7 +192,7 @@ export default function ModalDetalleOrden({
 
     return {
       clienteInfo: {
-        nombre: orden.cliente?.nombre ?? "",
+        nombre: orden.cliente?.nombre ?? "Sin cliente",
         apellido: orden.cliente?.apellido ?? "",
         identificacion: orden.cliente?.identificacion ?? "",
         fechaIngreso: dayjs(orden.fechaIngreso).isValid()
@@ -218,7 +223,7 @@ export default function ModalDetalleOrden({
           : observacionesEditadas.trim(),
 
       lavanderiaInfo: {
-        nombre: configuracion?.nombreNegocio ?? "Lavandería sin nombre",
+        nombre: configuracion?.nombreNegocio ?? "Mi negocio",
         rif: configuracion?.rif ?? null,
         direccion: configuracion?.direccion ?? null,
         telefonoPrincipal: configuracion?.telefonoPrincipal ?? null,
@@ -246,7 +251,7 @@ export default function ModalDetalleOrden({
         <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-2xl font-extrabold text-green-700 dark:text-green-500 flex items-center gap-3">
             <BiMessageSquareDetail className="text-3xl" />
-            Detalle de la orden
+            Detalle de la {et.ordenMin}
             <span className="text-gray-500 dark:text-gray-400 font-semibold">#{orden.id}</span>
           </h2>
           <button
@@ -261,14 +266,14 @@ export default function ModalDetalleOrden({
         {/* GRID DE INFO */}
         <div className="grid sm:grid-cols-2 gap-5">
           <div>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">Cliente</p>
+            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">{et.cliente}</p>
             <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-              {orden.cliente?.nombre} {orden.cliente?.apellido}
+              {nombreCliente(orden.cliente)}
             </div>
           </div>
           <div>
             <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-              Estado de la entrega
+              {conEntrega ? "Estado de la entrega" : "Estado"}
             </p>
             <div className="bg-gray-100 dark:bg-gray-950 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center gap-2 shadow-sm">
               {badgeEstado(orden.estado)}
@@ -282,16 +287,18 @@ export default function ModalDetalleOrden({
               {dayjs(orden.fechaIngreso).format("DD/MM/YYYY")}
             </div>
           </div>
-          <div>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-              Fecha estimada de entrega
-            </p>
-            <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-              {orden.fechaEntrega
-                ? dayjs(orden.fechaEntrega).format("DD/MM/YYYY")
-                : "No definida"}
+          {conEntrega && (
+            <div>
+              <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
+                Fecha estimada de entrega
+              </p>
+              <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
+                {orden.fechaEntrega
+                  ? dayjs(orden.fechaEntrega).format("DD/MM/YYYY")
+                  : "No definida"}
+              </div>
             </div>
-          </div>
+          )}
           {orden.estado === "ENTREGADO" && orden.deliveredBy && (
             <div>
               <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
@@ -307,13 +314,13 @@ export default function ModalDetalleOrden({
         {/* TABLA SERVICIOS */}
         <div>
           <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-            Servicios contratados
+            {et.servicios}
           </h3>
           <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
             <table className="min-w-full bg-white dark:bg-gray-950 text-sm">
               <thead className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left">Servicio</th>
+                  <th className="px-4 py-3 text-left">{et.servicio}</th>
                   <th className="px-4 py-3 text-center">Cantidad</th>
                   <th className="px-4 py-3 text-right">Precio Unitario</th>
                   <th className="px-4 py-3 text-right">Subtotal</th>
@@ -326,7 +333,7 @@ export default function ModalDetalleOrden({
                     className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition duration-200 ease-in-out"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                      {d.servicio?.nombreServicio ?? "Servicio no disponible"}
+                      {d.servicio?.nombreServicio ?? `${et.servicio} no disponible`}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
                       x{d.cantidad}
@@ -344,7 +351,7 @@ export default function ModalDetalleOrden({
                         colSpan={4}
                         className="px-4 py-4 text-center text-gray-500 italic"
                       >
-                        No hay servicios asociados a esta orden.
+                        {`No hay ${et.serviciosMin} asociados.`}
                       </td>
                     </tr>
                   )}
@@ -437,7 +444,7 @@ export default function ModalDetalleOrden({
           </h3>
           <div className="grid grid-cols-2 gap-4 text-sm font-medium">
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm flex justify-between items-center border border-blue-100 dark:border-blue-900/30">
-              <span className="text-blue-800 dark:text-blue-300">Total Orden:</span>
+              <span className="text-blue-800 dark:text-blue-300">Total:</span>
               <span className="font-bold text-blue-900 dark:text-blue-100">
                 {formatearMoneda(orden.total, principalSeguro)}
               </span>
@@ -460,7 +467,7 @@ export default function ModalDetalleOrden({
         {/* NOTAS */}
         <div className="pt-4 space-y-3 border-t border-gray-200 dark:border-gray-800">
           <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-            Notas de la orden
+            Notas
           </h3>
           <textarea
             value={observacionesEditadas}
@@ -518,7 +525,7 @@ export default function ModalDetalleOrden({
               variant="secondary"
               leftIcon={<FaPencilAlt />}
             >
-              Editar Orden
+              Editar {et.orden}
             </Button>
           )}
 

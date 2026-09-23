@@ -9,6 +9,8 @@ import type {
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import Button from "../ui/Button";
+import { nombreCliente } from "../../utils/clienteHelpers";
+import { useEtiquetas } from "../../context/configuracionCore";
 
 dayjs.locale("es");
 
@@ -49,6 +51,7 @@ export default function TablaPagos({
   onSort,
   onVerDetallesOrden,
 }: Props) {
+  const et = useEtiquetas();
   const getSortIcon = (column: SortKeys) => {
     if (sortColumn === column) {
       return sortDirection === "asc" ? <FaSortUp /> : <FaSortDown />;
@@ -77,7 +80,7 @@ export default function TablaPagos({
                 Orden {getSortIcon("ordenId")}
               </div>
             </th>
-            <th className="px-4 py-2 font-semibold">Cliente</th>
+            <th className="px-4 py-2 font-semibold">{et.cliente}</th>
             <th className="px-4 py-2 font-semibold whitespace-nowrap">
               Método
             </th>
@@ -144,8 +147,7 @@ export default function TablaPagos({
                     #{pago.ordenId}
                   </td>
                   <td className="px-4 py-3">
-                    {pago.orden?.cliente?.nombre}{" "}
-                    {pago.orden?.cliente?.apellido}
+                    {nombreCliente(pago.orden?.cliente)}
                   </td>
                   <td className="px-4 py-3 capitalize whitespace-nowrap">
                     {metodoPagoDisplay[pago.metodoPago]}
@@ -171,7 +173,7 @@ export default function TablaPagos({
                   <td className="px-4 py-3 text-center whitespace-nowrap">
                     <Button
                       onClick={() => onVerDetallesOrden(pago.ordenId)}
-                      title="Ver detalles de la orden"
+                      title={`Ver detalles de ${et.ordenMin}`}
                       variant="iconInfo"
                       size="icon"
                       disabled={cargandoOrdenDetalle}

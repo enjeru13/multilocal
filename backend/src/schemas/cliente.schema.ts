@@ -204,3 +204,50 @@ export const ClienteUpdateSchema = ClienteSchemaBase.partial().superRefine(
     }
   }
 );
+
+// Ficha simple (perfiles sin "tipo de cliente": repuestos, minimarket...):
+// solo el nombre es obligatorio; el resto es libre porque los documentos
+// de identidad varían por país y por negocio.
+const telefonoLibre = z
+  .string()
+  .trim()
+  .nullable()
+  .optional()
+  .refine((v) => !v || /^[0-9()+\-.\s]{6,20}$/.test(v), {
+    message: "Formato de teléfono inválido (solo números, +, -, ., (, ))",
+  });
+
+export const ClienteSimpleSchema = z.object({
+  nombre: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres."),
+  apellido: z.string().trim().nullable().optional(),
+  telefono: telefonoLibre,
+  telefono_secundario: telefonoLibre,
+  direccion: z.string().trim().nullable().optional(),
+  identificacion: z.string().trim().nullable().optional(),
+  email: z
+    .string()
+    .trim()
+    .nullable()
+    .optional()
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      message: "Formato de correo electrónico inválido",
+    }),
+});
+
+export const ClienteSimpleUpdateSchema = ClienteSimpleSchema.partial();
+
+/** Normaliza una ficha simple a lo que espera la base (texto vacío en vez de null donde el resto del sistema concatena). */
+export function normalizarClienteSimple(
+  d: z.infer<typeof ClienteSimpleUpdateSchema>,
+  creando = false
+) {
+  const out: Record<string, unknown> = creando ? { apellido: "", telefono: "", direccion: "" } : {};
+  if (d.nombre !== undefined) out.nombre = d.nombre;
+  if (d.apellido !== undefined) out.apellido = d.apellido ?? "";
+  if (d.telefono !== undefined) out.telefono = d.telefono ?? "";
+  if (d.telefono_secundario !== undefined) out.telefono_secundario = d.telefono_secundario || null;
+  if (d.direccion !== undefined) out.direccion = d.direccion ?? "";
+  if (d.identificacion !== undefined) out.identificacion = d.identificacion || null;
+  if (d.email !== undefined) out.email = d.email || null;
+  return out;
+}
