@@ -56,4 +56,10 @@ export const ConfiguracionSchema = z.object({
   clienteObligatorio: z.boolean().optional(),
   deduccionStockEn: MomentoDeduccionSchema.optional(),
   terminologia: TerminologiaSchema,
+
+  impuestoActivo: z.boolean().optional(),
+  impuestoNombre: z.string().trim().min(1).max(20).optional(),
+  impuestoTasa: z.number().min(0, "La tasa no puede ser negativa").max(100, "La tasa no puede pasar de 100 %").optional(),
+  preciosIncluyenImpuesto: z.boolean().optional(),
+  descuentoMaxPct: z.number().min(0).max(100).optional(),
 });

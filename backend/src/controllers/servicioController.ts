@@ -65,6 +65,7 @@ export async function createServicio(req: Request, res: Response) {
     costoBase,
     stockActual,
     stockMinimo,
+    exentoImpuesto,
   } = result.data;
 
   try {
@@ -83,6 +84,7 @@ export async function createServicio(req: Request, res: Response) {
         costoBase: costoBase ?? null,
         stockActual: stockActual ?? 0,
         stockMinimo: stockMinimo ?? null,
+        exentoImpuesto: exentoImpuesto ?? false,
       },
       include: {
         categoria: true,
@@ -128,6 +130,7 @@ export async function updateServicio(req: Request, res: Response) {
     costoBase,
     stockActual,
     stockMinimo,
+    exentoImpuesto,
   } = result.data;
 
   try {
@@ -147,6 +150,7 @@ export async function updateServicio(req: Request, res: Response) {
         ...(costoBase !== undefined && { costoBase }),
         ...(stockActual !== undefined && { stockActual }),
         ...(stockMinimo !== undefined && { stockMinimo }),
+        ...(exentoImpuesto !== undefined && { exentoImpuesto }),
       },
       include: {
         categoria: true,

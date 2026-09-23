@@ -34,6 +34,15 @@ export const authService = {
     }
   },
 
+  getBranding: async (): Promise<{ nombreNegocio: string | null; rubro: string | null }> => {
+    try {
+      const response = await apiClient.get("/auth/branding");
+      return response.data;
+    } catch {
+      return { nombreNegocio: null, rubro: null };
+    }
+  },
+
   getSetupStatus: async (): Promise<boolean> => {
     try {
       const response = await apiClient.get("/auth/setup-status");

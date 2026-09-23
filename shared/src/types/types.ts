@@ -74,6 +74,7 @@ export interface Servicio {
   costoBase: number | null;
   stockActual: number;
   stockMinimo: number | null;
+  exentoImpuesto: boolean;
 
   detalleOrdenes?: DetalleOrden[];
 }
@@ -92,6 +93,7 @@ export interface ServicioCreate {
   costoBase?: number | null;
   stockActual?: number;
   stockMinimo?: number | null;
+  exentoImpuesto?: boolean;
 }
 
 export type ServicioUpdatePayload = Partial<ServicioCreate>;
@@ -159,7 +161,13 @@ export interface DetalleOrden {
   servicioId: number;
   cantidad: number;
   precioUnit: number;
+  costoUnit?: number | null;
   subtotal: number;
+  descuento: number;
+  impuesto: number;
+  /** Importe sin impuesto, después del descuento. */
+  base: number;
+  cantidadDevuelta: number;
   orden?: Orden;
   servicio?: Servicio;
 }
@@ -174,8 +182,14 @@ export interface DetalleOrdenCreate {
 
 export type DetalleOrdenUpdatePayload = Partial<DetalleOrdenCreate>;
 
+export interface DescuentoOrden {
+  tipo: "PORCENTAJE" | "MONTO";
+  valor: number;
+}
+
 export interface OrdenCreate {
   clienteId?: number | null;
+  descuento?: DescuentoOrden | null;
   entregaInmediata?: boolean;
   estado: EstadoOrden;
   observaciones?: string | null;
@@ -191,6 +205,7 @@ export interface OrdenUpdatePayload {
   deliveredByUserId?: number | null;
   deliveredByUserName?: string | null;
   servicios?: ServicioSeleccionado[];
+  descuento?: DescuentoOrden | null;
 }
 
 export interface Orden {
@@ -201,9 +216,18 @@ export interface Orden {
   fechaEntrega: string | null;
   observaciones: string | null;
   total: number;
+  subtotal: number;
+  descuento: number;
+  descuentoTipo: "PORCENTAJE" | "MONTO" | null;
+  descuentoValor: number | null;
+  impuesto: number;
+  impuestoTasa: number | null;
+  /** Valor ya devuelto al cliente (el total ya lo descuenta). */
+  devuelto: number;
   abonado: number;
   faltante: number;
   estadoPago: EstadoPagoRaw;
+  devoluciones?: Devolucion[];
   cliente?: Cliente;
   detalles?: (DetalleOrden & { servicio: Servicio })[];
   pagos?: Pago[];
@@ -214,6 +238,33 @@ export interface Orden {
     name: string | null;
     email: string;
   } | null;
+}
+
+export interface DevolucionItem {
+  id: number;
+  detalleOrdenId: number;
+  servicioId: number;
+  cantidad: number;
+  monto: number;
+}
+
+export interface Devolucion {
+  id: number;
+  ordenId: number;
+  fecha: string;
+  motivo: string | null;
+  total: number;
+  reembolso: number;
+  detalles?: DevolucionItem[];
+}
+
+export interface DevolucionCreate {
+  items: { detalleId: number; cantidad: number }[];
+  motivo?: string | null;
+  /** Devolver el dinero cobrado de más (por defecto sí). */
+  reembolsar?: boolean;
+  moneda?: Moneda;
+  metodoPago?: MetodoPago;
 }
 
 export interface Pago {
@@ -300,6 +351,12 @@ export interface Configuracion {
   clienteObligatorio: boolean;
   deduccionStockEn: MomentoDeduccion;
   terminologia: Terminologia | null;
+
+  impuestoActivo: boolean;
+  impuestoNombre: string;
+  impuestoTasa: number;
+  preciosIncluyenImpuesto: boolean;
+  descuentoMaxPct: number;
 }
 
 export interface ConfiguracionCreate {
@@ -390,6 +447,16 @@ export interface ReciboData {
   mensajePieRecibo: string | null;
   monedaPrincipal: Moneda;
   totalCantidadPiezas: number;
+  /** Solo cuando la venta lleva descuento o impuesto. */
+  desglose?: {
+    subtotal: number;
+    descuento: number;
+    impuesto: number;
+    impuestoNombre: string;
+    impuestoTasa: number | null;
+    impuestoIncluido: boolean;
+    devuelto: number;
+  };
 }
 
 // --- Reportes y dashboard (importes en moneda principal) ---
@@ -422,7 +489,15 @@ export interface PorCobrarResumen {
 export interface ReporteResumen {
   rango: { desde: string; hasta: string; dias: number; agrupar: "dia" | "mes" };
   moneda: Moneda;
-  ventas: { cantidad: number; canceladas: number; total: number; ticketPromedio: number };
+  ventas: {
+    cantidad: number;
+    canceladas: number;
+    total: number;
+    ticketPromedio: number;
+    descuentos: number;
+    impuestos: number;
+  };
+  devoluciones: { cantidad: number; total: number };
   cobros: {
     total: number;
     cantidad: number;

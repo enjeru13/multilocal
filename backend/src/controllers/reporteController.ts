@@ -33,6 +33,8 @@ async function cargarRango(desde: Date, hasta: Date) {
         fechaIngreso: true,
         estado: true,
         total: true,
+        descuento: true,
+        impuesto: true,
         clienteId: true,
         cliente: { select: { nombre: true, apellido: true } },
         detalles: {
@@ -41,6 +43,10 @@ async function cargarRango(desde: Date, hasta: Date) {
             cantidad: true,
             subtotal: true,
             costoUnit: true,
+            descuento: true,
+            impuesto: true,
+            base: true,
+            cantidadDevuelta: true,
             servicio: { select: { nombreServicio: true } },
           },
         },
@@ -107,7 +113,7 @@ export async function getResumen(req: Request, res: Response) {
     const hastaPrev = new Date(desde.getTime() - 1);
     const desdePrev = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() - dias);
 
-    const [actual, previo, sinCobrar, bajos, porEstado] = await Promise.all([
+    const [actual, previo, sinCobrar, bajos, porEstado, devs] = await Promise.all([
       cargarRango(desde, hasta),
       cargarRango(desdePrev, hastaPrev),
       porCobrarGlobal(),
@@ -115,6 +121,11 @@ export async function getResumen(req: Request, res: Response) {
       prisma.orden.groupBy({
         by: ["estado"],
         where: { fechaIngreso: { gte: desde, lte: hasta } },
+        _count: true,
+      }),
+      prisma.devolucion.aggregate({
+        where: { fecha: { gte: desde, lte: hasta } },
+        _sum: { total: true },
         _count: true,
       }),
     ]);
@@ -136,6 +147,7 @@ export async function getResumen(req: Request, res: Response) {
         variacionVentas: variacion(ventas.total, ventasPrev.total),
         variacionCobrado: variacion(cobros.total, cobrosPrev.total),
       },
+      devoluciones: { cantidad: devs._count, total: Math.round((devs._sum.total ?? 0) * 100) / 100 },
       porEstado: porEstado.map((e) => ({ estado: e.estado, cantidad: e._count })),
       serie: serieTemporal(actual.ordenes, actual.pagos, desde, hasta, agrupar, tasas, principal),
       topItems: topItems(actual.ordenes),

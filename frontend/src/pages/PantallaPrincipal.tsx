@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { FaCashRegister } from "react-icons/fa";
@@ -34,8 +34,10 @@ import type {
   Moneda,
   TasasConversion,
   DashboardData,
+  DescuentoOrden,
 } from "@lavanderia/shared/types/types";
 import { normalizarMoneda } from "../utils/monedaHelpers";
+import { totalesDeSeleccion } from "../utils/totales";
 import dayjs from "dayjs";
 import { FormSkeleton } from "../components/Skeleton";
 
@@ -55,6 +57,7 @@ export default function PantallaPrincipal() {
   >([]);
 
   const [observaciones, setObservaciones] = useState("");
+  const [descuento, setDescuento] = useState<DescuentoOrden | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
 
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
@@ -93,6 +96,11 @@ export default function PantallaPrincipal() {
     cargarDatosIniciales();
   }, []);
 
+  const totales = useMemo(
+    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento),
+    [serviciosSeleccionados, serviciosCatalogo, config, descuento]
+  );
+
   useEffect(() => {
     const isValid =
       (cliente !== null || !clienteObligatorio) && serviciosSeleccionados.length > 0;
@@ -118,6 +126,7 @@ export default function PantallaPrincipal() {
       observaciones: observaciones.trim() || null,
       fechaEntrega: fechaEntrega ? dayjs(fechaEntrega).toISOString() : null,
       servicios: serviciosSeleccionados, // Aquí van incluidos los precios personalizados
+      descuento: descuento && descuento.valor > 0 ? descuento : null,
     };
 
     try {
@@ -128,6 +137,7 @@ export default function PantallaPrincipal() {
       setCliente(null);
       setServiciosSeleccionados([]);
       setObservaciones("");
+      setDescuento(null);
       setFechaEntrega("");
       window.scrollTo({ top: 0, behavior: "smooth" });
       reportesService.dashboard().then((r) => setDashboard(r.data)).catch(() => {});
@@ -143,6 +153,7 @@ export default function PantallaPrincipal() {
     setCliente(null);
     setServiciosSeleccionados([]);
     setObservaciones("");
+    setDescuento(null);
     setFechaEntrega("");
     toast.info(`Creación de ${et.ordenMin} cancelada.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -223,8 +234,9 @@ export default function PantallaPrincipal() {
       />
 
       <ConfirmarOrdenPanel
-        serviciosSeleccionados={serviciosSeleccionados}
-        serviciosCatalogo={serviciosCatalogo}
+        totales={totales}
+        descuento={descuento}
+        onDescuento={setDescuento}
         onRegistrar={crearOrden}
         onCancelar={cancelarOrden}
         tasas={tasas}

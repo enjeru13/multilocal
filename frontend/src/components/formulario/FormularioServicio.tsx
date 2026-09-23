@@ -45,6 +45,7 @@ export default function FormularioServicio({
   const [controlaStock, setControlaStock] = useState(false);
   const [sku, setSku] = useState("");
   const [codigoBarras, setCodigoBarras] = useState("");
+  const [exentoImpuesto, setExentoImpuesto] = useState(false);
   const [stockActual, setStockActual] = useState<number | null>(0);
   const [stockMinimo, setStockMinimo] = useState<number | null>(null);
 
@@ -65,6 +66,7 @@ export default function FormularioServicio({
       setControlaStock(servicio.controlaStock ?? false);
       setSku(servicio.sku || "");
       setCodigoBarras(servicio.codigoBarras || "");
+      setExentoImpuesto(servicio.exentoImpuesto ?? false);
       setStockActual(servicio.stockActual ?? 0);
       setStockMinimo(servicio.stockMinimo ?? null);
     } else {
@@ -76,6 +78,7 @@ export default function FormularioServicio({
       setControlaStock(false);
       setSku("");
       setCodigoBarras("");
+      setExentoImpuesto(false);
       setStockActual(0);
       setStockMinimo(null);
     }
@@ -122,6 +125,7 @@ export default function FormularioServicio({
         descripcion: descripcionFinal,
         permiteDecimales,
         categoriaId: categoriaSeleccionadaId,
+        exentoImpuesto,
         ...camposInventario,
       };
     } else {
@@ -131,6 +135,7 @@ export default function FormularioServicio({
         descripcion: descripcionFinal,
         permiteDecimales,
         categoriaId: categoriaSeleccionadaId,
+        exentoImpuesto,
         ...camposInventario,
       };
     }
@@ -269,6 +274,18 @@ export default function FormularioServicio({
               />
               <span>¿Permite cantidades decimales?</span>
             </label>
+            {config?.impuestoActivo && (
+              <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exentoImpuesto}
+                  onChange={(e) => setExentoImpuesto(e.target.checked)}
+                  className="accent-blue-600 dark:accent-blue-500 w-5 h-5 cursor-pointer"
+                  disabled={cargando}
+                />
+                <span>Exento de {config.impuestoNombre || "impuesto"}</span>
+              </label>
+            )}
           </div>
 
           {inventarioActivo && (

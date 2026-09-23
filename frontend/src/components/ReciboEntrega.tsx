@@ -20,6 +20,7 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
       mensajePieRecibo,
       monedaPrincipal,
       totalCantidadPiezas,
+      desglose,
     },
     ref
   ) => {
@@ -163,6 +164,24 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
           />
           <div className="my-1 border-t border-dotted border-gray-400" />
 
+          {desglose && (
+            <>
+              <LineaTotal label="SUBTOTAL:" valor={formatearMoneda(desglose.subtotal, monedaPrincipal)} />
+              {desglose.descuento > 0 && (
+                <LineaTotal label="DESCUENTO:" valor={`-${formatearMoneda(desglose.descuento, monedaPrincipal)}`} />
+              )}
+              {desglose.impuesto > 0 && (
+                <LineaTotal
+                  label={`${desglose.impuestoNombre}${desglose.impuestoTasa ? ` ${desglose.impuestoTasa}%` : ""}${desglose.impuestoIncluido ? " (INCL.)" : ""}:`}
+                  valor={formatearMoneda(desglose.impuesto, monedaPrincipal)}
+                />
+              )}
+              {desglose.devuelto > 0 && (
+                <LineaTotal label="DEVUELTO:" valor={formatearMoneda(desglose.devuelto, monedaPrincipal)} />
+              )}
+            </>
+          )}
+
           <LineaTotal
             label="TOTAL A PAGAR:"
             valor={formatearMoneda(total, monedaPrincipal)}
@@ -201,9 +220,11 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
             {mensajePieRecibo || "* ESTE COMPROBANTE NO DA DERECHO A RECLAMO SIN TICKET *"}
           </p>
 
-          <p className="text-[10px] font-black">
-            (NO DA DERECHO A CRÉDITO FISCAL)
-          </p>
+          {!(desglose && desglose.impuesto > 0) && (
+            <p className="text-[10px] font-black">
+              (NO DA DERECHO A CRÉDITO FISCAL)
+            </p>
+          )}
         </div>
       </div>
     );

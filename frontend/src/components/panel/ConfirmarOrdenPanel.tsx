@@ -1,8 +1,5 @@
-import { useMemo } from "react"; // IMPORTANTE: Agregar useMemo
-import type {
-  Servicio,
-  ServicioSeleccionado,
-} from "@lavanderia/shared/types/types";
+import type { DescuentoOrden } from "@lavanderia/shared/types/types";
+import type { TotalesCalculados } from "@lavanderia/shared/utils/totales";
 import {
   formatearMoneda,
   convertirDesdePrincipal,
@@ -12,22 +9,25 @@ import {
 import { FaDollarSign, FaRegTimesCircle, FaPlusCircle } from "react-icons/fa";
 import Button from "../ui/Button";
 import { useEtiquetas } from "../../context/configuracionCore";
+import DescuentoControl from "../venta/DescuentoControl";
+import DesgloseTotales from "../venta/DesgloseTotales";
 
 interface Props {
-  serviciosSeleccionados: ServicioSeleccionado[];
-  serviciosCatalogo: Servicio[];
+  totales: TotalesCalculados;
+  descuento: DescuentoOrden | null;
+  onDescuento: (d: DescuentoOrden | null) => void;
   onRegistrar: () => void;
   onCancelar: () => void;
   monedaPrincipal: Moneda;
   tasas: TasasConversion;
   isFormValid: boolean;
   isSaving: boolean;
-  // Eliminamos subtotal y descuentoTotal porque se calculan aquí
 }
 
 export default function ConfirmarOrdenPanel({
-  serviciosSeleccionados,
-  serviciosCatalogo,
+  totales,
+  descuento,
+  onDescuento,
   onRegistrar,
   onCancelar,
   monedaPrincipal,
@@ -36,21 +36,7 @@ export default function ConfirmarOrdenPanel({
   isSaving,
 }: Props) {
   const et = useEtiquetas();
-  // --- 1. CALCULAMOS EL TOTAL AQUÍ ---
-  const totalCalculado = useMemo(() => {
-    return serviciosSeleccionados.reduce((acc, item) => {
-      const servicio = serviciosCatalogo.find((s) => s.id === item.servicioId);
-
-      // Usamos el precio personalizado (item.precio) o el base (servicio.precioBase)
-      const precioReal = item.precio ?? servicio?.precioBase ?? 0;
-
-      const subtotalItem = precioReal * item.cantidad;
-      const descuento = item.descuento || 0; // Por si implementas descuentos luego
-
-      return acc + Math.max(0, subtotalItem - descuento);
-    }, 0);
-  }, [serviciosSeleccionados, serviciosCatalogo]);
-  // -----------------------------------
+  const totalCalculado = totales.total;
 
   // Usamos 'totalCalculado' en lugar de 'total'
   const totalVES = convertirDesdePrincipal(
@@ -79,6 +65,11 @@ export default function ConfirmarOrdenPanel({
         <p className="text-4xl font-extrabold text-green-700 dark:text-green-500 tracking-tight">
           {formatearMoneda(totalCalculado, monedaPrincipal)}
         </p>
+      </div>
+
+      <div className="max-w-md mx-auto w-full space-y-3">
+        <DescuentoControl value={descuento} onChange={onDescuento} disabled={isSaving} />
+        <DesgloseTotales totales={totales} moneda={monedaPrincipal} />
       </div>
 
       <div className="bg-gray-100 dark:bg-gray-950 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 text-left transition-colors">

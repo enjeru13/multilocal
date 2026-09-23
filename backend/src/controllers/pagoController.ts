@@ -2,57 +2,11 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { PagoSchema } from "../schemas/pago.schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { calcularResumenPago } from "@lavanderia/shared/dist/utils/pagoFinance";
+import { recalcularEstadoOrden } from "../lib/ordenFinance";
 import type {
   Moneda,
   TasasConversion,
 } from "@lavanderia/shared/dist/types/types";
-
-async function recalcularEstadoOrden(ordenId: number) {
-  const orden = await prisma.orden.findUnique({
-    where: { id: ordenId },
-    include: { pagos: { include: { vueltos: true } } },
-  });
-
-  if (!orden) {
-    console.warn(
-      `Orden con ID ${ordenId} no encontrada para recalcular estado.`
-    );
-    throw new Error(
-      `Orden con ID ${ordenId} no encontrada para recalcular estado.`
-    );
-  }
-
-  const config = await prisma.configuracion.findFirst();
-
-  const principalMoneda: Moneda = (config?.monedaPrincipal || "USD") as Moneda;
-  const tasas: TasasConversion = {
-    VES: config?.tasaVES ?? null,
-    COP: config?.tasaCOP ?? null,
-  };
-
-  // 🛠️ CORRECCIÓN 1: Convertir los pagos de la orden (Decimal -> Number)
-  // antes de pasarlos a la función de cálculo compartida.
-  const pagosNormalizados = orden.pagos.map((p) => ({
-    ...p,
-    tasa: p.tasa ? Number(p.tasa) : null,
-  }));
-
-  const resumen = calcularResumenPago(
-    { total: orden.total, pagos: pagosNormalizados }, // Usamos los normalizados
-    tasas,
-    principalMoneda
-  );
-
-  await prisma.orden.update({
-    where: { id: ordenId },
-    data: {
-      abonado: resumen.abonado,
-      faltante: resumen.faltante,
-      estadoPago: resumen.estadoRaw,
-    },
-  });
-}
 
 export async function getAllPagos(req: Request, res: Response) {
   try {

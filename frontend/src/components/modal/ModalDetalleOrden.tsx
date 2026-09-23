@@ -5,7 +5,7 @@ import { configuracionService } from "../../services/configuracionService";
 import { pagosService } from "../../services/pagosService";
 import { FiX } from "react-icons/fi";
 import { BiMessageSquareDetail } from "react-icons/bi";
-import { FaEdit, FaCheck, FaTimes, FaPencilAlt } from "react-icons/fa";
+import { FaEdit, FaCheck, FaTimes, FaPencilAlt, FaUndoAlt } from "react-icons/fa";
 import {
   formatearMoneda,
   normalizarMoneda,
@@ -20,6 +20,7 @@ import type {
   Configuracion,
   ReciboData,
   Pago,
+  Devolucion,
 } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import ModalReciboEntrega from "./ModalReciboEntrega";
@@ -28,6 +29,8 @@ import { generarEnlaceWhatsApp } from "../../utils/whatsappHelpers";
 import { FaWhatsapp } from "react-icons/fa";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import ModalDevolucion from "./ModalDevolucion";
+import DesgloseTotales from "../venta/DesgloseTotales";
 import { nombreCliente } from "../../utils/clienteHelpers";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 
@@ -68,6 +71,16 @@ export default function ModalDetalleOrden({
   const [guardandoFechaPago, setGuardandoFechaPago] = useState(false);
 
   const { hasRole } = useAuth();
+  const [verDevolucion, setVerDevolucion] = useState(false);
+  const [devoluciones, setDevoluciones] = useState<Devolucion[]>(orden.devoluciones ?? []);
+
+  // La lista no trae el historial de devoluciones: se pide al abrir el detalle.
+  useEffect(() => {
+    ordenesService
+      .getById(orden.id)
+      .then((res) => setDevoluciones(res.data.devoluciones ?? []))
+      .catch(() => {});
+  }, [orden.id]);
 
   useEffect(() => {
     setCargandoConfiguracion(true);
@@ -235,6 +248,18 @@ export default function ModalDetalleOrden({
           : configuracion?.mensajePieRecibo ?? null,
       monedaPrincipal: principalSeguro,
       totalCantidadPiezas: totalCantidadPiezas,
+      desglose:
+        orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0
+          ? {
+              subtotal: orden.subtotal,
+              descuento: orden.descuento,
+              impuesto: orden.impuesto,
+              impuestoNombre: configuracion?.impuestoNombre || "IVA",
+              impuestoTasa: orden.impuestoTasa,
+              impuestoIncluido: configuracion?.preciosIncluyenImpuesto ?? true,
+              devuelto: orden.devuelto,
+            }
+          : undefined,
     };
   };
 
@@ -337,6 +362,11 @@ export default function ModalDetalleOrden({
                     </td>
                     <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
                       x{d.cantidad}
+                      {d.cantidadDevuelta > 0 && (
+                        <span className="block text-xs font-normal text-amber-600 dark:text-amber-400">
+                          {d.cantidadDevuelta} devuelto(s)
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-indigo-700 dark:text-indigo-400 font-bold">
                       {formatearMoneda(d.precioUnit, principalSeguro)}
@@ -442,6 +472,17 @@ export default function ModalDetalleOrden({
           <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
             Resumen de Pagos
           </h3>
+          {(orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0) && (
+            <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 space-y-1">
+              <DesgloseTotales totales={orden} moneda={principalSeguro} />
+              {orden.devuelto > 0 && (
+                <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+                  <span>Ya devuelto</span>
+                  <span className="tabular-nums">{formatearMoneda(orden.devuelto, principalSeguro)}</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4 text-sm font-medium">
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm flex justify-between items-center border border-blue-100 dark:border-blue-900/30">
               <span className="text-blue-800 dark:text-blue-300">Total:</span>
@@ -463,6 +504,28 @@ export default function ModalDetalleOrden({
             </div>
           </div>
         </div>
+
+        {devoluciones.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">Devoluciones</h3>
+            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              {devoluciones.map((dv) => (
+                <li key={dv.id} className="flex justify-between gap-3 bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <span>
+                    {dayjs(dv.fecha).format("DD/MM/YYYY HH:mm")}
+                    {dv.motivo && <span className="text-gray-500 dark:text-gray-400"> · {dv.motivo}</span>}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {formatearMoneda(dv.total, principalSeguro)}
+                    {dv.reembolso > 0 && (
+                      <span className="font-normal text-gray-500 dark:text-gray-400"> (reembolsado {formatearMoneda(dv.reembolso, principalSeguro)})</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* NOTAS */}
         <div className="pt-4 space-y-3 border-t border-gray-200 dark:border-gray-800">
@@ -529,6 +592,14 @@ export default function ModalDetalleOrden({
             </Button>
           )}
 
+          {hasRole(["ADMIN", "EMPLOYEE"]) &&
+            orden.estado !== "CANCELADO" &&
+            orden.detalles?.some((d) => d.cantidad - d.cantidadDevuelta > 1e-9) && (
+              <Button onClick={() => setVerDevolucion(true)} variant="secondary" leftIcon={<FaUndoAlt />}>
+                Devolver
+              </Button>
+            )}
+
           {/* BOTÓN REGISTRAR PAGO */}
           {resumen.faltante > 0 && (
             <Button
@@ -539,6 +610,19 @@ export default function ModalDetalleOrden({
             </Button>
           )}
         </div>
+
+        {verDevolucion && (
+          <ModalDevolucion
+            orden={orden}
+            monedaPrincipal={principalSeguro}
+            tasas={tasas}
+            onClose={() => setVerDevolucion(false)}
+            onDevuelto={(actualizada) => {
+              setDevoluciones(actualizada.devoluciones ?? []);
+              onPagoRegistrado(actualizada);
+            }}
+          />
+        )}
 
         {verModalRecibo && configuracion && (
           <ModalReciboEntrega

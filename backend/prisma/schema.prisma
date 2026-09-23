@@ -64,6 +64,9 @@ model Servicio {
   stockActual   Float    @default(0)
   stockMinimo   Float?
 
+  // Productos sin IVA (p. ej. alimentos básicos) aunque el negocio cobre impuesto.
+  exentoImpuesto Boolean @default(false)
+
   detalleOrdenes  DetalleOrden[]
   categoria       Categoria              @relation(fields: [categoriaId], references: [id])
   compraDetalles  CompraDetalle[]
@@ -84,6 +87,15 @@ model Orden {
   fechaEntrega        DateTime?
   observaciones       String?
   total               Float
+  // Desglose del cobro. total = subtotal - descuento (+ impuesto si los
+  // precios no lo incluían). Todo neto de devoluciones.
+  subtotal            Float          @default(0)
+  descuento           Float          @default(0)
+  descuentoTipo       String?
+  descuentoValor      Float?
+  impuesto            Float          @default(0)
+  impuestoTasa        Float?
+  devuelto            Float          @default(0)
   abonado             Float          @default(0)
   faltante            Float          @default(0)
   estadoPago          EstadoPago     @default(INCOMPLETO)
@@ -96,6 +108,7 @@ model Orden {
   deliveredBy User?       @relation("DeliveredBy", fields: [deliveredByUserId], references: [id])
   cajaSesion  CajaSesion? @relation(fields: [cajaSesionId], references: [id])
   pagos       Pago[]
+  devoluciones Devolucion[]
 
   @@index([clienteId])
   @@index([estado])
@@ -111,8 +124,14 @@ model DetalleOrden {
   precioUnit Float
   costoUnit  Float?
   subtotal   Float
+  // Reparto del descuento/impuesto en la línea; base = sin impuesto.
+  descuento        Float @default(0)
+  impuesto         Float @default(0)
+  base             Float @default(0)
+  cantidadDevuelta Float @default(0)
   orden      Orden    @relation(fields: [ordenId], references: [id])
   servicio   Servicio @relation(fields: [servicioId], references: [id])
+  devolucionDetalles DevolucionDetalle[]
 
   @@index([ordenId], map: "DetalleOrden_ordenId_fkey")
   @@index([servicioId], map: "DetalleOrden_servicioId_fkey")
@@ -170,6 +189,13 @@ model Configuracion {
   clienteObligatorio  Boolean           @default(true)
   deduccionStockEn    MomentoDeduccion  @default(ENTREGA)
   terminologia        String?
+
+  impuestoActivo          Boolean @default(false)
+  impuestoNombre          String  @default("IVA")
+  impuestoTasa            Float   @default(16)
+  preciosIncluyenImpuesto Boolean @default(true)
+  // Tope de descuento (%) para quien no es administrador.
+  descuentoMaxPct         Float   @default(100)
 }
 
 model Proveedor {
@@ -351,4 +377,36 @@ enum EstadoCaja {
 enum TipoCajaMovimiento {
   INGRESO
   EGRESO
+}
+
+// Devolución parcial: regresa unidades de una venta, devuelve stock y, si se
+// pide, el dinero (como pago negativo). Deja historial de qué y cuánto.
+model Devolucion {
+  id        Int      @id @default(autoincrement())
+  ordenId   Int
+  fecha     DateTime @default(now())
+  userId    Int?
+  motivo    String?
+  total     Float
+  reembolso Float    @default(0)
+
+  orden    Orden               @relation(fields: [ordenId], references: [id])
+  detalles DevolucionDetalle[]
+
+  @@index([ordenId])
+}
+
+model DevolucionDetalle {
+  id             Int    @id @default(autoincrement())
+  devolucionId   Int
+  detalleOrdenId Int
+  servicioId     Int
+  cantidad       Float
+  monto          Float
+
+  devolucion   Devolucion   @relation(fields: [devolucionId], references: [id], onDelete: Cascade)
+  detalleOrden DetalleOrden @relation(fields: [detalleOrdenId], references: [id])
+
+  @@index([devolucionId])
+  @@index([detalleOrdenId])
 }

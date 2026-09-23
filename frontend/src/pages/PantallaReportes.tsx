@@ -260,6 +260,26 @@ export default function PantallaReportes() {
             )}
           </section>
 
+          {(data.ventas.descuentos > 0 || data.ventas.impuestos > 0 || data.devoluciones.cantidad > 0) && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+              {data.ventas.impuestos > 0 && (
+                <span>
+                  Impuestos cobrados: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.ventas.impuestos)}</strong>
+                </span>
+              )}
+              {data.ventas.descuentos > 0 && (
+                <span>
+                  Descuentos dados: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.ventas.descuentos)}</strong>
+                </span>
+              )}
+              {data.devoluciones.cantidad > 0 && (
+                <span>
+                  Devoluciones: <strong className="text-gray-900 dark:text-gray-100">{fmt(data.devoluciones.total)}</strong> ({data.devoluciones.cantidad})
+                </span>
+              )}
+            </div>
+          )}
+
           {hayCosto && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Por cobrar (total): <strong className="text-gray-900 dark:text-gray-100">{fmt(data.porCobrar.monto)}</strong>{" "}

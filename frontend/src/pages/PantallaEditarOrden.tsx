@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -21,14 +21,18 @@ import type {
   ServicioSeleccionado,
   Moneda,
   TasasConversion,
+  DescuentoOrden,
 } from "@lavanderia/shared/types/types";
 import { normalizarMoneda } from "../utils/monedaHelpers";
 import dayjs from "dayjs";
 import { FormSkeleton } from "../components/Skeleton";
-import { useEtiquetas } from "../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
+import { totalesDeSeleccion } from "../utils/totales";
 
 export default function EditarOrdenPage() {
   const et = useEtiquetas();
+  const { config } = useConfiguracion();
+  const clienteObligatorio = config?.clienteObligatorio !== false;
   const { id } = useParams(); // ID DE LA ORDEN A EDITAR
   const navigate = useNavigate();
 
@@ -39,6 +43,7 @@ export default function EditarOrdenPage() {
     ServicioSeleccionado[]
   >([]);
   const [observaciones, setObservaciones] = useState("");
+  const [descuento, setDescuento] = useState<DescuentoOrden | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
   const [tasas, setTasas] = useState<TasasConversion>({});
@@ -82,6 +87,11 @@ export default function EditarOrdenPage() {
         // Rellenamos los estados con la data que viene del backend
         setCliente(orden.cliente || null);
         setObservaciones(orden.observaciones || "");
+        setDescuento(
+          orden.descuentoTipo && orden.descuentoValor
+            ? { tipo: orden.descuentoTipo, valor: orden.descuentoValor }
+            : null
+        );
 
         if (orden.fechaEntrega) {
           setFechaEntrega(dayjs(orden.fechaEntrega).format("YYYY-MM-DD"));
@@ -114,13 +124,18 @@ export default function EditarOrdenPage() {
 
   // Validación
   useEffect(() => {
-    const isValid = cliente !== null && serviciosSeleccionados.length > 0;
+    const isValid = (cliente !== null || !clienteObligatorio) && serviciosSeleccionados.length > 0;
     setIsFormValid(isValid);
-  }, [cliente, serviciosSeleccionados]);
+  }, [cliente, serviciosSeleccionados, clienteObligatorio]);
+
+  const totales = useMemo(
+    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento),
+    [serviciosSeleccionados, serviciosCatalogo, config, descuento]
+  );
 
   // 3. LOGICA ÚNICA: ACTUALIZAR EN VEZ DE CREAR
   const guardarCambios = async () => {
-    if (!cliente || serviciosSeleccionados.length === 0) return;
+    if ((!cliente && clienteObligatorio) || serviciosSeleccionados.length === 0) return;
 
     setIsSaving(true);
 
@@ -128,6 +143,7 @@ export default function EditarOrdenPage() {
       observaciones: observaciones.trim() || null,
       fechaEntrega: fechaEntrega ? dayjs(fechaEntrega).toISOString() : null,
       servicios: serviciosSeleccionados, // Enviamos la lista con precios
+      descuento: descuento && descuento.valor > 0 ? descuento : null,
     };
 
     try {
@@ -203,8 +219,9 @@ export default function EditarOrdenPage() {
 
       {/* AQUÍ ESTÁ LA CORRECCIÓN CLAVE: */}
       <ConfirmarOrdenPanel
-        serviciosSeleccionados={serviciosSeleccionados}
-        serviciosCatalogo={serviciosCatalogo}
+        totales={totales}
+        descuento={descuento}
+        onDescuento={setDescuento}
         onRegistrar={guardarCambios}
         onCancelar={() => navigate("/ordenes")}
         tasas={tasas}

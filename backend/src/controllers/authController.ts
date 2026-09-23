@@ -47,6 +47,17 @@ export const getSetupStatus = async (req: Request, res: Response) => {
   }
 };
 
+// Datos públicos mínimos para pintar la pantalla de acceso antes de iniciar sesión.
+export const getBranding = async (req: Request, res: Response) => {
+  try {
+    const config = await prisma.configuracion.findFirst({ select: { nombreNegocio: true, rubro: true } });
+    return res.status(200).json({ nombreNegocio: config?.nombreNegocio ?? null, rubro: config?.rubro ?? null });
+  } catch (error) {
+    console.error("Error al leer la marca del negocio:", error);
+    return res.status(500).json({ message: "Error al leer la marca del negocio." });
+  }
+};
+
 /**
  * @route
  * @desc

@@ -1,4 +1,5 @@
 import { calcularTotalAbonado } from "@lavanderia/shared/dist/utils/pagoFinance";
+import { valorVigente } from "@lavanderia/shared/dist/utils/totales";
 import type { Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
 
 // Agregaciones puras para reportes. Todo importe sale en moneda principal:
@@ -10,6 +11,10 @@ export interface DetalleReporte {
   cantidad: number;
   subtotal: number;
   costoUnit: number | null;
+  descuento: number;
+  impuesto: number;
+  base: number;
+  cantidadDevuelta: number;
   servicio: { nombreServicio: string };
 }
 
@@ -18,6 +23,8 @@ export interface OrdenReporte {
   fechaIngreso: Date;
   estado: string;
   total: number;
+  descuento: number;
+  impuesto: number;
   clienteId: number | null;
   cliente: { nombre: string; apellido: string | null } | null;
   detalles: DetalleReporte[];
@@ -93,6 +100,8 @@ export function resumirVentas(ordenes: OrdenReporte[]) {
     canceladas: ordenes.length - vigentes.length,
     total: r2(total),
     ticketPromedio: vigentes.length ? r2(total / vigentes.length) : 0,
+    descuentos: r2(vigentes.reduce((s, o) => s + o.descuento, 0)),
+    impuestos: r2(vigentes.reduce((s, o) => s + o.impuesto, 0)),
   };
 }
 
@@ -141,12 +150,14 @@ export function resumirGanancia(ordenes: OrdenReporte[]) {
   for (const o of ordenes) {
     if (o.estado === "CANCELADO") continue;
     for (const d of o.detalles) {
+      // Ingreso sin impuesto y neto de devoluciones; el costo, de las unidades que se quedaron.
+      const vigente = valorVigente(d);
       if (d.costoUnit === null || d.costoUnit === undefined) {
-        ventaSinCosto += d.subtotal;
+        ventaSinCosto += vigente.base;
         lineasSinCosto += 1;
       } else {
-        ventaConCosto += d.subtotal;
-        costo += d.costoUnit * d.cantidad;
+        ventaConCosto += vigente.base;
+        costo += d.costoUnit * (d.cantidad - d.cantidadDevuelta);
       }
     }
   }
@@ -199,10 +210,12 @@ export function topItems(ordenes: OrdenReporte[], limite = 50) {
         total: 0,
         ganancia: null,
       };
-      fila.cantidad += d.cantidad;
-      fila.total += d.subtotal;
+      const vigente = valorVigente(d);
+      const unidades = d.cantidad - d.cantidadDevuelta;
+      fila.cantidad += unidades;
+      fila.total += vigente.total;
       if (d.costoUnit !== null && d.costoUnit !== undefined) {
-        fila.ganancia = (fila.ganancia ?? 0) + d.subtotal - d.costoUnit * d.cantidad;
+        fila.ganancia = (fila.ganancia ?? 0) + vigente.base - d.costoUnit * unidades;
       }
       mapa.set(d.servicioId, fila);
     }

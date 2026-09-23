@@ -28,6 +28,7 @@ export const ServicioSchema = z.object({
   controlaStock: z.boolean().optional(),
   sku: z.string().nullable().optional(),
   codigoBarras: z.string().nullable().optional(),
+  exentoImpuesto: z.boolean().optional(),
   costoBase: z
     .union([z.string(), z.number(), z.null()])
     .optional()

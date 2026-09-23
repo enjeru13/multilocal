@@ -14,7 +14,7 @@ import {
 import { ordenesService } from "../services/ordenesService";
 import { configuracionService } from "../services/configuracionService";
 import { useAuth } from "../hooks/useAuth";
-import type { Orden } from "@lavanderia/shared/types/types";
+import type { Orden, OrdenUpdatePayload } from "@lavanderia/shared/types/types";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
 import { useEtiquetas } from "../context/configuracionCore";
@@ -198,7 +198,7 @@ export default function PantallaOrdenes() {
           return;
         }
 
-        const payload: Partial<Orden> = {
+        const payload: OrdenUpdatePayload = {
           estado: "ENTREGADO",
         };
 

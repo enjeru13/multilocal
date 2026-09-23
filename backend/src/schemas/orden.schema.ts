@@ -42,7 +42,36 @@ const servicioItemSchema = z.object({
     }),
 });
 
+const numero = z
+  .union([z.number(), z.string()])
+  .transform((v) => (typeof v === "string" ? Number(v.replace(",", ".").replace(/s/g, "")) : v));
+
+export const descuentoSchema = z
+  .object({
+    tipo: z.enum(["PORCENTAJE", "MONTO"]),
+    valor: numero.refine((n) => !isNaN(n) && n >= 0, { message: "El descuento debe ser un número mayor o igual a 0" }),
+  })
+  .nullable()
+  .optional();
+
+export const devolucionSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        detalleId: z.number().int().positive(),
+        cantidad: numero.refine((n) => !isNaN(n) && n > 0, { message: "La cantidad debe ser mayor a 0" }),
+      })
+    )
+    .min(1, "Selecciona al menos un artículo a devolver"),
+  motivo: z.string().trim().max(200).nullable().optional(),
+  reembolsar: z.boolean().optional(),
+  moneda: z.enum(["USD", "VES", "COP"]).optional(),
+  metodoPago: z.enum(["EFECTIVO", "TRANSFERENCIA", "PAGO_MOVIL"]).optional(),
+});
+
 export const ordenSchema = z.object({
+  descuento: descuentoSchema,
+
   // Opcional: en negocios de mostrador se puede vender sin cliente
   // (el controller exige cliente si el perfil tiene clienteObligatorio).
   clienteId: z.number().int().positive("ID de cliente inválido").nullable().optional(),
@@ -66,6 +95,7 @@ export const ordenSchema = z.object({
 export const ordenUpdateSchema = z
   .object({
     clienteId: z.number().int().positive("ID de cliente inválido").optional(),
+    descuento: descuentoSchema,
     estado: z
       .enum(["PENDIENTE", "ENTREGADO"], {
         errorMap: () => ({ message: "Estado de orden inválido" }),

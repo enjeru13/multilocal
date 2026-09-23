@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave, FaLayerGroup } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
 import {
@@ -35,6 +35,11 @@ export default function PantallaConfiguracion() {
   const [moduloFechaEntrega, setModuloFechaEntrega] = useState(true);
   const [moduloClienteTipo, setModuloClienteTipo] = useState(true);
   const [clienteObligatorio, setClienteObligatorio] = useState(true);
+  const [impuestoActivo, setImpuestoActivo] = useState(false);
+  const [impuestoNombre, setImpuestoNombre] = useState("IVA");
+  const [impuestoTasa, setImpuestoTasa] = useState("16");
+  const [preciosIncluyenImpuesto, setPreciosIncluyenImpuesto] = useState(true);
+  const [descuentoMaxPct, setDescuentoMaxPct] = useState("100");
   const [terminologia, setTerminologia] = useState<Terminologia>(
     RUBRO_PRESETS.GENERICO.terminologia
   );
@@ -65,6 +70,11 @@ export default function PantallaConfiguracion() {
         setModuloFechaEntrega(config.moduloFechaEntrega ?? true);
         setModuloClienteTipo(config.moduloClienteTipo ?? true);
         setClienteObligatorio(config.clienteObligatorio ?? true);
+        setImpuestoActivo(config.impuestoActivo ?? false);
+        setImpuestoNombre(config.impuestoNombre ?? "IVA");
+        setImpuestoTasa(String(config.impuestoTasa ?? 16));
+        setPreciosIncluyenImpuesto(config.preciosIncluyenImpuesto ?? true);
+        setDescuentoMaxPct(String(config.descuentoMaxPct ?? 100));
         setTerminologia({
           ...RUBRO_PRESETS[rubroActual].terminologia,
           ...config.terminologia,
@@ -92,6 +102,16 @@ export default function PantallaConfiguracion() {
   };
 
   const guardarConfiguracion = async () => {
+    const tasaImp = parseFloat(impuestoTasa.replace(",", "."));
+    const maxDesc = parseFloat(descuentoMaxPct.replace(",", "."));
+    if (impuestoActivo && (isNaN(tasaImp) || tasaImp < 0 || tasaImp > 100)) {
+      toast.error("La tasa del impuesto debe estar entre 0 y 100.");
+      return;
+    }
+    if (isNaN(maxDesc) || maxDesc < 0 || maxDesc > 100) {
+      toast.error("El descuento máximo debe estar entre 0 y 100.");
+      return;
+    }
     setCargando(true);
     try {
       const principalValidada: Moneda = normalizarMoneda(monedaPrincipal);
@@ -113,6 +133,11 @@ export default function PantallaConfiguracion() {
         moduloClienteTipo,
         clienteObligatorio,
         terminologia,
+        impuestoActivo,
+        impuestoNombre: impuestoNombre.trim() || "IVA",
+        impuestoTasa: isNaN(tasaImp) ? 0 : tasaImp,
+        preciosIncluyenImpuesto,
+        descuentoMaxPct: maxDesc,
       });
       await refetch();
       toast.success("Configuración guardada correctamente.");
@@ -350,6 +375,63 @@ export default function PantallaConfiguracion() {
               </Fragment>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+        <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100 transition-colors">
+          <FaPercent size={26} className="text-amber-500 dark:text-amber-400" />
+          Impuestos y descuentos
+        </h2>
+
+        <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+          Cobrar impuesto en las ventas
+          <input
+            type="checkbox"
+            checked={impuestoActivo}
+            onChange={(e) => setImpuestoActivo(e.target.checked)}
+            className="accent-purple-600 w-5 h-5 cursor-pointer"
+          />
+        </label>
+
+        {impuestoActivo && (
+          <div className="space-y-4 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Nombre del impuesto</label>
+                <input type="text" value={impuestoNombre} maxLength={20} onChange={(e) => setImpuestoNombre(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="IVA" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Tasa (%)</label>
+                <input type="text" inputMode="decimal" value={impuestoTasa} onChange={(e) => setImpuestoTasa(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="16" />
+              </div>
+            </div>
+            <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
+              <span>
+                Los precios ya incluyen el impuesto
+                <span className="block text-xs text-gray-400">
+                  Si está activo, el total no cambia y el impuesto se muestra desglosado. Si no, se suma encima del precio.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={preciosIncluyenImpuesto}
+                onChange={(e) => setPreciosIncluyenImpuesto(e.target.checked)}
+                className="accent-purple-600 w-5 h-5 cursor-pointer shrink-0 ml-4"
+              />
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Puedes marcar productos como exentos en su ficha. Las ventas ya hechas conservan el impuesto con que se cobraron.
+            </p>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-800 max-w-xs">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+            Descuento máximo para empleados y cajeros (%)
+          </label>
+          <input type="text" inputMode="decimal" value={descuentoMaxPct} onChange={(e) => setDescuentoMaxPct(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="100" />
+          <p className="text-xs text-gray-400 mt-1">Los administradores no tienen tope. 100 = sin límite.</p>
         </div>
       </section>
 

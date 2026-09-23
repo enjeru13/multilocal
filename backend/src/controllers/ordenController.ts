@@ -4,10 +4,21 @@ import {
   ordenSchema,
   ordenUpdateSchema,
   ObservacionUpdateSchema,
+  devolucionSchema,
 } from "../schemas/orden.schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import dayjs from "dayjs";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
+import { obtenerEstadoPagoRaw } from "@lavanderia/shared/dist/utils/pagoFinance";
+import { convertirDesdePrincipal } from "@lavanderia/shared/dist/utils/monedaHelpers";
+import {
+  agregarLineas,
+  calcularTotales,
+  r2,
+  valorDevolucion,
+} from "@lavanderia/shared/dist/utils/totales";
+import type { Moneda } from "@lavanderia/shared/dist/types/types";
+import { cargarTasas, opcionesTotales, recalcularEstadoOrden } from "../lib/ordenFinance";
 
 interface AuthRequest extends Request {
   user?: {
@@ -72,7 +83,14 @@ export async function anularOrden(req: AuthRequest, res: Response) {
     }
 
     const config = await prisma.configuracion.findFirst();
-    const cobrados = orden.pagos.filter((p) => p.monto > 0);
+    // Con devoluciones previas ya hubo reembolsos parciales: se reembolsa solo
+    // lo que el cliente tiene pagado en neto, en un único movimiento.
+    const conDevoluciones = orden.devuelto > 0;
+    const cobrados = conDevoluciones
+      ? orden.abonado > 0.005
+        ? [{ monto: orden.abonado, moneda: (config?.monedaPrincipal ?? "USD") as string, metodoPago: "EFECTIVO" as const, tasa: 0, vueltos: [] as { monto: number; moneda: string }[] }]
+        : []
+      : orden.pagos.filter((p) => p.monto > 0);
     let cajaSesionId: number | null = null;
     if (cobrados.length > 0 && config?.moduloCaja) {
       const caja = await prisma.cajaSesion.findFirst({ where: { estado: "ABIERTA" } });
@@ -84,6 +102,10 @@ export async function anularOrden(req: AuthRequest, res: Response) {
       cajaSesionId = caja.id;
     }
 
+    const principalAnular = (config?.monedaPrincipal ?? "USD") as Moneda;
+    const tasaPrincipal =
+      principalAnular === "VES" ? config?.tasaVES ?? 1 : principalAnular === "COP" ? config?.tasaCOP ?? 1 : 1;
+
     const actualizada = await prisma.$transaction(async (tx) => {
       await devolverStockDeOrden(tx, id, req.user?.id, "Anulación");
 
@@ -92,9 +114,9 @@ export async function anularOrden(req: AuthRequest, res: Response) {
           data: {
             ordenId: id,
             monto: -p.monto,
-            moneda: p.moneda,
+            moneda: p.moneda as Moneda,
             metodoPago: p.metodoPago,
-            tasa: p.tasa,
+            tasa: conDevoluciones ? tasaPrincipal : p.tasa,
             nota: `Reembolso por anulación - ref. #${id}`,
             cajaSesionId,
           },
@@ -185,6 +207,7 @@ export async function getOrdenById(req: Request, res: Response) {
           },
         },
         pagos: true,
+        devoluciones: { include: { detalles: true }, orderBy: { fecha: "desc" } },
         deliveredBy: {
           select: {
             id: true,
@@ -204,6 +227,28 @@ export async function getOrdenById(req: Request, res: Response) {
   }
 }
 
+const SERVICIO_RESUMEN = {
+  id: true,
+  nombreServicio: true,
+  descripcion: true,
+  precioBase: true,
+  permiteDecimales: true,
+  categoriaId: true,
+} as const;
+
+// Un no-administrador no puede pasar del tope de descuento del negocio.
+function descuentoExcedeTope(
+  role: Role | undefined,
+  config: { descuentoMaxPct?: number | null } | null,
+  totales: { subtotal: number; descuento: number }
+) {
+  if (role === "ADMIN") return null;
+  const tope = config?.descuentoMaxPct ?? 100;
+  if (tope >= 100 || totales.subtotal <= 0) return null;
+  const pct = (totales.descuento / totales.subtotal) * 100;
+  return pct > tope + 0.005 ? tope : null;
+}
+
 // --- CREATE ---
 export async function createOrden(req: AuthRequest, res: Response) {
   const result = ordenSchema.safeParse(req.body);
@@ -221,6 +266,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
     servicios,
     fechaEntrega,
     entregaInmediata,
+    descuento,
   } = result.data;
 
   try {
@@ -247,13 +293,13 @@ export async function createOrden(req: AuthRequest, res: Response) {
         ? "VENTA"
         : "ORDEN_LAVANDERIA";
 
-    let total = 0;
-    const detalleData: Array<{
+    const lineas: Array<{
       servicioId: number;
       cantidad: number;
       precioUnit: number;
       costoUnit: number | null;
       subtotal: number;
+      exento: boolean;
     }> = [];
     const serviciosParaDescontar: Array<{ id: number; cantidad: number }> = [];
 
@@ -276,26 +322,38 @@ export async function createOrden(req: AuthRequest, res: Response) {
         serviciosParaDescontar.push({ id: servicio.id, cantidad: item.cantidad });
       }
 
-      // CAMBIO CLAVE: Priorizamos el precio personalizado enviado desde el frontend (item.precio)
-      // Usamos cast (item as any) por si el schema de Zod aún no incluye 'precio' explícitamente
-      const precioInput = (item as any).precio;
-      const precioUnit =
-        precioInput !== undefined
-          ? Number(precioInput)
-          : Number(servicio.precioBase);
+      // El precio personalizado de la línea manda sobre el precio base.
+      const precioUnit = item.precio !== undefined ? Number(item.precio) : Number(servicio.precioBase);
 
-      const subtotal = precioUnit * item.cantidad;
-
-      detalleData.push({
+      lineas.push({
         servicioId: item.servicioId,
         cantidad: item.cantidad,
         precioUnit: parseFloat(precioUnit.toFixed(2)),
         // Costo congelado al vender: base para reportes de ganancia.
         costoUnit: servicio.controlaStock ? servicio.costoBase : null,
-        subtotal: parseFloat(subtotal.toFixed(2)),
+        subtotal: r2(precioUnit * item.cantidad),
+        exento: servicio.exentoImpuesto,
       });
-      total += subtotal;
     }
+
+    const totales = calcularTotales(lineas, opcionesTotales(config, descuento));
+    const tope = descuentoExcedeTope(req.user?.role, config, totales);
+    if (tope !== null) {
+      return res.status(403).json({
+        message: `Tu descuento máximo es ${tope}%. Pide autorización a un administrador.`,
+      });
+    }
+
+    const detalleData = lineas.map((l, i) => ({
+      servicioId: l.servicioId,
+      cantidad: l.cantidad,
+      precioUnit: l.precioUnit,
+      costoUnit: l.costoUnit,
+      subtotal: totales.lineas[i].subtotal,
+      descuento: totales.lineas[i].descuento,
+      impuesto: totales.lineas[i].impuesto,
+      base: totales.lineas[i].base,
+    }));
 
     const orden = await prisma.$transaction(async (tx) => {
       const nuevaOrden = await tx.orden.create({
@@ -303,7 +361,13 @@ export async function createOrden(req: AuthRequest, res: Response) {
           clienteId: clienteId ?? null,
           tipo: tipoDocumento,
           estado: estadoFinal,
-          total: parseFloat(total.toFixed(2)),
+          total: totales.total,
+          subtotal: totales.subtotal,
+          descuento: totales.descuento,
+          descuentoTipo: totales.descuento > 0 ? descuento?.tipo ?? null : null,
+          descuentoValor: totales.descuento > 0 ? descuento?.valor ?? null : null,
+          impuesto: totales.impuesto,
+          impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
           observaciones,
           fechaEntrega: entregaInmediata
             ? new Date()
@@ -317,8 +381,8 @@ export async function createOrden(req: AuthRequest, res: Response) {
               }
             : {}),
           abonado: 0,
-          faltante: parseFloat(total.toFixed(2)),
-          estadoPago: "INCOMPLETO",
+          faltante: totales.total,
+          estadoPago: obtenerEstadoPagoRaw(totales.total, 0),
           detalles: { create: detalleData },
         },
       });
@@ -346,20 +410,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
         where: { id: nuevaOrden.id },
         include: {
           cliente: true,
-          detalles: {
-            include: {
-              servicio: {
-                select: {
-                  id: true,
-                  nombreServicio: true,
-                  descripcion: true,
-                  precioBase: true,
-                  permiteDecimales: true,
-                  categoriaId: true,
-                },
-              },
-            },
-          },
+          detalles: { include: { servicio: { select: SERVICIO_RESUMEN } } },
         },
       });
     });
@@ -371,13 +422,11 @@ export async function createOrden(req: AuthRequest, res: Response) {
   }
 }
 
-// --- FUNCIÓN UPDATE ORDEN MEJORADA ---
+// --- UPDATE ---
 export async function updateOrden(req: AuthRequest, res: Response) {
   const { id } = req.params;
 
-  // Validamos con Zod.
   const result = ordenUpdateSchema.safeParse(req.body);
-
   if (!result.success) {
     return res.status(400).json({
       error: "Validación fallida",
@@ -385,19 +434,10 @@ export async function updateOrden(req: AuthRequest, res: Response) {
     });
   }
 
-  // Extraemos los datos del body.
-  const {
-    fechaEntrega,
-    estado,
-    deliveredByUserId,
-    deliveredByUserName,
-    servicios, // Array de { servicioId, cantidad, precio? } para reemplazo total
-    observaciones,
-    ...rest
-  } = req.body as any;
+  // Solo se aceptan los campos validados: nada de total/abonado desde fuera.
+  const { fechaEntrega, estado, servicios, observaciones, clienteId, descuento } = result.data;
 
   try {
-    // 1. Buscar la orden actual para tener referencias
     const ordenActual = await prisma.orden.findUnique({
       where: { id: Number(id) },
       include: { pagos: true, detalles: { include: { servicio: true } } },
@@ -415,39 +455,43 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         .json({ message: "La orden está anulada y ya no se puede modificar." });
     }
 
+    const reemplazaLineas = Array.isArray(servicios) && servicios.length > 0;
+    const cambiaDescuento = descuento !== undefined;
+    if ((reemplazaLineas || cambiaDescuento) && ordenActual.devuelto > 0) {
+      return res.status(409).json({
+        message: "La orden tiene devoluciones: ya no se pueden cambiar sus artículos ni el descuento.",
+      });
+    }
+
     const config = await prisma.configuracion.findFirst();
     const deducirAlEntregar =
       !!config?.moduloInventario && config?.deduccionStockEn === "ENTREGA";
 
-    // 2. Usamos una transacción para asegurar la integridad de los datos
     const ordenActualizada = await prisma.$transaction(async (tx) => {
-      // Preparar objeto de actualización básico
-      let datosActualizados: any = {
-        ...rest,
+      const datos: Prisma.OrdenUncheckedUpdateInput = {
         ...(estado !== undefined && { estado }),
         ...(observaciones !== undefined && { observaciones }),
+        ...(clienteId !== undefined && { clienteId }),
       };
 
-      // Lógica para fecha de entrega
       if (fechaEntrega !== undefined) {
-        datosActualizados.fechaEntrega =
-          fechaEntrega === null ? null : dayjs(fechaEntrega).toDate();
+        datos.fechaEntrega = fechaEntrega === null ? null : dayjs(fechaEntrega).toDate();
       }
 
-      // Lógica automática para "Entregado Por"
+      // Auto-captura de "Entregado por" solo si aún no estaba seteado.
       if (
         estado === "ENTREGADO" &&
         ordenActual.estado !== "ENTREGADO" &&
         req.user &&
         !ordenActual.deliveredByUserId
       ) {
-        datosActualizados.fechaEntrega = dayjs().toDate();
-        datosActualizados.deliveredByUserId = req.user.id;
-        datosActualizados.deliveredByUserName = req.user.name || req.user.email;
+        datos.fechaEntrega = dayjs().toDate();
+        datos.deliveredByUserId = req.user.id;
+        datos.deliveredByUserName = req.user.name || req.user.email;
 
-        // Descuento de stock al momento de entrega (si el perfil está
-        // configurado así), usando las prendas/items actuales de la orden.
-        if (deducirAlEntregar && !(servicios && Array.isArray(servicios) && servicios.length > 0)) {
+        // Descuento de stock al momento de entrega (si el perfil lo pide),
+        // con los artículos actuales de la orden.
+        if (deducirAlEntregar && !reemplazaLineas) {
           for (const detalle of ordenActual.detalles) {
             if (!detalle.servicio.controlaStock) continue;
             const actualizado = await tx.servicio.update({
@@ -470,92 +514,109 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         }
       }
 
-      // 3. LÓGICA DE REEMPLAZO DE PRENDAS (Si se envía array de servicios)
-      if (servicios && Array.isArray(servicios) && servicios.length > 0) {
-        let nuevoTotal = 0;
-        const nuevosDetallesData = [];
+      // Reemplazo de artículos y/o descuento: se recalcula todo el desglose.
+      if (reemplazaLineas || cambiaDescuento) {
+        const costoPrevio = new Map(ordenActual.detalles.map((d) => [d.servicioId, d.costoUnit]));
+        const entrada: Array<{
+          servicioId: number;
+          cantidad: number;
+          precioUnit: number;
+          costoUnit: number | null;
+          subtotal: number;
+          exento: boolean;
+        }> = [];
 
-        // Calcular nuevos montos iterando los servicios enviados
-        for (const item of servicios) {
-          const servicioDb = await tx.servicio.findUnique({
-            where: { id: item.servicioId },
-          });
-
-          if (!servicioDb) {
-            throw new Error(`Servicio ID ${item.servicioId} no encontrado`);
+        if (reemplazaLineas) {
+          for (const item of servicios!) {
+            const servicioDb = await tx.servicio.findUnique({ where: { id: item.servicioId } });
+            if (!servicioDb) throw new Error(`Servicio ID ${item.servicioId} no encontrado`);
+            const precioUnit = item.precio !== undefined ? Number(item.precio) : Number(servicioDb.precioBase);
+            entrada.push({
+              servicioId: item.servicioId,
+              cantidad: item.cantidad,
+              precioUnit: parseFloat(precioUnit.toFixed(2)),
+              // Conserva el costo con que se vendió si el artículo ya estaba.
+              costoUnit: costoPrevio.has(item.servicioId)
+                ? costoPrevio.get(item.servicioId)!
+                : servicioDb.controlaStock
+                ? servicioDb.costoBase
+                : null,
+              subtotal: r2(precioUnit * item.cantidad),
+              exento: servicioDb.exentoImpuesto,
+            });
           }
-
-          // CAMBIO CLAVE: Usar precio personalizado si existe
-          const precioInput = item.precio;
-          const precioUnit =
-            precioInput !== undefined
-              ? Number(precioInput)
-              : Number(servicioDb.precioBase);
-
-          const subtotal = precioUnit * item.cantidad;
-
-          nuevosDetallesData.push({
-            servicioId: item.servicioId,
-            cantidad: item.cantidad,
-            precioUnit: parseFloat(precioUnit.toFixed(2)),
-            subtotal: parseFloat(subtotal.toFixed(2)),
-          });
-
-          nuevoTotal += subtotal;
+        } else {
+          for (const d of ordenActual.detalles) {
+            entrada.push({
+              servicioId: d.servicioId,
+              cantidad: d.cantidad,
+              precioUnit: d.precioUnit,
+              costoUnit: d.costoUnit,
+              subtotal: d.subtotal,
+              exento: d.servicio.exentoImpuesto,
+            });
+          }
         }
 
-        // A. Borrar detalles viejos de esta orden
-        await tx.detalleOrden.deleteMany({
-          where: { ordenId: Number(id) },
-        });
+        const descuentoFinal = cambiaDescuento
+          ? descuento
+          : ordenActual.descuentoTipo && ordenActual.descuentoValor !== null
+          ? { tipo: ordenActual.descuentoTipo as "PORCENTAJE" | "MONTO", valor: ordenActual.descuentoValor }
+          : null;
 
-        // B. Insertar los nuevos detalles
+        const totales = calcularTotales(entrada, opcionesTotales(config, descuentoFinal));
+        const tope = descuentoExcedeTope(req.user?.role, config, totales);
+        if (tope !== null) {
+          throw new ErrorHttp(403, `Tu descuento máximo es ${tope}%. Pide autorización a un administrador.`);
+        }
+
+        await tx.detalleOrden.deleteMany({ where: { ordenId: Number(id) } });
         await tx.detalleOrden.createMany({
-          data: nuevosDetallesData.map((d) => ({ ...d, ordenId: Number(id) })),
+          data: entrada.map((l, i) => ({
+            ordenId: Number(id),
+            servicioId: l.servicioId,
+            cantidad: l.cantidad,
+            precioUnit: l.precioUnit,
+            costoUnit: l.costoUnit,
+            subtotal: totales.lineas[i].subtotal,
+            descuento: totales.lineas[i].descuento,
+            impuesto: totales.lineas[i].impuesto,
+            base: totales.lineas[i].base,
+          })),
         });
 
-        // C. Recalcular Faltante y Estado de Pago
-        const abonadoActual = Number(ordenActual.abonado);
-        const nuevoFaltante = Math.max(0, nuevoTotal - abonadoActual);
-
-        let nuevoEstadoPago = "INCOMPLETO";
-        // Margen de error mínimo para flotantes
-        if (nuevoFaltante <= 0.01) {
-          nuevoEstadoPago = "COMPLETO";
-        }
-
-        // Agregamos los valores recalculados al update de la orden
-        datosActualizados = {
-          ...datosActualizados,
-          total: parseFloat(nuevoTotal.toFixed(2)),
-          faltante: parseFloat(nuevoFaltante.toFixed(2)),
-          estadoPago: nuevoEstadoPago,
-        };
+        const faltante = Math.max(0, r2(totales.total - Number(ordenActual.abonado)));
+        Object.assign(datos, {
+          total: totales.total,
+          subtotal: totales.subtotal,
+          descuento: totales.descuento,
+          descuentoTipo: totales.descuento > 0 ? descuentoFinal?.tipo ?? null : null,
+          descuentoValor: totales.descuento > 0 ? descuentoFinal?.valor ?? null : null,
+          impuesto: totales.impuesto,
+          impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          faltante,
+          // Mismo criterio (epsilon) que el resto del sistema.
+          estadoPago: obtenerEstadoPagoRaw(totales.total, Number(ordenActual.abonado)),
+        });
       }
 
-      // 4. Ejecutar la actualización de la orden maestra
       return await tx.orden.update({
         where: { id: Number(id) },
-        data: datosActualizados,
+        data: datos,
         include: {
           cliente: true,
           pagos: true,
-          detalles: {
-            include: { servicio: true },
-          },
-          deliveredBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          detalles: { include: { servicio: true } },
+          deliveredBy: { select: { id: true, name: true, email: true } },
         },
       });
     });
 
     return res.json(ordenActualizada);
   } catch (error) {
+    if (error instanceof ErrorHttp) {
+      return res.status(error.status).json({ message: error.message });
+    }
     if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === "P2025") {
         return res
@@ -565,6 +626,191 @@ export async function updateOrden(req: AuthRequest, res: Response) {
     }
     console.error("Error al actualizar orden:", error);
     return res.status(500).json({ message: "Error al actualizar orden" });
+  }
+}
+
+// --- DEVOLUCIÓN PARCIAL ---
+// Regresa unidades de una venta: baja el total (y el IVA/descuento que le
+// tocaba a esas unidades), devuelve stock y, si el cliente ya había pagado
+// de más, reembolsa la diferencia como pago negativo.
+export async function crearDevolucion(req: AuthRequest, res: Response) {
+  const id = Number(req.params.id);
+  const result = devolucionSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: "Validación fallida", detalles: result.error.format() });
+  }
+  const { items, motivo, reembolsar = true, moneda, metodoPago = "EFECTIVO" } = result.data;
+
+  try {
+    const orden = await prisma.orden.findUnique({
+      where: { id },
+      include: { detalles: { include: { servicio: true } } },
+    });
+    if (!orden) return res.status(404).json({ message: "Orden no encontrada." });
+    if (orden.estado === "CANCELADO") {
+      return res.status(409).json({ message: "La orden está anulada: no admite devoluciones." });
+    }
+
+    // Une renglones repetidos y valida contra lo que aún se puede devolver.
+    const pedido = new Map<number, number>();
+    for (const it of items) pedido.set(it.detalleId, (pedido.get(it.detalleId) ?? 0) + it.cantidad);
+
+    const aDevolver: Array<{ detalle: (typeof orden.detalles)[number]; cantidad: number; valor: ReturnType<typeof valorDevolucion> }> = [];
+    for (const [detalleId, cantidad] of pedido) {
+      const detalle = orden.detalles.find((d) => d.id === detalleId);
+      if (!detalle) {
+        return res.status(400).json({ message: `El artículo ${detalleId} no pertenece a esta orden.` });
+      }
+      const disponible = r2(detalle.cantidad - detalle.cantidadDevuelta);
+      if (cantidad > disponible + 1e-9) {
+        return res.status(400).json({
+          message: `De "${detalle.servicio.nombreServicio}" solo se pueden devolver ${disponible}.`,
+        });
+      }
+      aDevolver.push({ detalle, cantidad, valor: valorDevolucion(detalle, cantidad) });
+    }
+
+    const totalDevuelto = r2(aDevolver.reduce((s, x) => s + x.valor.total, 0));
+
+    // Líneas tal como quedarán, para el nuevo total de la orden.
+    const cantidadNueva = new Map(aDevolver.map((x) => [x.detalle.id, x.cantidad]));
+    const lineasNuevas = orden.detalles.map((d) => ({
+      ...d,
+      cantidadDevuelta: d.cantidadDevuelta + (cantidadNueva.get(d.id) ?? 0),
+    }));
+    const agregado = agregarLineas(lineasNuevas);
+    const todoDevuelto = lineasNuevas.every((d) => d.cantidad - d.cantidadDevuelta < 1e-9);
+
+    const { config, principal, tasas } = await cargarTasas();
+    const excedente = reembolsar ? r2(Math.max(0, orden.abonado - agregado.total)) : 0;
+
+    let cajaSesionId: number | null = null;
+    let monedaReembolso: Moneda = (moneda ?? principal) as Moneda;
+    let tasaReembolso = 1;
+    let montoReembolso = 0;
+    if (excedente > 0.005) {
+      if (monedaReembolso !== "USD") {
+        const t = monedaReembolso === "VES" ? tasas.VES : tasas.COP;
+        if (t && t > 0) tasaReembolso = t;
+        else if (monedaReembolso !== principal) {
+          return res.status(400).json({
+            message: `No hay una tasa ${monedaReembolso} configurada para reembolsar en esa moneda.`,
+          });
+        }
+      }
+      montoReembolso = convertirDesdePrincipal(excedente, monedaReembolso, tasas, principal);
+      if (config?.moduloCaja) {
+        const caja = await prisma.cajaSesion.findFirst({ where: { estado: "ABIERTA" } });
+        if (!caja) {
+          return res.status(409).json({ message: "Hay dinero que reembolsar: abre la caja antes de registrar la devolución." });
+        }
+        cajaSesionId = caja.id;
+      }
+    }
+
+    const actualizada = await prisma.$transaction(async (tx) => {
+      const devolucion = await tx.devolucion.create({
+        data: {
+          ordenId: id,
+          userId: req.user?.id ?? null,
+          motivo: motivo || null,
+          total: totalDevuelto,
+          reembolso: excedente > 0.005 ? excedente : 0,
+          detalles: {
+            create: aDevolver.map((x) => ({
+              detalleOrdenId: x.detalle.id,
+              servicioId: x.detalle.servicioId,
+              cantidad: x.cantidad,
+              monto: x.valor.total,
+            })),
+          },
+        },
+      });
+
+      for (const x of aDevolver) {
+        await tx.detalleOrden.update({
+          where: { id: x.detalle.id },
+          data: { cantidadDevuelta: { increment: x.cantidad } },
+        });
+
+        if (!x.detalle.servicio.controlaStock) continue;
+        // Solo regresa al inventario lo que esta orden realmente descontó.
+        const movs = await tx.inventarioMovimiento.findMany({
+          where: { ordenId: id, servicioId: x.detalle.servicioId, motivo: { in: ["VENTA", "DEVOLUCION"] } },
+        });
+        const descontado = movs.reduce((s, m) => s + (m.tipo === "SALIDA" ? m.cantidad : -m.cantidad), 0);
+        const regresa = Math.min(x.cantidad, Math.max(descontado, 0));
+        if (regresa <= 0) continue;
+        const srv = await tx.servicio.update({
+          where: { id: x.detalle.servicioId },
+          data: { stockActual: { increment: regresa } },
+        });
+        await tx.inventarioMovimiento.create({
+          data: {
+            servicioId: x.detalle.servicioId,
+            tipo: "ENTRADA",
+            cantidad: regresa,
+            motivo: "DEVOLUCION",
+            ordenId: id,
+            stockResultante: srv.stockActual,
+            userId: req.user?.id ?? null,
+            nota: `Devolución parcial - ref. #${id}`,
+          },
+        });
+      }
+
+      if (excedente > 0.005) {
+        await tx.pago.create({
+          data: {
+            ordenId: id,
+            monto: -montoReembolso,
+            moneda: monedaReembolso,
+            metodoPago,
+            tasa: tasaReembolso,
+            nota: `Reembolso por devolución #${devolucion.id}`,
+            cajaSesionId,
+          },
+        });
+      }
+
+      await tx.orden.update({
+        where: { id },
+        data: {
+          total: agregado.total,
+          subtotal: agregado.subtotal,
+          descuento: agregado.descuento,
+          impuesto: agregado.impuesto,
+          devuelto: { increment: totalDevuelto },
+          ...(todoDevuelto && { estado: "CANCELADO" }),
+        },
+      });
+      await recalcularEstadoOrden(id, tx as any);
+
+      if (todoDevuelto) {
+        await tx.orden.update({ where: { id }, data: { faltante: 0 } });
+      }
+
+      return tx.orden.findUnique({
+        where: { id },
+        include: {
+          cliente: true,
+          pagos: true,
+          devoluciones: { include: { detalles: true }, orderBy: { fecha: "desc" } },
+          detalles: { include: { servicio: { select: SERVICIO_RESUMEN } } },
+        },
+      });
+    });
+
+    return res.status(201).json(actualizada);
+  } catch (error) {
+    console.error("Error al registrar devolución:", error);
+    return res.status(500).json({ message: "Error al registrar la devolución" });
+  }
+}
+
+class ErrorHttp extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
   }
 }
 
@@ -586,6 +832,8 @@ export async function deleteOrden(req: Request, res: Response) {
       await devolverStockDeOrden(tx, Number(id), (req as AuthRequest).user?.id, "Eliminación");
 
       // Primero borramos detalles y pagos asociados por integridad referencial
+      await tx.devolucionDetalle.deleteMany({ where: { devolucion: { ordenId: Number(id) } } });
+      await tx.devolucion.deleteMany({ where: { ordenId: Number(id) } });
       await tx.detalleOrden.deleteMany({ where: { ordenId: Number(id) } });
       await tx.pago.deleteMany({ where: { ordenId: Number(id) } });
 

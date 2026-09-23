@@ -29,8 +29,11 @@ import ModalPago from "../components/modal/ModalPago";
 import ListaClientesModal from "../components/modal/ListaClientesModal";
 import FormularioCliente from "../components/formulario/FormularioCliente";
 import Button from "../components/ui/Button";
+import DescuentoControl from "../components/venta/DescuentoControl";
+import DesgloseTotales from "../components/venta/DesgloseTotales";
+import { totalesDeSeleccion } from "../utils/totales";
 import { TableSkeleton } from "../components/Skeleton";
-import type { Cliente, ClienteCreate, Orden, Servicio } from "@lavanderia/shared/types/types";
+import type { Cliente, ClienteCreate, DescuentoOrden, Orden, Servicio } from "@lavanderia/shared/types/types";
 
 type LineaCarrito = { servicio: Servicio; cantidad: number };
 
@@ -61,6 +64,7 @@ export default function PantallaVenta() {
   const [verClientes, setVerClientes] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [descuento, setDescuento] = useState<DescuentoOrden | null>(null);
   const [ordenACobrar, setOrdenACobrar] = useState<Orden | null>(null);
   const [cajaCerrada, setCajaCerrada] = useState(false);
   const buscador = useRef<HTMLInputElement>(null);
@@ -158,12 +162,22 @@ export default function PantallaVenta() {
     setCarrito((prev) => prev.map((l) => (l.servicio.id === id ? { ...l, cantidad: valor } : l)));
   };
 
-  const total = carrito.reduce((s, l) => s + l.servicio.precioBase * l.cantidad, 0);
-  const totalRedondeado = parseFloat(total.toFixed(2));
+  const totales = useMemo(
+    () =>
+      totalesDeSeleccion(
+        carrito.map((l) => ({ servicioId: l.servicio.id, cantidad: l.cantidad })),
+        carrito.map((l) => l.servicio),
+        config,
+        descuento
+      ),
+    [carrito, config, descuento]
+  );
+  const totalRedondeado = totales.total;
 
   const vaciar = () => {
     setCarrito([]);
     setCliente(null);
+    setDescuento(null);
     setBusqueda("");
     buscador.current?.focus();
   };
@@ -177,8 +191,9 @@ export default function PantallaVenta() {
         clienteId: cliente?.id ?? null,
         entregaInmediata: true,
         estado: "PENDIENTE",
+        descuento: descuento && descuento.valor > 0 ? descuento : null,
         servicios: carrito.map((l) => ({ servicioId: l.servicio.id, cantidad: l.cantidad })),
-      } as never);
+      });
       setOrdenACobrar(res.data);
       cargar();
     } catch (err) {
@@ -344,12 +359,8 @@ export default function PantallaVenta() {
           </div>
 
           <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-600 dark:text-gray-400 font-semibold">Total</span>
-              <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-                {formatearMoneda(totalRedondeado, moneda)}
-              </span>
-            </div>
+            {carrito.length > 0 && <DescuentoControl value={descuento} onChange={setDescuento} disabled={guardando} />}
+            <DesgloseTotales totales={totales} moneda={moneda} tamano="lg" />
             {(["VES", "COP"] as const)
               .filter((m) => m !== moneda && tasas[m])
               .map((m) => (

@@ -2,7 +2,9 @@ import apiClient from "../utils/apiClient";
 import type {
   Orden,
   Pago,
+  OrdenCreate,
   OrdenUpdatePayload,
+  DevolucionCreate,
 } from "@lavanderia/shared/types/types";
 
 const API_URL = "/ordenes";
@@ -31,7 +33,7 @@ export const ordenesService = {
    * @param orden
    * @returns
    */
-  create: (orden: Partial<Orden>) => {
+  create: (orden: OrdenCreate) => {
     return apiClient.post<Orden>(API_URL, orden);
   },
 
@@ -51,6 +53,11 @@ export const ordenesService = {
    */
   delete: (id: number) => {
     return apiClient.delete(`${API_URL}/${id}`);
+  },
+
+  /** Devolución parcial de una venta (ADMIN/EMPLOYEE). */
+  devolver: (id: number, datos: DevolucionCreate) => {
+    return apiClient.post<Orden>(`${API_URL}/${id}/devolucion`, datos);
   },
 
   anular: (id: number) => {

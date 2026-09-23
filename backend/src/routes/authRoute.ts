@@ -3,6 +3,7 @@ import {
   register,
   login,
   getSetupStatus,
+  getBranding,
   changePassword,
 } from "../controllers/authController";
 import { protect } from "../middleware/authMiddleware";
@@ -10,6 +11,7 @@ import { protect } from "../middleware/authMiddleware";
 const router = Router();
 
 router.get("/setup-status", getSetupStatus);
+router.get("/branding", getBranding);
 router.post("/register", register);
 router.post("/login", login);
 router.post("/change-password", protect, changePassword);

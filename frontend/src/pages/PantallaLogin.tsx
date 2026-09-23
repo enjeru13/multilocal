@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-toastify";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import PanelMarca from "../components/PanelMarca";
 import { authService } from "../services/authService";
 
 const loginSchema = z.object({
@@ -28,6 +28,14 @@ export default function LoginPage() {
   // Estado para controlar si se muestra la contraseña
   const [showPassword, setShowPassword] = useState(false);
   const [verificandoSetup, setVerificandoSetup] = useState(true);
+  const [marca, setMarca] = useState<{ nombreNegocio: string | null; rubro: string | null }>({
+    nombreNegocio: null,
+    rubro: null,
+  });
+
+  useEffect(() => {
+    authService.getBranding().then(setMarca);
+  }, []);
 
   useEffect(() => {
     authService.getSetupStatus().then((needsSetup) => {
@@ -85,15 +93,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 p-4 font-inter transition-colors duration-300">
-      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-6xl md:h-[90vh] lg:h-[80vh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
-        <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-8 bg-linear-to-br from-blue-400 to-blue-700 dark:from-blue-700 dark:to-blue-900 min-h-[350px] md:min-h-full">
-          <DotLottieReact
-            src="https://lottie.host/72aec27a-4db9-446b-8358-f245e9d86c23/mGLYFxZos2.lottie"
-            loop
-            autoplay
-            className="w-full h-full object-contain max-w-[550px] pb-15"
-          />
-        </div>
+      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-6xl md:min-h-[560px] md:h-[80vh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
+        <PanelMarca nombre={marca.nombreNegocio} rubro={marca.rubro} />
 
         <div className="p-8 sm:p-12 w-full md:w-1/2 flex flex-col justify-center bg-white dark:bg-gray-900 transition-colors">
           <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-800 dark:text-blue-400 mb-4 flex items-center justify-center gap-3">
