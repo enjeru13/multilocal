@@ -27,6 +27,47 @@
   --secondary-foreground: #cbd5e1;
 }
 
+/* Color de acento por rubro: reasigna la paleta "blue" a la del rubro (ver experiencia/experiencias.ts). */
+:root[data-acento="emerald"] {
+  --color-blue-50: var(--color-emerald-50);
+  --color-blue-100: var(--color-emerald-100);
+  --color-blue-200: var(--color-emerald-200);
+  --color-blue-300: var(--color-emerald-300);
+  --color-blue-400: var(--color-emerald-400);
+  --color-blue-500: var(--color-emerald-500);
+  --color-blue-600: var(--color-emerald-600);
+  --color-blue-700: var(--color-emerald-700);
+  --color-blue-800: var(--color-emerald-800);
+  --color-blue-900: var(--color-emerald-900);
+  --color-blue-950: var(--color-emerald-950);
+}
+:root[data-acento="orange"] {
+  --color-blue-50: var(--color-orange-50);
+  --color-blue-100: var(--color-orange-100);
+  --color-blue-200: var(--color-orange-200);
+  --color-blue-300: var(--color-orange-300);
+  --color-blue-400: var(--color-orange-400);
+  --color-blue-500: var(--color-orange-500);
+  --color-blue-600: var(--color-orange-600);
+  --color-blue-700: var(--color-orange-700);
+  --color-blue-800: var(--color-orange-800);
+  --color-blue-900: var(--color-orange-900);
+  --color-blue-950: var(--color-orange-950);
+}
+:root[data-acento="indigo"] {
+  --color-blue-50: var(--color-indigo-50);
+  --color-blue-100: var(--color-indigo-100);
+  --color-blue-200: var(--color-indigo-200);
+  --color-blue-300: var(--color-indigo-300);
+  --color-blue-400: var(--color-indigo-400);
+  --color-blue-500: var(--color-indigo-500);
+  --color-blue-600: var(--color-indigo-600);
+  --color-blue-700: var(--color-indigo-700);
+  --color-blue-800: var(--color-indigo-800);
+  --color-blue-900: var(--color-indigo-900);
+  --color-blue-950: var(--color-indigo-950);
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground transition-all duration-300 ease-in-out;

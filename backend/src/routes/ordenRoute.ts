@@ -8,6 +8,7 @@ import {
   actualizarObservacion,
   anularOrden,
   crearDevolucion,
+  getTablero,
 } from "../controllers/ordenController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
@@ -20,6 +21,7 @@ router.get(
   authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]),
   getAllOrdenes
 );
+router.get("/tablero", protect, authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]), getTablero);
 router.get(
   "/:id",
   protect,

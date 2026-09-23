@@ -97,7 +97,7 @@ export const ordenUpdateSchema = z
     clienteId: z.number().int().positive("ID de cliente inválido").optional(),
     descuento: descuentoSchema,
     estado: z
-      .enum(["PENDIENTE", "ENTREGADO"], {
+      .enum(["PENDIENTE", "LISTO", "ENTREGADO"], {
         errorMap: () => ({ message: "Estado de orden inválido" }),
       })
       .optional(),

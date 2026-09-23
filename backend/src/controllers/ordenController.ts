@@ -184,6 +184,34 @@ export async function getAllOrdenes(req: Request, res: Response) {
   }
 }
 
+// --- TABLERO ---
+// Solo lo que está en juego: pendientes, listas y lo entregado hoy. Así el
+// tablero no descarga años de historial.
+export async function getTablero(req: Request, res: Response) {
+  try {
+    const ahora = new Date();
+    const inicioHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0, 0);
+    const ordenes = await prisma.orden.findMany({
+      where: {
+        OR: [
+          { estado: { in: ["PENDIENTE", "LISTO"] } },
+          { estado: "ENTREGADO", fechaEntrega: { gte: inicioHoy } },
+        ],
+      },
+      include: {
+        cliente: true,
+        detalles: { include: { servicio: { select: { id: true, nombreServicio: true, permiteDecimales: true } } } },
+        pagos: { include: { vueltos: true } },
+      },
+      orderBy: [{ fechaEntrega: "asc" }, { fechaIngreso: "asc" }],
+    });
+    return res.json(ordenes);
+  } catch (error) {
+    console.error("Error al obtener el tablero:", error);
+    return res.status(500).json({ message: "Error al obtener el tablero" });
+  }
+}
+
 // --- GET BY ID ---
 export async function getOrdenById(req: Request, res: Response) {
   const { id } = req.params;

@@ -4,13 +4,14 @@ import { useAuth } from "../../hooks/useAuth";
 import { useConfiguracion } from "../../context/configuracionCore";
 
 interface Props {
+  inputRef?: React.Ref<HTMLInputElement>;
   value: DescuentoOrden | null;
   onChange: (d: DescuentoOrden | null) => void;
   disabled?: boolean;
 }
 
 /** Descuento de la venta, en % o en monto. Quien no es admin ve el tope del negocio. */
-export default function DescuentoControl({ value, onChange, disabled }: Props) {
+export default function DescuentoControl({ value, onChange, disabled, inputRef }: Props) {
   const { config } = useConfiguracion();
   const { hasRole } = useAuth();
   const tipo = value?.tipo ?? "PORCENTAJE";
@@ -47,6 +48,7 @@ export default function DescuentoControl({ value, onChange, disabled }: Props) {
             ))}
           </div>
           <input
+            ref={inputRef}
             type="number"
             min={0}
             step="any"

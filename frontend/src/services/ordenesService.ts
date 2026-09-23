@@ -25,6 +25,11 @@ export const ordenesService = {
    * @param id
    * @returns
    */
+  /** Solo lo activo: pendientes, listas y entregadas hoy. */
+  tablero: () => {
+    return apiClient.get<Orden[]>(`${API_URL}/tablero`);
+  },
+
   getById: (id: number) => {
     return apiClient.get<Orden>(`${API_URL}/${id}`);
   },

@@ -26,6 +26,9 @@ import PantallaCaja from "./pages/PantallaCaja";
 import PantallaVenta from "./pages/PantallaVenta";
 import PantallaReportes from "./pages/PantallaReportes";
 import PantallaGastos from "./pages/PantallaGastos";
+import PantallaTablero from "./pages/PantallaTablero";
+import { AtajosProvider } from "./atajos/AtajosProvider";
+import InicioSegunNegocio from "./experiencia/InicioSegunNegocio";
 import PantallaCuentasPorPagar from "./pages/PantallaCuentasPorPagar";
 import { AuthProvider } from "./context/AuthContext";
 import { ConfiguracionProvider } from "./context/ConfiguracionContext";
@@ -65,6 +68,7 @@ function App() {
     <AuthProvider>
       <ConfiguracionProvider>
       <Router>
+        <AtajosProvider>
         <Routes>
           <Route path="/login" element={<PantallaLogin />} />
           <Route path="/setup" element={<PantallaSetup />} />
@@ -76,7 +80,9 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<PantallaPrincipal />} />
+            <Route index element={<InicioSegunNegocio />} />
+            <Route path="resumen" element={<PantallaPrincipal />} />
+            <Route path="tablero" element={<PantallaTablero />} />
             <Route path="clientes" element={<PantallaClientes />} />
             <Route
               path="servicios"
@@ -180,6 +186,7 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </AtajosProvider>
         <ToastContainer
           position="bottom-right"
           autoClose={3000}

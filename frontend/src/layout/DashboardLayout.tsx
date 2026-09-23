@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { configuracionService } from "../services/configuracionService";
 import type { Configuracion } from "@lavanderia/shared/types/types";
+import AtajosGlobales from "../atajos/AtajosGlobales";
+import { useConfiguracion } from "../context/configuracionCore";
+import { experienciaDe } from "../experiencia/experiencias";
 
 export default function DashboardLayout() {
   const [nombreNegocio, setNombreNegocio] = useState("Mostrador");
@@ -12,6 +15,16 @@ export default function DashboardLayout() {
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
   const location = useLocation();
+  const { config: perfil } = useConfiguracion();
+  const acento = experienciaDe(perfil?.rubro).acento;
+
+  // El color de acento cambia con el rubro (ver index.css).
+  useEffect(() => {
+    document.documentElement.dataset.acento = acento;
+    return () => {
+      delete document.documentElement.dataset.acento;
+    };
+  }, [acento]);
 
   useEffect(() => {
     async function cargarNombreNegocio() {
@@ -49,6 +62,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 font-inter">
+      <AtajosGlobales />
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">

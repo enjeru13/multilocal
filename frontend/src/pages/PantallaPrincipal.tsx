@@ -13,6 +13,7 @@ import ResumenOrdenPanel from "../components/panel/ResumenOrdenPanel";
 import ConfirmarOrdenPanel from "../components/panel/ConfirmarOrdenPanel";
 import DashboardStats from "../components/panel/DashboardStats";
 import DashboardTendencia from "../components/panel/DashboardTendencia";
+import AccesosDirectos from "../components/panel/AccesosDirectos";
 
 // Modales y Formularios
 import FormularioCliente from "../components/formulario/FormularioCliente";
@@ -183,6 +184,7 @@ export default function PantallaPrincipal() {
             <FaCashRegister /> Nueva {et.ordenMin}
           </Link>
         </header>
+        <AccesosDirectos />
         <DashboardStats data={dashboard} />
         <DashboardTendencia data={dashboard} />
       </div>
@@ -197,6 +199,8 @@ export default function PantallaPrincipal() {
           Gestiona {et.serviciosMin} y {et.clientesMin}.
         </p>
       </header>
+
+      <AccesosDirectos compacto />
 
       <DashboardStats data={dashboard} />
 
