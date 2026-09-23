@@ -15,13 +15,13 @@ const PUNTOS = [
 ];
 
 /** Panel de marca de las pantallas de acceso: sin imágenes externas, se adapta al negocio. */
-export default function PanelMarca({ nombre, rubro }: { nombre: string | null; rubro: string | null }) {
+export default function PanelMarca({ nombre, rubro, className = "w-full md:w-1/2" }: { nombre: string | null; rubro: string | null; className?: string }) {
   const titulo = nombre?.trim() || "Mostrador";
   const inicial = titulo.charAt(0).toUpperCase();
   const lema = LEMAS[rubro ?? "GENERICO"] ?? LEMAS.GENERICO;
 
   return (
-    <div className="relative w-full md:w-1/2 overflow-hidden bg-linear-to-br from-blue-600 to-indigo-800 dark:from-blue-800 dark:to-indigo-950 text-white p-8 md:p-12 flex flex-col justify-between min-h-[260px]">
+    <div className={`relative ${className} overflow-hidden bg-linear-to-br from-blue-600 to-indigo-800 dark:from-blue-800 dark:to-indigo-950 text-white p-8 md:p-12 flex flex-col justify-between min-h-[260px]`}>
       <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/10" />
       <div aria-hidden className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-white/5" />
 

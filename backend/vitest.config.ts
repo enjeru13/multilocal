@@ -15,6 +15,10 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     fileParallelism: false,
     maxWorkers: 1,
+    // Hilos en un solo worker: los procesos hijo de vitest se cerraban de forma
+    // intermitente en Windows (código 0xC0000409) al cargar el motor de Prisma.
+    pool: "threads",
+    isolate: false,
     globalSetup: ["./tests/globalSetup.ts"],
     testTimeout: 30000,
     hookTimeout: 60000,

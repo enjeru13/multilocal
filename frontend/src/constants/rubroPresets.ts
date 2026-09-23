@@ -15,7 +15,7 @@ export interface RubroPreset {
 export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
   LAVANDERIA: {
     label: "Lavandería",
-    descripcion: "Servicios con fecha de entrega, sin control de stock.",
+    descripcion: "Recibes la ropa, la sigues en un tablero, avisas por WhatsApp y entregas.",
     moduloInventario: false,
     moduloProveedores: false,
     moduloCaja: false,
@@ -32,8 +32,8 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     },
   },
   REPUESTOS: {
-    label: "Venta de repuestos",
-    descripcion: "Productos con stock, proveedores y compras.",
+    label: "Repuestos y equipos",
+    descripcion: "Catálogo con códigos, facturación con precio editable, cotizaciones y proveedores.",
     moduloInventario: true,
     moduloProveedores: true,
     moduloCaja: true,
@@ -51,7 +51,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
   },
   MINIMARKET: {
     label: "Minimarket / tienda",
-    descripcion: "Venta rápida de productos, con caja y stock.",
+    descripcion: "Caja rápida con lector de códigos, teclas de función, stock y cierre de caja.",
     moduloInventario: true,
     moduloProveedores: true,
     moduloCaja: true,
@@ -69,7 +69,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
   },
   GENERICO: {
     label: "Genérico",
-    descripcion: "Configura cada módulo manualmente.",
+    descripcion: "Un punto de partida neutro: activas cada módulo a tu manera.",
     moduloInventario: false,
     moduloProveedores: false,
     moduloCaja: false,

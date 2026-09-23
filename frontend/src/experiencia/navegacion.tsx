@@ -66,6 +66,33 @@ const CATALOGO: Record<NavId, Def> = {
   respaldos: { to: "/respaldos", icon: <FaDatabase />, roles: ["ADMIN"], label: () => "Respaldos", descripcion: "Copias de seguridad" },
 };
 
+type TFn = (k: "orden" | "servicio" | "cliente") => string;
+
+interface Contexto {
+  experiencia: Experiencia;
+  config: Configuracion | null;
+  t: TFn;
+  hasRole: (roles: Role[]) => boolean;
+}
+
+/** Un destino del menú ya resuelto para este negocio, o null si no aplica (rol o módulo apagado). */
+export function construirItemNav(id: NavId, { experiencia, config, t, hasRole }: Contexto): ItemNav | null {
+  const d = CATALOGO[id];
+  if (!hasRole(d.roles)) return null;
+  if (d.visible && !d.visible(config)) return null;
+  // "Vender" solo existe donde hay venta directa; en lavandería la recepción es la venta.
+  if (id === "vender" && config?.moduloFechaEntrega !== false && experiencia.rubro !== "GENERICO") return null;
+  if (id === "recepcion" && config?.moduloFechaEntrega === false) return null;
+  return {
+    id,
+    to: d.to,
+    label: experiencia.etiquetas?.[id] ?? d.label(t),
+    descripcion: d.descripcion,
+    icon: d.icon,
+    atajo: experiencia.atajos?.[id] ?? ATAJO_BASE[id],
+  };
+}
+
 export interface SeccionNav {
   titulo: string;
   items: ItemNav[];
@@ -77,22 +104,7 @@ export function useNavegacion(): { experiencia: Experiencia; secciones: SeccionN
   const { config, t } = useConfiguracion();
   const experiencia = experienciaDe(config?.rubro);
 
-  const construir = (id: NavId): ItemNav | null => {
-    const d = CATALOGO[id];
-    if (!hasRole(d.roles)) return null;
-    if (d.visible && !d.visible(config)) return null;
-    // "Vender" solo existe donde hay venta directa; en lavandería la recepción es la venta.
-    if (id === "vender" && config?.moduloFechaEntrega !== false && experiencia.rubro !== "GENERICO") return null;
-    if (id === "recepcion" && config?.moduloFechaEntrega === false) return null;
-    return {
-      id,
-      to: d.to,
-      label: experiencia.etiquetas?.[id] ?? d.label(t),
-      descripcion: d.descripcion,
-      icon: d.icon,
-      atajo: experiencia.atajos?.[id] ?? ATAJO_BASE[id],
-    };
-  };
+  const construir = (id: NavId) => construirItemNav(id, { experiencia, config, t, hasRole });
 
   const secciones = experiencia.secciones.map((s) => ({
     titulo: s.titulo,
