@@ -12,6 +12,7 @@ import FechaEntregaPanel from "../components/panel/FechaEntregaPanel";
 import ResumenOrdenPanel from "../components/panel/ResumenOrdenPanel";
 import ConfirmarOrdenPanel from "../components/panel/ConfirmarOrdenPanel";
 import DashboardStats from "../components/panel/DashboardStats";
+import DashboardTendencia from "../components/panel/DashboardTendencia";
 
 // Modales y Formularios
 import FormularioCliente from "../components/formulario/FormularioCliente";
@@ -21,7 +22,7 @@ import ListaClientesModal from "../components/modal/ListaClientesModal";
 import { servicioService } from "../services/serviciosService";
 import { clientesService } from "../services/clientesService";
 import { ordenesService } from "../services/ordenesService";
-import { pagosService } from "../services/pagosService";
+import { reportesService } from "../services/reportesService";
 import { configuracionService } from "../services/configuracionService";
 
 import type {
@@ -32,9 +33,9 @@ import type {
   OrdenCreate,
   Moneda,
   TasasConversion,
+  DashboardData,
 } from "@lavanderia/shared/types/types";
-import { normalizarMoneda, formatearMoneda } from "../utils/monedaHelpers";
-import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
+import { normalizarMoneda } from "../utils/monedaHelpers";
 import dayjs from "dayjs";
 import { FormSkeleton } from "../components/Skeleton";
 
@@ -63,13 +64,7 @@ export default function PantallaPrincipal() {
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [stats, setStats] = useState({
-    totalOrdenes: 0,
-    pendientes: 0,
-    entregadas: 0,
-    ventasHoy: "$0.00",
-    cobradoHoy: "$0.00",
-  });
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
 
   useEffect(() => {
     async function cargarDatosIniciales() {
@@ -85,43 +80,9 @@ export default function PantallaPrincipal() {
           COP: config.tasaCOP ?? null,
         });
 
-        // Cargar estadísticas
-        const [resOrdenes, resPagos] = await Promise.all([
-          ordenesService.getAll(),
-          pagosService.getAll(),
-        ]);
-        const ordenes = resOrdenes.data;
-        const pagos = resPagos.data;
-
-        const principal = normalizarMoneda(config.monedaPrincipal ?? "USD");
-        const tasasActuales: TasasConversion = {
-          VES: config.tasaVES ?? null,
-          COP: config.tasaCOP ?? null,
-        };
-        const esHoy = (fecha: string) => dayjs(fecha).isSame(dayjs(), "day");
-        const vigentes = ordenes.filter((o) => o.estado !== "CANCELADO");
-
-        // Ventas: suma de totales de órdenes (no anuladas) creadas hoy
-        const ventasHoy = vigentes.reduce(
-          (acc: number, o) => (esHoy(o.fechaIngreso) ? acc + (o.total || 0) : acc),
-          0
-        );
-
-        // Cobrado: pagos de hoy convertidos a moneda principal (con tasa
-        // congelada del pago y netos de vueltos/reembolsos)
-        const cobradoHoy = calcularTotalAbonado(
-          pagos.filter((p) => esHoy(p.fechaPago)),
-          tasasActuales,
-          principal
-        );
-
-        setStats({
-          totalOrdenes: vigentes.length,
-          pendientes: vigentes.filter((o) => o.estado === "PENDIENTE").length,
-          entregadas: vigentes.filter((o) => o.estado === "ENTREGADO").length,
-          ventasHoy: formatearMoneda(ventasHoy, principal),
-          cobradoHoy: formatearMoneda(cobradoHoy, principal),
-        });
+        // Cifras del día calculadas en el servidor (no se descarga el historial)
+        const resDash = await reportesService.dashboard();
+        setDashboard(resDash.data);
       } catch (error) {
         console.error("Error al cargar datos iniciales:", error);
         toast.error("Error al cargar datos iniciales del sistema.");
@@ -169,6 +130,7 @@ export default function PantallaPrincipal() {
       setObservaciones("");
       setFechaEntrega("");
       window.scrollTo({ top: 0, behavior: "smooth" });
+      reportesService.dashboard().then((r) => setDashboard(r.data)).catch(() => {});
     } catch (error) {
       console.error("Error al crear la orden:", error);
       toast.error(`Error al crear la ${et.ordenMin}.`);
@@ -210,7 +172,8 @@ export default function PantallaPrincipal() {
             <FaCashRegister /> Nueva {et.ordenMin}
           </Link>
         </header>
-        <DashboardStats stats={stats} />
+        <DashboardStats data={dashboard} />
+        <DashboardTendencia data={dashboard} />
       </div>
     );
   }
@@ -224,7 +187,7 @@ export default function PantallaPrincipal() {
         </p>
       </header>
 
-      <DashboardStats stats={stats} />
+      <DashboardStats data={dashboard} />
 
       <ClientePanel
         cliente={cliente}

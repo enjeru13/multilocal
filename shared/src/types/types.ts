@@ -391,3 +391,79 @@ export interface ReciboData {
   monedaPrincipal: Moneda;
   totalCantidadPiezas: number;
 }
+
+// --- Reportes y dashboard (importes en moneda principal) ---
+
+export interface SerieReportePunto {
+  fecha: string; // AAAA-MM-DD o AAAA-MM según la agrupación
+  ventas: number;
+  cantidad: number;
+  cobrado: number;
+}
+
+export interface ReporteTopItem {
+  servicioId: number;
+  nombre: string;
+  cantidad: number;
+  total: number;
+  ganancia: number | null;
+}
+
+export interface StockBajoResumen {
+  cantidad: number;
+  items: { id: number; nombreServicio: string; stockActual: number; stockMinimo: number | null }[];
+}
+
+export interface PorCobrarResumen {
+  cantidad: number;
+  monto: number;
+}
+
+export interface ReporteResumen {
+  rango: { desde: string; hasta: string; dias: number; agrupar: "dia" | "mes" };
+  moneda: Moneda;
+  ventas: { cantidad: number; canceladas: number; total: number; ticketPromedio: number };
+  cobros: {
+    total: number;
+    cantidad: number;
+    porMetodo: { metodo: string; monto: number }[];
+    porMoneda: { moneda: string; recibido: number; vueltos: number; neto: number }[];
+  };
+  ganancia: {
+    ventaConCosto: number;
+    costo: number;
+    ganancia: number;
+    margen: number | null;
+    ventaSinCosto: number;
+    lineasSinCosto: number;
+  };
+  comparacion: {
+    ventasPrevias: number;
+    cobradoPrevio: number;
+    variacionVentas: number | null;
+    variacionCobrado: number | null;
+  };
+  porEstado: { estado: string; cantidad: number }[];
+  serie: SerieReportePunto[];
+  topItems: ReporteTopItem[];
+  clientes: {
+    top: { clienteId: number; nombre: string; ventas: number; total: number }[];
+    sinCliente: { ventas: number; total: number };
+  };
+  porCobrar: PorCobrarResumen;
+  stockBajo: StockBajoResumen;
+}
+
+export interface DashboardData {
+  moneda: Moneda;
+  totalOrdenes: number;
+  pendientes: number;
+  listas: number;
+  entregadas: number;
+  ventasHoy: number;
+  cobradoHoy: number;
+  // Solo para ADMIN/EMPLOYEE
+  ultimos7?: SerieReportePunto[];
+  porCobrar?: PorCobrarResumen;
+  stockBajo?: StockBajoResumen;
+}

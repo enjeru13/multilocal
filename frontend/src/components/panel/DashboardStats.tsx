@@ -1,12 +1,21 @@
 import type { IconType } from "react-icons";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
-import { FaClipboardList, FaClock, FaCheckCircle, FaMoneyBillWave, FaHandHoldingUsd } from "react-icons/fa";
+import {
+    FaClipboardList,
+    FaClock,
+    FaCheckCircle,
+    FaMoneyBillWave,
+    FaHandHoldingUsd,
+    FaFileInvoiceDollar,
+} from "react-icons/fa";
+import type { DashboardData } from "@lavanderia/shared/types/types";
+import { formatearMoneda } from "../../utils/monedaHelpers";
 
 interface StatCardProps {
     title: string;
     value: string | number;
     icon: IconType;
-    colorName: "blue" | "yellow" | "green" | "indigo" | "emerald";
+    colorName: "blue" | "yellow" | "green" | "indigo" | "emerald" | "rose";
     description: string;
 }
 
@@ -31,6 +40,10 @@ const colorMap = {
         bg: "bg-emerald-500/10",
         text: "text-emerald-600 dark:text-emerald-400",
     },
+    rose: {
+        bg: "bg-rose-500/10",
+        text: "text-rose-600 dark:text-rose-400",
+    },
 };
 
 function StatCard({ title, value, icon: Icon, colorName, description }: StatCardProps) {
@@ -51,25 +64,24 @@ function StatCard({ title, value, icon: Icon, colorName, description }: StatCard
 }
 
 interface DashboardStatsProps {
-    stats: {
-        totalOrdenes: number;
-        pendientes: number;
-        entregadas: number;
-        ventasHoy: string;
-        cobradoHoy: string;
-    };
+    data: DashboardData | null;
 }
 
-export default function DashboardStats({ stats }: DashboardStatsProps) {
+export default function DashboardStats({ data }: DashboardStatsProps) {
     const { config } = useConfiguracion();
     const et = useEtiquetas();
     const conEntrega = config?.moduloFechaEntrega !== false;
+    const moneda = data?.moneda ?? "USD";
+    const fmt = (n: number | undefined) => formatearMoneda(n ?? 0, moneda);
+    const tarjetas = 3 + (conEntrega ? 2 : 0) + (data?.porCobrar ? 1 : 0);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+        <div
+            className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 ${tarjetas === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+        >
             <StatCard
                 title={`Total ${et.ordenes}`}
-                value={stats.totalOrdenes}
+                value={data?.totalOrdenes ?? 0}
                 icon={FaClipboardList}
                 colorName="blue"
                 description="Historial total"
@@ -78,14 +90,14 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
                 <>
                     <StatCard
                         title="Pendientes"
-                        value={stats.pendientes}
+                        value={data?.pendientes ?? 0}
                         icon={FaClock}
                         colorName="yellow"
                         description="Por entregar"
                     />
                     <StatCard
                         title="Entregadas"
-                        value={stats.entregadas}
+                        value={data?.entregadas ?? 0}
                         icon={FaCheckCircle}
                         colorName="green"
                         description={`Listas para ${et.clienteMin}`}
@@ -94,18 +106,27 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
             )}
             <StatCard
                 title="Ventas Hoy"
-                value={stats.ventasHoy}
+                value={fmt(data?.ventasHoy)}
                 icon={FaMoneyBillWave}
                 colorName="indigo"
                 description="Total facturado hoy"
             />
             <StatCard
                 title="Cobrado Hoy"
-                value={stats.cobradoHoy}
+                value={fmt(data?.cobradoHoy)}
                 icon={FaHandHoldingUsd}
                 colorName="emerald"
                 description="Efectivo/Pago real"
             />
+            {data?.porCobrar && (
+                <StatCard
+                    title="Por cobrar"
+                    value={fmt(data.porCobrar.monto)}
+                    icon={FaFileInvoiceDollar}
+                    colorName="rose"
+                    description={`${data.porCobrar.cantidad} ${data.porCobrar.cantidad === 1 ? et.ordenMin : et.ordenesMin} con saldo`}
+                />
+            )}
         </div>
     );
 }

@@ -1,0 +1,416 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+import { toast } from "react-toastify";
+import { isAxiosError } from "axios";
+import { FaChartLine, FaDownload, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import type { ReporteResumen } from "@lavanderia/shared/types/types";
+import { reportesService } from "../services/reportesService";
+import { formatearMoneda } from "../utils/monedaHelpers";
+import { useEtiquetas } from "../context/configuracionCore";
+import GraficoBarras from "../components/charts/GraficoBarras";
+import Button from "../components/ui/Button";
+import { exportarReporteCsv } from "../utils/reporteCsv";
+
+type Preset = "hoy" | "7d" | "mes" | "mesPasado" | "anio" | "personalizado";
+
+const PRESETS: { id: Exclude<Preset, "personalizado">; label: string }[] = [
+  { id: "hoy", label: "Hoy" },
+  { id: "7d", label: "7 días" },
+  { id: "mes", label: "Este mes" },
+  { id: "mesPasado", label: "Mes pasado" },
+  { id: "anio", label: "Este año" },
+];
+
+const FMT = "YYYY-MM-DD";
+
+function rangoDePreset(id: Exclude<Preset, "personalizado">): { desde: string; hasta: string } {
+  const hoy = dayjs();
+  switch (id) {
+    case "hoy":
+      return { desde: hoy.format(FMT), hasta: hoy.format(FMT) };
+    case "7d":
+      return { desde: hoy.subtract(6, "day").format(FMT), hasta: hoy.format(FMT) };
+    case "mes":
+      return { desde: hoy.startOf("month").format(FMT), hasta: hoy.format(FMT) };
+    case "mesPasado": {
+      const m = hoy.subtract(1, "month");
+      return { desde: m.startOf("month").format(FMT), hasta: m.endOf("month").format(FMT) };
+    }
+    case "anio":
+      return { desde: hoy.startOf("year").format(FMT), hasta: hoy.format(FMT) };
+  }
+}
+
+const METODOS: Record<string, string> = {
+  EFECTIVO: "Efectivo",
+  TRANSFERENCIA: "Transferencia",
+  PAGO_MOVIL: "Pago móvil",
+};
+
+const tarjeta =
+  "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm";
+
+function Variacion({ valor }: { valor: number | null }) {
+  if (valor === null) {
+    return <span className="text-xs text-gray-400">Sin periodo anterior</span>;
+  }
+  const sube = valor >= 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-semibold ${
+        sube ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+      }`}
+    >
+      {sube ? <FaArrowUp size={9} /> : <FaArrowDown size={9} />}
+      {Math.abs(valor).toLocaleString("es", { maximumFractionDigits: 1 })}% vs. periodo anterior
+    </span>
+  );
+}
+
+function Kpi({
+  titulo,
+  valor,
+  pie,
+  destacado = false,
+}: {
+  titulo: string;
+  valor: string;
+  pie?: React.ReactNode;
+  destacado?: boolean;
+}) {
+  return (
+    <div className={`${tarjeta} p-5 ${destacado ? "ring-1 ring-blue-500/30" : ""}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{titulo}</p>
+      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{valor}</p>
+      <div className="mt-1 min-h-4 text-xs text-gray-500 dark:text-gray-400">{pie}</div>
+    </div>
+  );
+}
+
+export default function PantallaReportes() {
+  const et = useEtiquetas();
+  const [preset, setPreset] = useState<Preset>("mes");
+  const [rango, setRango] = useState(() => rangoDePreset("mes"));
+  const [data, setData] = useState<ReporteResumen | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const peticion = useRef(0);
+
+  const cargar = useCallback(async (desde: string, hasta: string) => {
+    const id = ++peticion.current;
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await reportesService.resumen(desde, hasta);
+      if (id === peticion.current) setData(res.data);
+    } catch (err) {
+      if (id !== peticion.current) return;
+      const mensaje = isAxiosError(err) ? err.response?.data?.message : null;
+      setError(mensaje ?? "No se pudo generar el reporte.");
+    } finally {
+      if (id === peticion.current) setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (rango.desde && rango.hasta && rango.desde <= rango.hasta) cargar(rango.desde, rango.hasta);
+  }, [rango, cargar]);
+
+  const elegirPreset = (id: Exclude<Preset, "personalizado">) => {
+    setPreset(id);
+    setRango(rangoDePreset(id));
+  };
+
+  const cambiarFecha = (campo: "desde" | "hasta", valor: string) => {
+    setPreset("personalizado");
+    setRango((r) => ({ ...r, [campo]: valor }));
+  };
+
+  const fechasInvalidas = !rango.desde || !rango.hasta || rango.desde > rango.hasta;
+  const m = data?.moneda ?? "USD";
+  const fmt = (n: number) => formatearMoneda(n, m);
+
+  const exportar = () => {
+    if (!data) return;
+    exportarReporteCsv(data, { orden: et.ordenes, servicio: et.servicios, cliente: et.clientes });
+    toast.success("Reporte exportado.");
+  };
+
+  const hayCosto = !!data && data.ganancia.ventaConCosto > 0;
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <FaChartLine className="text-blue-600 dark:text-blue-400" /> Reportes
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            {data
+              ? `${dayjs(data.rango.desde).locale("es").format("D MMM YYYY")} – ${dayjs(data.rango.hasta)
+                  .locale("es")
+                  .format("D MMM YYYY")}`
+              : "Elige un periodo."}
+          </p>
+        </div>
+        <Button variant="secondary" onClick={exportar} disabled={!data || cargando} leftIcon={<FaDownload />}>
+          Exportar CSV
+        </Button>
+      </header>
+
+      <section className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex flex-wrap rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-1 gap-1">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => elegirPreset(p.id)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                preset === p.id
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <input
+            type="date"
+            value={rango.desde}
+            max={rango.hasta || undefined}
+            onChange={(e) => cambiarFecha("desde", e.target.value)}
+            aria-label="Desde"
+            className="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          />
+          <span>a</span>
+          <input
+            type="date"
+            value={rango.hasta}
+            min={rango.desde || undefined}
+            onChange={(e) => cambiarFecha("hasta", e.target.value)}
+            aria-label="Hasta"
+            className="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          />
+        </div>
+      </section>
+
+      {fechasInvalidas && (
+        <p className="text-sm text-amber-600 dark:text-amber-400">La fecha inicial debe ser anterior o igual a la final.</p>
+      )}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      {!data && cargando && <div className={`${tarjeta} h-64 animate-pulse`} />}
+
+      {data && (
+        <div className={`space-y-6 transition-opacity ${cargando ? "opacity-60" : ""}`}>
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Kpi
+              destacado
+              titulo={`${et.ordenes} facturadas`}
+              valor={fmt(data.ventas.total)}
+              pie={
+                <>
+                  <Variacion valor={data.comparacion.variacionVentas} />
+                  <div>
+                    {data.ventas.cantidad} {data.ventas.cantidad === 1 ? et.ordenMin : et.ordenesMin}
+                    {data.ventas.canceladas > 0 && ` · ${data.ventas.canceladas} anulada(s)`}
+                  </div>
+                </>
+              }
+            />
+            <Kpi
+              titulo="Cobrado"
+              valor={fmt(data.cobros.total)}
+              pie={
+                <>
+                  <Variacion valor={data.comparacion.variacionCobrado} />
+                  <div>
+                    {data.cobros.cantidad} {data.cobros.cantidad === 1 ? "pago" : "pagos"}
+                  </div>
+                </>
+              }
+            />
+            <Kpi
+              titulo="Ticket promedio"
+              valor={fmt(data.ventas.ticketPromedio)}
+              pie={`por ${et.ordenMin}`}
+            />
+            {hayCosto ? (
+              <Kpi
+                titulo="Ganancia"
+                valor={fmt(data.ganancia.ganancia)}
+                pie={
+                  <>
+                    {data.ganancia.margen !== null && <div>Margen {data.ganancia.margen.toLocaleString("es")}%</div>}
+                    {data.ganancia.lineasSinCosto > 0 && (
+                      <div>{data.ganancia.lineasSinCosto} línea(s) sin costo no cuentan</div>
+                    )}
+                  </>
+                }
+              />
+            ) : (
+              <Kpi
+                titulo="Por cobrar (total)"
+                valor={fmt(data.porCobrar.monto)}
+                pie={`${data.porCobrar.cantidad} ${data.porCobrar.cantidad === 1 ? et.ordenMin : et.ordenesMin} con saldo`}
+              />
+            )}
+          </section>
+
+          {hayCosto && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Por cobrar (total): <strong className="text-gray-900 dark:text-gray-100">{fmt(data.porCobrar.monto)}</strong>{" "}
+              en {data.porCobrar.cantidad} {data.porCobrar.cantidad === 1 ? et.ordenMin : et.ordenesMin}.
+            </div>
+          )}
+
+          <section className={`${tarjeta} p-5`}>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Evolución {data.rango.agrupar === "mes" ? "mensual" : "diaria"}
+            </h2>
+            <GraficoBarras datos={data.serie} moneda={m} agrupar={data.rango.agrupar} />
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <section className={`${tarjeta} p-5 lg:col-span-2`}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">{et.servicios} más vendidos</h2>
+              {data.topItems.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">Sin ventas en este periodo.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                      <tr>
+                        <th className="py-2 text-left font-semibold">{et.servicio}</th>
+                        <th className="py-2 text-right font-semibold">Cant.</th>
+                        <th className="py-2 text-right font-semibold">Total</th>
+                        <th className="py-2 text-right font-semibold">Ganancia</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.topItems.slice(0, 10).map((i) => (
+                        <tr key={i.servicioId} className="border-t border-gray-100 dark:border-gray-800">
+                          <td className="py-2 pr-3 text-gray-900 dark:text-gray-100">{i.nombre}</td>
+                          <td className="py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                            {i.cantidad.toLocaleString("es")}
+                          </td>
+                          <td className="py-2 text-right tabular-nums font-semibold text-gray-900 dark:text-gray-100">
+                            {fmt(i.total)}
+                          </td>
+                          <td className="py-2 text-right tabular-nums text-gray-600 dark:text-gray-400">
+                            {i.ganancia === null ? "—" : fmt(i.ganancia)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className={`${tarjeta} p-5 space-y-5`}>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Cómo te pagan</h2>
+                {data.cobros.porMetodo.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">Sin cobros.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {data.cobros.porMetodo.map((x) => (
+                      <li key={x.metodo} className="flex justify-between gap-3">
+                        <span className="text-gray-600 dark:text-gray-400">{METODOS[x.metodo] ?? x.metodo}</span>
+                        <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmt(x.monto)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {data.cobros.porMoneda.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Por moneda recibida</h3>
+                  <ul className="space-y-2 text-sm">
+                    {data.cobros.porMoneda.map((x) => (
+                      <li key={x.moneda} className="flex justify-between gap-3">
+                        <span className="text-gray-600 dark:text-gray-400">{x.moneda}</span>
+                        <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                          {formatearMoneda(x.neto, x.moneda as "USD" | "VES" | "COP")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section className={`${tarjeta} p-5`}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Mejores {et.clientesMin}</h2>
+              {data.clientes.top.length === 0 && data.clientes.sinCliente.ventas === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">Sin ventas en este periodo.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {data.clientes.top.slice(0, 5).map((c) => (
+                    <li key={c.clienteId} className="flex justify-between gap-3">
+                      <span className="text-gray-900 dark:text-gray-100 truncate">
+                        {c.nombre}{" "}
+                        <span className="text-gray-400">
+                          · {c.ventas} {c.ventas === 1 ? et.ordenMin : et.ordenesMin}
+                        </span>
+                      </span>
+                      <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmt(c.total)}</span>
+                    </li>
+                  ))}
+                  {data.clientes.sinCliente.ventas > 0 && (
+                    <li className="flex justify-between gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Sin {et.clienteMin} · {data.clientes.sinCliente.ventas}
+                      </span>
+                      <span className="font-semibold tabular-nums text-gray-700 dark:text-gray-300">
+                        {fmt(data.clientes.sinCliente.total)}
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </section>
+
+            <section className={`${tarjeta} p-5`}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Atención</h2>
+              <ul className="space-y-3 text-sm">
+                <li className="flex justify-between gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">Por cobrar</span>
+                  <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                    {fmt(data.porCobrar.monto)}{" "}
+                    <span className="font-normal text-gray-400">({data.porCobrar.cantidad})</span>
+                  </span>
+                </li>
+                {data.stockBajo.cantidad > 0 ? (
+                  <li>
+                    <p className="text-amber-600 dark:text-amber-400 font-medium mb-1">
+                      {data.stockBajo.cantidad} {data.stockBajo.cantidad === 1 ? "producto" : "productos"} con stock bajo
+                    </p>
+                    <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                      {data.stockBajo.items.slice(0, 5).map((s) => (
+                        <li key={s.id} className="flex justify-between gap-3">
+                          <span className="truncate">{s.nombreServicio}</span>
+                          <span className="tabular-nums">
+                            {s.stockActual} / mín. {s.stockMinimo}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ) : (
+                  <li className="text-gray-500 dark:text-gray-400">Sin alertas de stock.</li>
+                )}
+              </ul>
+            </section>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

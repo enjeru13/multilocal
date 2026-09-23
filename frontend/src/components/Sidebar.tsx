@@ -6,6 +6,7 @@ import {
   FaTshirt,
   FaCog,
   FaChartBar,
+  FaChartLine,
   FaMoneyBillWave,
   FaBoxes,
   FaTruck,
@@ -87,6 +88,12 @@ export default function Sidebar() {
             icon: <FaCashRegister />,
             roles: ["ADMIN", "EMPLOYEE", "CAJERO"],
             visible: !!config?.moduloCaja,
+          },
+          {
+            to: "/reportes",
+            label: "Reportes",
+            icon: <FaChartLine />,
+            roles: ["ADMIN"],
           },
           {
             to: "/pagos",
