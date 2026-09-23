@@ -14,7 +14,7 @@ import {
   FaDatabase,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
-import { useConfiguracion } from "../context/ConfiguracionContext";
+import { useConfiguracion } from "../context/configuracionCore";
 import type { Role } from "@lavanderia/shared/types/types";
 import type { JSX } from "react";
 

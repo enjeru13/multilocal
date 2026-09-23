@@ -5,9 +5,18 @@ export interface TasasConversion {
   COP?: number | null;
 }
 
+/** Convierte cualquier valor a una moneda soportada (por defecto USD). */
+export function normalizarMoneda(input: unknown): Moneda {
+  const valor = String(input).toUpperCase();
+  if (valor === "VES") return "VES";
+  if (valor === "COP") return "COP";
+  return "USD";
+}
+
 /**
- * Convierte un monto hacia la moneda principal, usando tasas.
- * Ejemplo: Bs 80 / tasa VES → USD
+ * Convierte un monto hacia la moneda principal, usando tasas (unidades de
+ * la moneda por 1 USD). Sin tasa válida devuelve 0: nunca convierte 1:1.
+ * Ejemplo: Bs 80 / tasa VES -> USD
  */
 export function convertirAmonedaPrincipal(
   monto: number,
@@ -26,7 +35,7 @@ export function convertirAmonedaPrincipal(
 
 /**
  * Convierte desde la moneda principal hacia otra, usando tasas.
- * Ejemplo: USD → Bs (VES) * tasa VES
+ * Ejemplo: USD -> Bs (VES) * tasa VES
  */
 export function convertirDesdePrincipal(
   monto: number,
@@ -45,15 +54,9 @@ export function convertirDesdePrincipal(
 
 /**
  * Formatea visualmente un monto como moneda local.
- * Ejemplo: 12.5 → "$12.50" o "Bs 12,50"
+ * COP sin decimales cuando el monto es entero.
  */
 export function formatearMoneda(monto: number, moneda: Moneda = "USD"): string {
-  const locales: Record<Moneda, string> = {
-    USD: "en-US",
-    VES: "es-VE",
-    COP: "es-CO",
-  };
-
   const opciones: Intl.NumberFormatOptions = {
     style: "currency",
     currency: moneda,
@@ -61,27 +64,33 @@ export function formatearMoneda(monto: number, moneda: Moneda = "USD"): string {
     maximumFractionDigits: 2,
   };
 
-  const locale = locales[moneda] || "en-US";
+  let locale = "en-US";
+  if (moneda === "VES") {
+    locale = "es-VE";
+  } else if (moneda === "COP") {
+    locale = "es-CO";
+    if (Number.isInteger(monto)) {
+      opciones.minimumFractionDigits = 0;
+      opciones.maximumFractionDigits = 0;
+    }
+  }
+
   return new Intl.NumberFormat(locale, opciones).format(monto);
 }
 
 /**
- * Convierte string de tasa (que puede tener coma o miles) en número válido.
- * Ejemplo: "2,500.00" → 2500, "3.5" → 3.5
+ * Convierte string de tasa (con coma decimal o miles) en número válido.
+ * Ejemplo: "2,500.00" -> 2500, "3.5" -> 3.5
  */
 export function parsearTasa(valor: string): number | undefined {
   if (!valor) return undefined;
-
   const normalizado = valor.replace(",", ".");
   const limpio = normalizado.replace(/(?<=\d)\.(?=\d{3})/g, "");
   const num = parseFloat(limpio);
-
   return isNaN(num) ? undefined : num;
 }
 
-/**
- * Formatea tasa para mostrar como string con dos decimales.
- */
+/** Formatea una tasa con dos decimales. */
 export function formatearTasa(valor: number | string): string {
   const num =
     typeof valor === "string" ? parseFloat(valor.replace(",", ".")) : valor;
@@ -90,11 +99,21 @@ export function formatearTasa(valor: number | string): string {
 }
 
 /**
- * Sanitiza monto ingresado como texto, acepta coma, punto y elimina símbolos.
- * Ejemplo: "Bs. 12,5" → 12.5
+ * Interpreta un monto escrito por el usuario según la convención de la
+ * moneda: en VES/COP el punto separa miles y la coma es el decimal
+ * ("1.234,50"); en USD la coma separa miles ("1,234.50"). Ignora símbolos
+ * ("Bs.", "$") y texto.
  */
-export function parsearMonto(valor: string): number {
-  const limpio = valor.replace(",", ".").replace(/[^\d.]/g, "");
+export function parsearMonto(valor: string, moneda: Moneda = "USD"): number {
+  if (!valor) return 0;
+
+  let limpio = valor.replace(/[^\d.,-]/g, "").replace(/^[.,]+/, "");
+
+  if (moneda === "VES" || moneda === "COP") {
+    limpio = limpio.replace(/\./g, "").replace(/,/g, ".");
+  } else {
+    limpio = limpio.replace(/,/g, "");
+  }
 
   const num = parseFloat(limpio);
   return isNaN(num) ? 0 : num;

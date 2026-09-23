@@ -27,34 +27,13 @@ export const authService = {
   login: async (data: UserLoginPayload): Promise<AuthResponse> => {
     try {
       const response = await apiClient.post("/auth/login", data);
-      if (response.data.token) {
-        localStorage.setItem("authToken", response.data.token);
-      }
       return response.data;
     } catch (error) {
       console.error("Error en el login:", error);
       throw error;
     }
   },
-  logout: () => {
-    localStorage.removeItem("authToken");
-  },
 
-  /**
-   * @param password
-   * @returns
-   */
-  validarAdminPassword: async (password: string): Promise<boolean> => {
-    try {
-      const response = await apiClient.post("/auth/validate-admin-password", {
-        password,
-      });
-      return response.status === 200 && response.data.isValid === true;
-    } catch (error) {
-      console.error("Error al validar contraseña de administrador:", error);
-      return false;
-    }
-  },
   getSetupStatus: async (): Promise<boolean> => {
     try {
       const response = await apiClient.get("/auth/setup-status");
@@ -70,7 +49,6 @@ export const authService = {
       return response.data.user;
     } catch (error) {
       console.error("Error al obtener el usuario actual:", error);
-      localStorage.removeItem("authToken");
       return null;
     }
   },

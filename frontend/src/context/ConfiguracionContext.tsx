@@ -1,29 +1,14 @@
 import React, {
-  createContext,
   useState,
   useEffect,
   useCallback,
-  useContext,
   type ReactNode,
 } from "react";
 import { configuracionService } from "../services/configuracionService";
 import { useAuth } from "../hooks/useAuth";
 import { RUBRO_PRESETS } from "../constants/rubroPresets";
+import { ConfiguracionContext } from "./configuracionCore";
 import type { Configuracion, Terminologia } from "@lavanderia/shared/types/types";
-
-interface ConfiguracionContextType {
-  config: Configuracion | null;
-  loading: boolean;
-  refetch: () => Promise<void>;
-  t: (clave: keyof Terminologia) => string;
-}
-
-const ConfiguracionContext = createContext<ConfiguracionContextType>({
-  config: null,
-  loading: true,
-  refetch: async () => {},
-  t: (clave) => RUBRO_PRESETS.GENERICO.terminologia[clave],
-});
 
 export const ConfiguracionProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -66,7 +51,3 @@ export const ConfiguracionProvider: React.FC<{ children: ReactNode }> = ({
     </ConfiguracionContext.Provider>
   );
 };
-
-export function useConfiguracion() {
-  return useContext(ConfiguracionContext);
-}

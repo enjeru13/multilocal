@@ -10,7 +10,7 @@ import type {
 import { AxiosError } from "axios";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
-import { useConfiguracion } from "../../context/ConfiguracionContext";
+import { useConfiguracion } from "../../context/configuracionCore";
 
 type FormularioServicioProps = {
   servicio?: Servicio;

@@ -48,8 +48,21 @@ export function listarRespaldos(): InfoRespaldo[] {
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 
-export async function crearRespaldo(prefijo: "auto" | "manual" | "previo"): Promise<string> {
-  const nombre = `${prefijo}-${stamp()}.db`;
+let colaRespaldos: Promise<unknown> = Promise.resolve();
+
+// Los respaldos se crean de a uno: evita que dos peticiones simultáneas elijan el mismo nombre.
+export function crearRespaldo(prefijo: "auto" | "manual" | "previo"): Promise<string> {
+  const tarea = colaRespaldos.then(() => crearRespaldoSinCola(prefijo));
+  colaRespaldos = tarea.catch(() => undefined);
+  return tarea;
+}
+
+async function crearRespaldoSinCola(prefijo: "auto" | "manual" | "previo"): Promise<string> {
+  const base = `${prefijo}-${stamp()}`;
+  let nombre = `${base}.db`;
+  for (let n = 2; fs.existsSync(path.join(getBackupDir(), nombre)); n++) {
+    nombre = `${base}-${n}.db`; // dos respaldos en el mismo segundo no se pisan
+  }
   const destino = path.join(getBackupDir(), nombre);
   // VACUUM INTO produce una copia consistente aunque haya escrituras en curso.
   await prisma.$queryRawUnsafe(`VACUUM INTO '${destino.replace(/'/g, "''")}'`).catch(async () => {

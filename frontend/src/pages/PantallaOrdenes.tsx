@@ -99,7 +99,7 @@ export default function PantallaOrdenes() {
     if (Object.keys(tasas).length > 0 && monedaPrincipal) {
       cargarOrdenes();
     }
-  }, [tasas, monedaPrincipal]);
+  }, [tasas, monedaPrincipal, cargarOrdenes]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -169,6 +169,19 @@ export default function PantallaOrdenes() {
     }
   }, [ordenAAnularId, cargarOrdenes]);
 
+  const actualizarOrdenEnLista = useCallback(
+    (actualizada: Orden) => {
+      const resumen = calcularResumenPago(actualizada, tasas, monedaPrincipal);
+      const enriquecida: Orden = { ...actualizada, ...resumen };
+
+      setOrdenes((prev) =>
+        prev.map((o) => (o.id === enriquecida.id ? enriquecida : o))
+      );
+      setOrdenSeleccionada(enriquecida);
+    },
+    [tasas, monedaPrincipal]
+  );
+
   const marcarComoEntregada = useCallback(
     async (id: number) => {
       if (!hasRole(["ADMIN", "EMPLOYEE"])) {
@@ -195,20 +208,7 @@ export default function PantallaOrdenes() {
         console.error(err);
       }
     },
-    [ordenes, hasRole]
-  );
-
-  const actualizarOrdenEnLista = useCallback(
-    (actualizada: Orden) => {
-      const resumen = calcularResumenPago(actualizada, tasas, monedaPrincipal);
-      const enriquecida: Orden = { ...actualizada, ...resumen };
-
-      setOrdenes((prev) =>
-        prev.map((o) => (o.id === enriquecida.id ? enriquecida : o))
-      );
-      setOrdenSeleccionada(enriquecida);
-    },
-    [tasas, monedaPrincipal]
+    [ordenes, hasRole, actualizarOrdenEnLista]
   );
 
   const handleAbrirPagoExtra = useCallback(

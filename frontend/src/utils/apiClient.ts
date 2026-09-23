@@ -11,7 +11,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -27,11 +27,14 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem("authToken");
-      console.error(
-        "Token de autenticación expirado o inválido. Redirigiendo al login."
-      );
+    const esAuth = String(error.config?.url ?? "").includes("/auth/");
+    if (error.response?.status === 401 && !esAuth) {
+      // Sesión vencida, usuario desactivado o respaldo restaurado: volver al login.
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

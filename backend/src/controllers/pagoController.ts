@@ -44,11 +44,6 @@ async function recalcularEstadoOrden(ordenId: number) {
     principalMoneda
   );
 
-  console.log(
-    "DEBUG BACKEND: Resumen calculado (abonado, faltante, estadoRaw):",
-    resumen
-  );
-
   await prisma.orden.update({
     where: { id: ordenId },
     data: {
@@ -168,18 +163,18 @@ export async function createPago(req: Request, res: Response) {
       cajaSesionId = cajaAbierta.id;
     }
 
-    let tasaSnapshot = 0; // Default to 0 to avoid 1:1 bug
-    if (config) {
-      switch (moneda) {
-        case "VES":
-          tasaSnapshot = config.tasaVES ?? 0;
-          break;
-        case "COP":
-          tasaSnapshot = config.tasaCOP ?? 0;
-          break;
-        case "USD":
-          tasaSnapshot = 1;
-          break;
+    // Tasa congelada al momento del pago. USD siempre vale 1; VES/COP salen
+    // de la configuración y sin tasa válida no se puede cobrar en esa moneda
+    // (antes quedaba en 0 y luego se recalculaba con la tasa del día).
+    let tasaSnapshot = 1;
+    if (moneda === "VES" || moneda === "COP") {
+      const tasaConfig = moneda === "VES" ? config?.tasaVES : config?.tasaCOP;
+      if (tasaConfig && tasaConfig > 0) {
+        tasaSnapshot = tasaConfig;
+      } else if (moneda !== (config?.monedaPrincipal ?? "USD")) {
+        return res.status(400).json({
+          message: `No hay una tasa ${moneda} configurada. Define la tasa en Configuración antes de cobrar en ${moneda}.`,
+        });
       }
     }
 

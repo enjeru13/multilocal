@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import dayjs from "dayjs";
 import { FaCashRegister, FaLockOpen, FaLock, FaPlus, FaMinus } from "react-icons/fa";
 import { cajaService, type CajaActual, type CajaSesion } from "../services/cajaService";
-import { useConfiguracion } from "../context/ConfiguracionContext";
+import { useConfiguracion } from "../context/configuracionCore";
 import { useAuth } from "../hooks/useAuth";
 import { formatearMoneda } from "../utils/monedaHelpers";
 import Button from "../components/ui/Button";

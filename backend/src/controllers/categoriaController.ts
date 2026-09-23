@@ -21,7 +21,7 @@ export async function getAllCategorias(req: Request, res: Response) {
 
 // Obtener una categoría por ID
 export async function getCategoriaById(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = String(req.params.id);
   try {
     const categoria = await prisma.categoria.findUnique({
       where: { id },
@@ -69,7 +69,7 @@ export async function createCategoria(req: Request, res: Response) {
 
 // Actualizar una categoría
 export async function updateCategoria(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = String(req.params.id);
   const result = CategoriaSchema.partial().safeParse(req.body);
   if (!result.success) {
     return res
@@ -111,7 +111,7 @@ export async function updateCategoria(req: Request, res: Response) {
 
 // Eliminar una categoría
 export async function deleteCategoria(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = String(req.params.id);
   try {
     await prisma.categoria.delete({
       where: { id },

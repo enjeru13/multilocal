@@ -9,7 +9,7 @@ import ModalRegistrarCompra from "../components/modal/ModalRegistrarCompra";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import Button from "../components/ui/Button";
 import { TableSkeleton } from "../components/Skeleton";
-import { useConfiguracion } from "../context/ConfiguracionContext";
+import { useConfiguracion } from "../context/configuracionCore";
 import type {
   Proveedor,
   ProveedorCreate,

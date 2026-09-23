@@ -4,14 +4,16 @@
   "main": "build/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "pnpm --filter @lavanderia/shared build && npx prisma@6.19.1 generate && tsc -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node build/index.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init"
+    "prisma:migrate": "prisma migrate dev --name init",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@lavanderia/shared": "workspace:*",
-    "@prisma/client": "^6.19.1",
+    "@prisma/client": "6.19.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
@@ -26,9 +28,12 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/supertest": "^7.2.1",
     "node-gyp": "^9.4.1",
-    "prisma": "^6.19.1",
+    "prisma": "6.19.2",
+    "supertest": "^7.3.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
   }
 }

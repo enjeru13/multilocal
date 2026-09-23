@@ -7,7 +7,7 @@ import { servicioService } from "../services/serviciosService";
 import { configuracionService } from "../services/configuracionService";
 import { formatearMoneda, type Moneda } from "../utils/monedaHelpers";
 import { TableSkeleton } from "../components/Skeleton";
-import { useConfiguracion } from "../context/ConfiguracionContext";
+import { useConfiguracion } from "../context/configuracionCore";
 import type { Servicio } from "@lavanderia/shared/types/types";
 import { inventarioService, type MovimientoInventario } from "../services/inventarioService";
 import { useAuth } from "../hooks/useAuth";

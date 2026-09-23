@@ -9,7 +9,7 @@ import {
   type Moneda,
 } from "../utils/monedaHelpers";
 import { configuracionService } from "../services/configuracionService";
-import { useConfiguracion } from "../context/ConfiguracionContext";
+import { useConfiguracion } from "../context/configuracionCore";
 import { RUBRO_PRESETS } from "../constants/rubroPresets";
 import type { Configuracion, Rubro, Terminologia } from "@lavanderia/shared/types/types";
 import { FormSkeleton } from "../components/Skeleton";
