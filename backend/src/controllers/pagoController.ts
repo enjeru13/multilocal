@@ -147,6 +147,12 @@ export async function createPago(req: Request, res: Response) {
         .json({ message: `Orden con ID ${ordenId} no encontrada.` });
     }
 
+    if (ordenExistente.estado === "CANCELADO") {
+      return res
+        .status(409)
+        .json({ message: "La orden está anulada: no se pueden registrar pagos." });
+    }
+
     const config = await prisma.configuracion.findFirst();
 
     let cajaSesionId: number | null = null;

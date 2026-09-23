@@ -15,7 +15,9 @@ const baseBadge = "inline-block px-3 py-1 rounded-full text-sm font-bold";
 export function badgeEstado(estado: EstadoOrden) {
   const map: Record<EstadoOrden, string> = {
     PENDIENTE: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
+    LISTO: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
     ENTREGADO: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
+    CANCELADO: "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 line-through",
   };
 
   const clase = map[estado] || "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FaSignInAlt, FaLock, FaEnvelope } from "react-icons/fa";
 import { PiEyeBold, PiEyeClosed } from "react-icons/pi";
 import { useForm } from "react-hook-form";
@@ -213,15 +213,9 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-          <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400 transition-colors">
-            ¿No tienes una cuenta?{' '}
-            <Link
-              to="/register"
-              className="text-blue-600 dark:text-blue-500 hover:underline font-bold transition-colors duration-200"
-            >
-              Regístrate aquí
-            </Link>
-          </div>
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            ¿Necesitas acceso? Pídele a un administrador que cree tu usuario.
+          </p>
         </div>
       </div>
     </div>

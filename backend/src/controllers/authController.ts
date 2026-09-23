@@ -10,7 +10,14 @@ const registerSchema = z.object({
     .string()
     .min(6, "La contraseña debe tener al menos 6 caracteres."),
   name: z.string().optional(),
-  role: z.enum(["ADMIN", "EMPLOYEE"]).default("EMPLOYEE"),
+  role: z.enum(["ADMIN", "EMPLOYEE", "CAJERO"]).default("EMPLOYEE"),
+});
+
+const changePasswordSchema = z.object({
+  passwordActual: z.string().min(1, "Indica tu contraseña actual."),
+  passwordNueva: z
+    .string()
+    .min(6, "La contraseña nueva debe tener al menos 6 caracteres."),
 });
 
 const loginSchema = z.object({
@@ -47,6 +54,15 @@ export const getSetupStatus = async (req: Request, res: Response) => {
  */
 export const register = async (req: Request, res: Response) => {
   try {
+    // Registro público solo para el primer uso (setup). Después, los
+    // usuarios los crea un ADMIN desde /api/usuarios.
+    const totalUsuarios = await prisma.user.count();
+    if (totalUsuarios > 0) {
+      return res.status(403).json({
+        message: "El registro público está cerrado. Pide a un administrador que cree tu usuario.",
+      });
+    }
+
     const result = registerSchema.safeParse(req.body);
 
     if (!result.success) {
@@ -56,7 +72,9 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    const { email, password, name, role } = result.data;
+    const { email, password, name } = result.data;
+    // El primer usuario siempre es ADMIN.
+    const role = "ADMIN" as const;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -129,6 +147,11 @@ export const login = async (req: Request, res: Response) => {
     if (!isMatch) {
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
+    if (!user.activo) {
+      return res
+        .status(403)
+        .json({ message: "Tu usuario está desactivado. Habla con el administrador." });
+    }
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET!, {
       expiresIn: "8h",
@@ -151,6 +174,30 @@ export const login = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Error interno del servidor al iniciar sesión." });
+  }
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const result = changePasswordSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        message: result.error.issues[0]?.message ?? "Datos inválidos",
+      });
+    }
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado." });
+
+    const ok = await bcrypt.compare(result.data.passwordActual, user.password);
+    if (!ok) {
+      return res.status(401).json({ message: "La contraseña actual no es correcta." });
+    }
+    const hash = await bcrypt.hash(result.data.passwordNueva, 10);
+    await prisma.user.update({ where: { id: user.id }, data: { password: hash } });
+    return res.json({ message: "Contraseña actualizada." });
+  } catch (error) {
+    console.error("Error al cambiar contraseña:", error);
+    return res.status(500).json({ message: "Error al cambiar la contraseña." });
   }
 };
 

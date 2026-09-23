@@ -10,6 +10,8 @@ import {
   FaBoxes,
   FaTruck,
   FaCashRegister,
+  FaUserShield,
+  FaDatabase,
 } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/ConfiguracionContext";
@@ -99,6 +101,18 @@ export default function Sidebar() {
             to: "/configuracion",
             label: "Configuración",
             icon: <FaCog />,
+            roles: ["ADMIN"],
+          },
+          {
+            to: "/usuarios",
+            label: "Usuarios",
+            icon: <FaUserShield />,
+            roles: ["ADMIN"],
+          },
+          {
+            to: "/respaldos",
+            label: "Respaldos",
+            icon: <FaDatabase />,
             roles: ["ADMIN"],
           },
         ],

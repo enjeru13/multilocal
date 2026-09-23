@@ -13,6 +13,7 @@ model User {
   password          String
   name              String?
   role              Role             @default(EMPLOYEE)
+  activo            Boolean          @default(true)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   ordenesEntregadas Orden[]          @relation("DeliveredBy")

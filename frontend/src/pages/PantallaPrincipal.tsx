@@ -30,7 +30,8 @@ import type {
   Moneda,
   TasasConversion,
 } from "@lavanderia/shared/types/types";
-import { normalizarMoneda } from "../utils/monedaHelpers";
+import { normalizarMoneda, formatearMoneda } from "../utils/monedaHelpers";
+import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
 import dayjs from "dayjs";
 import { FormSkeleton } from "../components/Skeleton";
 
@@ -85,26 +86,34 @@ export default function PantallaPrincipal() {
         const ordenes = resOrdenes.data;
         const pagos = resPagos.data;
 
-        const hoy = dayjs().startOf("day");
+        const principal = normalizarMoneda(config.monedaPrincipal ?? "USD");
+        const tasasActuales: TasasConversion = {
+          VES: config.tasaVES ?? null,
+          COP: config.tasaCOP ?? null,
+        };
+        const esHoy = (fecha: string) => dayjs(fecha).isSame(dayjs(), "day");
+        const vigentes = ordenes.filter((o) => o.estado !== "CANCELADO");
 
-        // Ventas: Suma de totales de órdenes creadas hoy
-        const ventasHoy = ordenes.reduce((acc: number, o) => {
-          const creadaHoy = dayjs(o.fechaIngreso).isAfter(hoy);
-          return creadaHoy ? acc + (o.total || 0) : acc;
-        }, 0);
+        // Ventas: suma de totales de órdenes (no anuladas) creadas hoy
+        const ventasHoy = vigentes.reduce(
+          (acc: number, o) => (esHoy(o.fechaIngreso) ? acc + (o.total || 0) : acc),
+          0
+        );
 
-        // Cobrado: Suma de montos de pagos realizados hoy
-        const cobradoHoy = pagos.reduce((acc: number, p) => {
-          const pagadoHoy = dayjs(p.fechaPago).isAfter(hoy);
-          return pagadoHoy ? acc + (p.monto || 0) : acc;
-        }, 0);
+        // Cobrado: pagos de hoy convertidos a moneda principal (con tasa
+        // congelada del pago y netos de vueltos/reembolsos)
+        const cobradoHoy = calcularTotalAbonado(
+          pagos.filter((p) => esHoy(p.fechaPago)),
+          tasasActuales,
+          principal
+        );
 
         setStats({
-          totalOrdenes: ordenes.length,
-          pendientes: ordenes.filter((o) => o.estado === "PENDIENTE").length,
-          entregadas: ordenes.filter((o) => o.estado === "ENTREGADO").length,
-          ventasHoy: `$${ventasHoy.toFixed(2)}`,
-          cobradoHoy: `$${cobradoHoy.toFixed(2)}`,
+          totalOrdenes: vigentes.length,
+          pendientes: vigentes.filter((o) => o.estado === "PENDIENTE").length,
+          entregadas: vigentes.filter((o) => o.estado === "ENTREGADO").length,
+          ventasHoy: formatearMoneda(ventasHoy, principal),
+          cobradoHoy: formatearMoneda(cobradoHoy, principal),
         });
       } catch (error) {
         console.error("Error al cargar datos iniciales:", error);

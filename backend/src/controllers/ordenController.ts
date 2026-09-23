@@ -18,6 +18,112 @@ interface AuthRequest extends Request {
   };
 }
 
+// Devuelve al inventario lo que esta orden había descontado (según los
+// movimientos VENTA registrados), sin duplicar devoluciones previas.
+async function devolverStockDeOrden(
+  tx: any,
+  ordenId: number,
+  userId: number | undefined,
+  motivo: string
+) {
+  const movimientos = await tx.inventarioMovimiento.findMany({
+    where: { ordenId, motivo: { in: ["VENTA", "DEVOLUCION"] } },
+  });
+  const neto = new Map<number, number>();
+  for (const m of movimientos) {
+    const signo = m.tipo === "SALIDA" ? 1 : -1;
+    neto.set(m.servicioId, (neto.get(m.servicioId) ?? 0) + signo * m.cantidad);
+  }
+  for (const [servicioId, cantidad] of neto) {
+    if (cantidad <= 0) continue;
+    const actualizado = await tx.servicio.update({
+      where: { id: servicioId },
+      data: { stockActual: { increment: cantidad } },
+    });
+    await tx.inventarioMovimiento.create({
+      data: {
+        servicioId,
+        tipo: "ENTRADA",
+        cantidad,
+        motivo: "DEVOLUCION",
+        ordenId,
+        stockResultante: actualizado.stockActual,
+        userId: userId ?? null,
+        nota: `${motivo} de la orden #${ordenId}`,
+      },
+    });
+  }
+}
+
+// --- ANULAR ---
+// Cancela la orden sin borrar historial: devuelve stock y registra el
+// reembolso de lo cobrado como pagos negativos (así la caja y los reportes
+// cuadran solos).
+export async function anularOrden(req: AuthRequest, res: Response) {
+  const id = Number(req.params.id);
+  try {
+    const orden = await prisma.orden.findUnique({
+      where: { id },
+      include: { pagos: { include: { vueltos: true } } },
+    });
+    if (!orden) return res.status(404).json({ message: "Orden no encontrada." });
+    if (orden.estado === "CANCELADO") {
+      return res.status(409).json({ message: "La orden ya está anulada." });
+    }
+
+    const config = await prisma.configuracion.findFirst();
+    const cobrados = orden.pagos.filter((p) => p.monto > 0);
+    let cajaSesionId: number | null = null;
+    if (cobrados.length > 0 && config?.moduloCaja) {
+      const caja = await prisma.cajaSesion.findFirst({ where: { estado: "ABIERTA" } });
+      if (!caja) {
+        return res.status(409).json({
+          message: "Hay pagos que reembolsar: abre la caja antes de anular esta orden.",
+        });
+      }
+      cajaSesionId = caja.id;
+    }
+
+    const actualizada = await prisma.$transaction(async (tx) => {
+      await devolverStockDeOrden(tx, id, req.user?.id, "Anulación");
+
+      for (const p of cobrados) {
+        const reembolso = await tx.pago.create({
+          data: {
+            ordenId: id,
+            monto: -p.monto,
+            moneda: p.moneda,
+            metodoPago: p.metodoPago,
+            tasa: p.tasa,
+            nota: `Reembolso por anulación de la orden #${id}`,
+            cajaSesionId,
+          },
+        });
+        if (p.vueltos.length > 0) {
+          await tx.vueltoEntregado.createMany({
+            data: p.vueltos.map((v) => ({
+              pagoId: reembolso.id,
+              monto: -v.monto,
+              moneda: v.moneda,
+            })),
+          });
+        }
+      }
+
+      return tx.orden.update({
+        where: { id },
+        data: { estado: "CANCELADO", abonado: 0, faltante: 0 },
+        include: { cliente: true, pagos: true, detalles: { include: { servicio: true } } },
+      });
+    });
+
+    return res.json(actualizada);
+  } catch (error) {
+    console.error("Error al anular orden:", error);
+    return res.status(500).json({ message: "Error al anular la orden" });
+  }
+}
+
 // --- GET ALL ---
 export async function getAllOrdenes(req: Request, res: Response) {
   try {
@@ -99,7 +205,7 @@ export async function getOrdenById(req: Request, res: Response) {
 }
 
 // --- CREATE ---
-export async function createOrden(req: Request, res: Response) {
+export async function createOrden(req: AuthRequest, res: Response) {
   const result = ordenSchema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({
@@ -191,6 +297,7 @@ export async function createOrden(req: Request, res: Response) {
             motivo: "VENTA",
             ordenId: nuevaOrden.id,
             stockResultante: actualizado.stockActual,
+            userId: req.user?.id ?? null,
             nota: `Orden #${nuevaOrden.id}`,
           },
         });
@@ -261,6 +368,12 @@ export async function updateOrden(req: AuthRequest, res: Response) {
       return res
         .status(404)
         .json({ message: "Orden no encontrada para actualizar." });
+    }
+
+    if (ordenActual.estado === "CANCELADO") {
+      return res
+        .status(409)
+        .json({ message: "La orden está anulada y ya no se puede modificar." });
     }
 
     const config = await prisma.configuracion.findFirst();
@@ -429,12 +542,17 @@ export async function deleteOrden(req: Request, res: Response) {
         .json({ message: "Orden no encontrada para eliminar." });
     }
 
-    // Primero borramos detalles y pagos asociados por integridad referencial
-    await prisma.detalleOrden.deleteMany({ where: { ordenId: Number(id) } });
-    await prisma.pago.deleteMany({ where: { ordenId: Number(id) } });
+    await prisma.$transaction(async (tx) => {
+      // Si la orden había descontado stock, se devuelve antes de borrarla.
+      await devolverStockDeOrden(tx, Number(id), (req as AuthRequest).user?.id, "Eliminación");
 
-    // Finalmente borramos la orden
-    await prisma.orden.delete({ where: { id: Number(id) } });
+      // Primero borramos detalles y pagos asociados por integridad referencial
+      await tx.detalleOrden.deleteMany({ where: { ordenId: Number(id) } });
+      await tx.pago.deleteMany({ where: { ordenId: Number(id) } });
+
+      // Finalmente borramos la orden
+      await tx.orden.delete({ where: { id: Number(id) } });
+    });
 
     return res.status(204).send();
   } catch (error) {

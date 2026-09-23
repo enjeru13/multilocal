@@ -1,4 +1,6 @@
-import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { useState } from "react";
+import { FaUserCircle, FaSignOutAlt, FaKey } from "react-icons/fa";
+import ModalCambiarPassword from "./modal/ModalCambiarPassword";
 import { useAuth } from "../hooks/useAuth";
 import Button from "../components/ui/Button";
 
@@ -10,6 +12,7 @@ export default function Header({
   nombreNegocio,
 }: HeaderProps) {
   const { user, logout } = useAuth();
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
   return (
     <header className="h-16 shrink-0 bg-white dark:bg-gray-900 px-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
@@ -30,6 +33,17 @@ export default function Header({
           </div>
 
           <Button
+            onClick={() => setCambiandoPassword(true)}
+            variant="ghost"
+            size="sm"
+            leftIcon={<FaKey size={12} />}
+            title="Cambiar mi contraseña"
+            aria-label="Cambiar mi contraseña"
+          >
+            <span className="hidden lg:inline">Contraseña</span>
+          </Button>
+
+          <Button
             onClick={logout}
             variant="ghost"
             size="sm"
@@ -42,6 +56,9 @@ export default function Header({
         </div>
       ) : (
         <span className="text-gray-400 text-sm">No autenticado</span>
+      )}
+      {cambiandoPassword && (
+        <ModalCambiarPassword onClose={() => setCambiandoPassword(false)} />
       )}
     </header>
   );

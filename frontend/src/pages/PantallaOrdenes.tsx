@@ -30,6 +30,7 @@ export default function PantallaOrdenes() {
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
   const [mostrarConfirmacionEliminar, setMostrarConfirmacionEliminar] =
     useState(false);
+  const [ordenAAnularId, setOrdenAAnularId] = useState<number | undefined>();
   const [ordenAEliminarId, setOrdenAEliminarId] = useState<
     number | undefined
   >();
@@ -152,6 +153,22 @@ export default function PantallaOrdenes() {
     }
   }, [ordenAEliminarId, cargarOrdenes]);
 
+  const ejecutarAnularOrden = useCallback(async () => {
+    if (ordenAAnularId === undefined) return;
+    try {
+      await ordenesService.anular(ordenAAnularId);
+      toast.success("Orden anulada: stock devuelto y pagos reembolsados.");
+      cargarOrdenes();
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Error al anular la orden";
+      toast.error(msg);
+    } finally {
+      setOrdenAAnularId(undefined);
+    }
+  }, [ordenAAnularId, cargarOrdenes]);
+
   const marcarComoEntregada = useCallback(
     async (id: number) => {
       if (!hasRole(["ADMIN", "EMPLOYEE"])) {
@@ -271,6 +288,7 @@ export default function PantallaOrdenes() {
             onRegistrarPago={handleAbrirPagoExtra}
             onMarcarEntregada={marcarComoEntregada}
             onEliminar={confirmarEliminarOrden}
+            onAnular={(id) => setOrdenAAnularId(id)}
           />
           {totalPages > 1 && (
             <ControlesPaginacion
@@ -300,6 +318,16 @@ export default function PantallaOrdenes() {
           monedaPrincipal={monedaPrincipal}
           onClose={() => setMostrarModalPago(false)}
           onPagoRegistrado={handlePagoRegistrado}
+        />
+      )}
+
+      {ordenAAnularId !== undefined && (
+        <ConfirmacionModal
+          titulo="Anular orden"
+          textoConfirmar="Anular"
+          mensaje={`¿Anular la orden #${ordenAAnularId}? Se devolverá el stock y se registrará el reembolso de lo cobrado. La orden queda en el historial como CANCELADO.`}
+          onConfirm={ejecutarAnularOrden}
+          onCancel={() => setOrdenAAnularId(undefined)}
         />
       )}
 

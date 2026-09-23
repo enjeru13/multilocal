@@ -19,6 +19,10 @@ import categoriaRouter from "./routes/categoriaRoute";
 import proveedorRouter from "./routes/proveedorRoute";
 import compraRouter from "./routes/compraRoute";
 import cajaRouter from "./routes/cajaRoute";
+import usuarioRouter from "./routes/usuarioRoute";
+import respaldoRouter from "./routes/respaldoRoute";
+import inventarioRouter from "./routes/inventarioRoute";
+import { iniciarRespaldosAutomaticos } from "./lib/respaldos";
 
 // App 100% local: sin orígenes cloud, CORS abierto solo porque el server
 // nunca sale de 127.0.0.1 (ver startServer). No hay nada externo que bloquear.
@@ -47,6 +51,9 @@ export function createApp() {
   app.use("/api/proveedores", proveedorRouter);
   app.use("/api/compras", compraRouter);
   app.use("/api/caja", cajaRouter);
+  app.use("/api/usuarios", usuarioRouter);
+  app.use("/api/respaldos", respaldoRouter);
+  app.use("/api/inventario", inventarioRouter);
 
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Error global:", err);
@@ -58,6 +65,7 @@ export function createApp() {
 
 export function startServer(port = Number(process.env.PORT) || 4000, host = "127.0.0.1") {
   const app = createApp();
+  iniciarRespaldosAutomaticos();
   return app.listen(port, host, () =>
     console.log(`Server running at http://${host}:${port}`)
   );

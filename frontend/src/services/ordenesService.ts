@@ -53,6 +53,10 @@ export const ordenesService = {
     return apiClient.delete(`${API_URL}/${id}`);
   },
 
+  anular: (id: number) => {
+    return apiClient.patch<Orden>(`${API_URL}/${id}/anular`);
+  },
+
   /**
    * @param id
    * @param observaciones

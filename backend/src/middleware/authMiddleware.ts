@@ -51,10 +51,10 @@ export const protect = async (
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, name: true, role: true },
+      select: { id: true, email: true, name: true, role: true, activo: true },
     });
 
-    if (!user) {
+    if (!user || !user.activo) {
       return res.status(401).json({
         message: "No autorizado, token fallido o usuario no encontrado.",
       });

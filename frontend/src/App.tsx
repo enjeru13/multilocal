@@ -15,7 +15,8 @@ import PantallaOrdenes from "./pages/PantallaOrdenes";
 import PantallaPagos from "./pages/PantallaPagos";
 import PantallaConfiguracion from "./pages/PantallaConfiguracion";
 import PantallaLogin from "./pages/PantallaLogin";
-import PantallaRegister from "./pages/PantallaRegister";
+import PantallaUsuarios from "./pages/PantallaUsuarios";
+import PantallaRespaldos from "./pages/PantallaRespaldos";
 import PantallaSetup from "./pages/PantallaSetup";
 import PantallaEstadoOrdenes from "./pages/PantallaEstadoOrdenes";
 import PantallaEditarOrden from "./pages/PantallaEditarOrden";
@@ -62,7 +63,6 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<PantallaLogin />} />
-          <Route path="/register" element={<PantallaRegister />} />
           <Route path="/setup" element={<PantallaSetup />} />
           <Route
             path="/"
@@ -94,6 +94,22 @@ function App() {
                   <PantallaEditarOrden />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="usuarios"
+              element={
+                <ProtectedRoute roles={["ADMIN"]}>
+                  <PantallaUsuarios />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="respaldos"
+              element={
+                <ProtectedRoute roles={["ADMIN"]}>
+                  <PantallaRespaldos />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="configuracion"

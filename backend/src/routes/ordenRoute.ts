@@ -6,6 +6,7 @@ import {
   updateOrden,
   deleteOrden,
   actualizarObservacion,
+  anularOrden,
 } from "../controllers/ordenController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
@@ -37,6 +38,7 @@ router.put(
   updateOrden
 );
 router.delete("/:id", protect, authorizeRoles([Role.ADMIN]), deleteOrden);
+router.patch("/:id/anular", protect, authorizeRoles([Role.ADMIN]), anularOrden);
 router.patch(
   "/:id/observacion",
   protect,

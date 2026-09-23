@@ -1,6 +1,6 @@
 export type Moneda = "USD" | "VES" | "COP";
 export type TipoCliente = "NATURAL" | "EMPRESA";
-export type EstadoOrden = "PENDIENTE" | "ENTREGADO";
+export type EstadoOrden = "PENDIENTE" | "LISTO" | "ENTREGADO" | "CANCELADO";
 export type MetodoPago = "EFECTIVO" | "TRANSFERENCIA" | "PAGO_MOVIL";
 export type EstadoPagoRaw = "COMPLETO" | "INCOMPLETO";
 export type EstadoPagoTexto = "Sin pagos" | "Parcial" | "Pagado";

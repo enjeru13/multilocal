@@ -3,6 +3,7 @@ import {
   FaMoneyBillWave,
   FaCheckCircle,
   FaTrashAlt,
+  FaBan,
 } from "react-icons/fa";
 import { badgeEstado, badgePago } from "../../utils/badgeHelpers";
 import {
@@ -22,6 +23,7 @@ interface Props {
   onRegistrarPago: (orden: Orden) => void;
   onMarcarEntregada: (id: number) => void;
   onEliminar: (id: number) => void;
+  onAnular: (id: number) => void;
 }
 
 export default function TablaOrdenes({
@@ -31,6 +33,7 @@ export default function TablaOrdenes({
   onRegistrarPago,
   onMarcarEntregada,
   onEliminar,
+  onAnular,
 }: Props) {
   const principalSeguro: Moneda = normalizarMoneda(monedaPrincipal);
   const { hasRole } = useAuth();
@@ -81,11 +84,15 @@ export default function TablaOrdenes({
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
                       {badgeEstado(o.estado)}
-                      {badgePago(o.estadoPago)}
+                      {o.estado !== "CANCELADO" && badgePago(o.estadoPago)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs space-y-0.5 whitespace-nowrap">
-                    {o.faltante === 0 ? (
+                    {o.estado === "CANCELADO" ? (
+                      <div className="text-gray-500 dark:text-gray-400 font-semibold">
+                        Anulada
+                      </div>
+                    ) : o.faltante === 0 ? (
                       <div className="text-green-600 dark:text-green-400 font-semibold">
                         Total pagado
                       </div>
@@ -141,7 +148,8 @@ export default function TablaOrdenes({
                       </Button>
 
                       {o.estadoPago !== "COMPLETO" &&
-                        o.estado !== "ENTREGADO" && (
+                        o.estado !== "ENTREGADO" &&
+                        o.estado !== "CANCELADO" && (
                           <Button
                             onClick={() => onRegistrarPago(o)}
                             title="Registrar pago"
@@ -152,7 +160,7 @@ export default function TablaOrdenes({
                           </Button>
                         )}
 
-                      {o.estado !== "ENTREGADO" && (
+                      {o.estado !== "ENTREGADO" && o.estado !== "CANCELADO" && (
                         <Button
                           onClick={() => onMarcarEntregada(o.id)}
                           title="Marcar como entregada"
@@ -160,6 +168,17 @@ export default function TablaOrdenes({
                           size="icon"
                         >
                           <FaCheckCircle size={12} />
+                        </Button>
+                      )}
+
+                      {hasRole(["ADMIN"]) && o.estado !== "CANCELADO" && (
+                        <Button
+                          onClick={() => onAnular(o.id)}
+                          title="Anular orden (devuelve stock y reembolsa)"
+                          variant="iconWarning"
+                          size="icon"
+                        >
+                          <FaBan size={12} />
                         </Button>
                       )}
 
