@@ -1,6 +1,7 @@
 import { Orden } from "@lavanderia/shared/types/types";
 import {
   TasasConversion,
+  type Moneda,
   formatearMoneda,
   convertirDesdePrincipal,
 } from "./monedaHelpers";
@@ -58,7 +59,9 @@ const limpiarYFormatearTelefono = (telefono: string): string | null => {
 export const generarEnlaceWhatsApp = (
   orden: Orden,
   nombreNegocio: string,
-  tasas?: TasasConversion
+  tasas?: TasasConversion,
+  /** Moneda principal y las otras monedas en las que también se informa la deuda. */
+  monedas: { principal: Moneda; otras: Moneda[] } = { principal: "USD", otras: ["VES", "COP"] }
 ): string | null => {
   const cliente = orden.cliente;
   if (!cliente || !cliente.telefono) return null;
@@ -72,19 +75,14 @@ export const generarEnlaceWhatsApp = (
   const nombreCliente = `${cliente.nombre} ${cliente.apellido ?? ""}`.trim();
 
   let cuentaPendiente =
-    orden.faltante > 0 ? formatearMoneda(orden.faltante, "USD") : "Pagada";
+    orden.faltante > 0 ? formatearMoneda(orden.faltante, monedas.principal) : "Pagada";
 
   if (orden.faltante > 0 && tasas) {
     const montosExtra: string[] = [];
 
-    if (tasas.VES && tasas.VES > 0) {
-      const montosVES = convertirDesdePrincipal(orden.faltante, "VES", tasas);
-      montosExtra.push(formatearMoneda(montosVES, "VES"));
-    }
-
-    if (tasas.COP && tasas.COP > 0) {
-      const montosCOP = convertirDesdePrincipal(orden.faltante, "COP", tasas);
-      montosExtra.push(formatearMoneda(montosCOP, "COP"));
+    for (const m of monedas.otras) {
+      const convertido = convertirDesdePrincipal(orden.faltante, m, tasas, monedas.principal);
+      if (convertido > 0) montosExtra.push(formatearMoneda(convertido, m));
     }
 
     if (montosExtra.length > 0) {

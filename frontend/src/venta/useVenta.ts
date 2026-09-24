@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
-import type { Cliente, DescuentoOrden, Orden, Servicio } from "@lavanderia/shared/types/types";
+import type { Cliente, DescuentoOrden, Orden, ReciboData, Servicio } from "@lavanderia/shared/types/types";
 import { servicioService } from "../services/serviciosService";
 import { ordenesService } from "../services/ordenesService";
 import { pagosService } from "../services/pagosService";
 import { cajaService } from "../services/cajaService";
 import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
+import { useAuth } from "../hooks/useAuth";
+import { reciboDeOrden } from "../utils/reciboData";
+import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
 import { normalizarMoneda, type Moneda, type TasasConversion } from "../utils/monedaHelpers";
 import { totalesDeSeleccion } from "../utils/totales";
 
@@ -69,10 +72,11 @@ const errorDe = (err: unknown, defecto: string) => (isAxiosError(err) ? err.resp
 export function useVenta({ precioEditable = false }: { precioEditable?: boolean } = {}) {
   const { config } = useConfiguracion();
   const et = useEtiquetas();
+  const { user } = useAuth();
   const inventario = !!config?.moduloInventario;
   const clienteObligatorio = config?.clienteObligatorio !== false;
   const moneda: Moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
-  const tasas: TasasConversion = useMemo(() => ({ VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null }), [config]);
+  const tasas: TasasConversion = useMemo(() => ({ USD: 1, VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null }), [config]);
 
   const [catalogo, setCatalogo] = useState<Servicio[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -86,6 +90,9 @@ export function useVenta({ precioEditable = false }: { precioEditable?: boolean 
   const [enEspera, setEnEspera] = useState<VentaEnEspera[]>(() => leerJson<VentaEnEspera[]>(CLAVE_ESPERA, []));
   const [ultimaAgregada, setUltimaAgregada] = useState<number | null>(null);
   const cobradaRef = useRef(false);
+  /** Última venta cobrada: se ofrece imprimir su recibo. */
+  const [ultimaCobrada, setUltimaCobrada] = useState<{ id: number; numero: number } | null>(null);
+  const [recibo, setRecibo] = useState<ReciboData | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -277,6 +284,7 @@ export function useVenta({ precioEditable = false }: { precioEditable?: boolean 
       }
       registrarFrecuentes();
       toast.success(`${et.orden} #${orden.id} cobrada en efectivo.`);
+      setUltimaCobrada({ id: orden.id, numero: orden.id });
       vaciar();
       cargar();
     } catch (err) {
@@ -300,7 +308,27 @@ export function useVenta({ precioEditable = false }: { precioEditable?: boolean 
 
   const marcarCobrada = () => {
     cobradaRef.current = true;
-    if (ordenACobrar) toast.success(`${et.orden} #${ordenACobrar.id} cobrada.`);
+    if (ordenACobrar) {
+      toast.success(`${et.orden} #${ordenACobrar.id} cobrada.`);
+      setUltimaCobrada({ id: ordenACobrar.id, numero: ordenACobrar.id });
+    }
+  };
+
+  /** Arma el recibo de la última venta cobrada con sus pagos y vueltos ya registrados. */
+  const abrirRecibo = async () => {
+    if (!ultimaCobrada) return;
+    try {
+      const { data: o } = await ordenesService.getById(ultimaCobrada.id);
+      const abonado = calcularTotalAbonado(
+        (o.pagos ?? []).map((p) => ({ ...p, tasa: p.tasa ?? null, vueltos: p.vueltos ?? [] })),
+        { USD: 1, VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null },
+        moneda
+      );
+      setRecibo(reciboDeOrden(o, config, { atendio: user?.name ?? user?.email ?? null, abonado }));
+      setUltimaCobrada(null);
+    } catch {
+      toast.error("No se pudo preparar el recibo.");
+    }
   };
 
   // --- Ventas en espera / cotizaciones ---
@@ -386,6 +414,11 @@ export function useVenta({ precioEditable = false }: { precioEditable?: boolean 
     cobroRapidoEfectivo,
     cerrarCobro,
     marcarCobrada,
+    ultimaCobrada,
+    descartarUltimaCobrada: () => setUltimaCobrada(null),
+    abrirRecibo,
+    recibo,
+    cerrarRecibo: () => setRecibo(null),
     ponerEnEspera,
     recuperar,
     descartarEspera,

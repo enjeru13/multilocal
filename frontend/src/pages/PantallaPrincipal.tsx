@@ -12,6 +12,7 @@ import FechaEntregaPanel from "../components/panel/FechaEntregaPanel";
 import ResumenOrdenPanel from "../components/panel/ResumenOrdenPanel";
 import ConfirmarOrdenPanel from "../components/panel/ConfirmarOrdenPanel";
 import DashboardStats from "../components/panel/DashboardStats";
+import PanelMonedas from "../components/panel/PanelMonedas";
 import DashboardTendencia from "../components/panel/DashboardTendencia";
 import AccesosDirectos from "../components/panel/AccesosDirectos";
 
@@ -186,6 +187,9 @@ export default function PantallaPrincipal() {
         </header>
         <AccesosDirectos />
         <DashboardStats data={dashboard} />
+
+      <PanelMonedas data={dashboard} />
+        <PanelMonedas data={dashboard} />
         <DashboardTendencia data={dashboard} />
       </div>
     );
@@ -203,6 +207,8 @@ export default function PantallaPrincipal() {
       <AccesosDirectos compacto />
 
       <DashboardStats data={dashboard} />
+
+      <PanelMonedas data={dashboard} />
 
       <ClientePanel
         cliente={cliente}

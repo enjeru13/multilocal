@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { useMonedas } from "../../context/useMonedas";
 import CampoMonto from "../ui/CampoMonto";
 import ResumenCobro from "../ui/ResumenCobro";
 import { pagosService } from "../../services/pagosService";
@@ -15,6 +16,7 @@ import {
   formatearMoneda,
   parsearMonto,
   montoAEntrada,
+  tasaCruzada,
   parsearTasa,
   type Moneda,
   type TasasConversion,
@@ -97,8 +99,9 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
   const { config, refetch } = useConfiguracion();
   const { hasRole } = useAuth();
   // La tasa vigente sale de la configuración: si se cambia aquí mismo, todo se recalcula.
+  const negocio = useMonedas();
   const tasas: TasasConversion = useMemo(
-    () => ({ VES: config?.tasaVES ?? tasasProp.VES ?? null, COP: config?.tasaCOP ?? tasasProp.COP ?? null }),
+    () => ({ USD: 1, VES: config?.tasaVES ?? tasasProp.VES ?? null, COP: config?.tasaCOP ?? tasasProp.COP ?? null }),
     [config, tasasProp]
   );
   const [editarTasa, setEditarTasa] = useState<Moneda | null>(null);
@@ -127,9 +130,17 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
     }
   };
 
+  // Se edita siempre la tasa contra el dólar de la moneda que falte (la elegida o la principal).
+  const textoTasa = (m: Moneda) => {
+    const c = m !== "USD" ? m : negocio.principal;
+    const t = c === "VES" ? tasas.VES : c === "COP" ? tasas.COP : 1;
+    return `1 USD = ${Number(t).toLocaleString("es", { maximumFractionDigits: 4 })} ${c}`;
+  };
   const pedirTasa = (m: Moneda) => {
-    setEditarTasa(m);
-    const actual = m === "VES" ? tasas.VES : m === "COP" ? tasas.COP : null;
+    const clave = negocio.tasaFaltante(m) ?? (m !== "USD" ? m : negocio.principal !== "USD" ? negocio.principal : null);
+    if (clave !== "VES" && clave !== "COP") return;
+    setEditarTasa(clave);
+    const actual = clave === "VES" ? tasas.VES : tasas.COP;
     setTasaTexto(actual ? String(actual) : "");
   };
   const principal: Moneda = useMemo(() => normalizarMoneda(monedaPrincipal), [monedaPrincipal]);
@@ -138,11 +149,11 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
 
   const monedas = useMemo(
     () =>
-      (["USD", "VES", "COP"] as Moneda[]).map((m) => ({
+      negocio.activas.map((m) => ({
         id: m,
-        disponible: m === principal || (m === "VES" && !!tasas.VES && tasas.VES > 0) || (m === "COP" && !!tasas.COP && tasas.COP > 0),
+        disponible: tasaCruzada(m, principal, tasas) !== null,
       })),
-    [principal, tasas]
+    [negocio.activas, principal, tasas]
   );
   const habilitada = (m: Moneda) => monedas.find((x) => x.id === m)?.disponible ?? false;
 
@@ -217,7 +228,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
     }
   };
 
-  const equivalencias = (["VES", "COP"] as const).filter((m) => m !== principal && habilitada(m));
+  const equivalencias = negocio.otras.filter(habilitada);
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-2xl" className="max-h-[92vh] overflow-hidden flex flex-col">
@@ -276,16 +287,20 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
                   />
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <Segmentos
-                      ariaLabel="Moneda"
-                      valor={f.moneda}
-                      onChange={(m) => (habilitada(m) ? cambiarMoneda(f, m) : pedirTasa(m))}
-                      opciones={monedas.map((m) => ({
-                        id: m.id,
-                        label: m.disponible ? m.id : (<>{m.id}<span className="text-amber-500" title="Falta la tasa">•</span></>),
-                        titulo: m.disponible ? undefined : `Falta la tasa ${m.id}: haz clic para definirla`,
-                      }))}
-                    />
+                    {negocio.varias ? (
+                      <Segmentos
+                        ariaLabel="Moneda"
+                        valor={f.moneda}
+                        onChange={(m) => (habilitada(m) ? cambiarMoneda(f, m) : pedirTasa(m))}
+                        opciones={monedas.map((m) => ({
+                          id: m.id,
+                          label: m.disponible ? m.id : (<>{m.id}<span className="text-amber-500" title="Falta la tasa">•</span></>),
+                          titulo: m.disponible ? undefined : `Falta la tasa ${m.id}: haz clic para definirla`,
+                        }))}
+                      />
+                    ) : (
+                      <span className="h-9 px-3 inline-flex items-center rounded-lg bg-gray-100 dark:bg-gray-800 text-[13px] font-semibold text-gray-600 dark:text-gray-300">{principal}</span>
+                    )}
                     <div className="flex-1 min-w-40 flex items-center gap-2">
                       <CampoMonto
                         moneda={f.moneda}
@@ -311,7 +326,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
 
                   {f.moneda !== principal && equiv > 0 && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-                      Equivale a <strong className="text-gray-700 dark:text-gray-300">{formatearMoneda(equiv, principal)}</strong> (tasa {f.moneda === "VES" ? tasas.VES : tasas.COP}
+                      Equivale a <strong className="text-gray-700 dark:text-gray-300">{formatearMoneda(equiv, principal)}</strong> ({textoTasa(f.moneda)}
                       {hasRole(["ADMIN"]) && (
                         <>
                           {" · "}
@@ -334,7 +349,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
                 </p>
                 {hasRole(["ADMIN"]) ? (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-amber-800 dark:text-amber-300">{editarTasa} por 1 {principal}:</span>
+                    <span className="text-sm text-amber-800 dark:text-amber-300">{editarTasa} por 1 USD:</span>
                     <input
                       autoFocus
                       value={tasaTexto}
@@ -362,7 +377,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
               onClick={agregarFila}
               className="w-full h-10 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-300 flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
-              <FaPlus size={11} /> Dividir en otro método o moneda
+              <FaPlus size={11} /> {negocio.varias ? "Dividir en otro método o moneda" : "Dividir en otro método de pago"}
             </button>
 
             {/* Qué pasa con lo que se está recibiendo */}
@@ -400,15 +415,17 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
                         Recibes {formatearMoneda(exceso, principal)} de más: entrega vuelto de{" "}
                         <span className="tabular-nums">{formatearMoneda(vuelto, monedaVueltoEfectiva)}</span>
                       </p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
-                        Dar el vuelto en
-                        <Segmentos
-                          ariaLabel="Moneda del vuelto"
-                          valor={monedaVueltoEfectiva}
-                          onChange={setMonedaVuelto}
-                          opciones={monedas.map((m) => ({ id: m.id, label: m.id, deshabilitado: !m.disponible }))}
-                        />
-                      </div>
+                      {negocio.varias && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
+                          Dar el vuelto en
+                          <Segmentos
+                            ariaLabel="Moneda del vuelto"
+                            valor={monedaVueltoEfectiva}
+                            onChange={setMonedaVuelto}
+                            opciones={monedas.map((m) => ({ id: m.id, label: m.id, deshabilitado: !m.disponible }))}
+                          />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

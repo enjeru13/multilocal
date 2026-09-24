@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMonedas } from "../context/useMonedas";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { toast } from "react-toastify";
@@ -50,6 +51,7 @@ const resumenArticulos = (o: Orden) => {
  */
 export default function PantallaTablero() {
   const { config } = useConfiguracion();
+  const negocio = useMonedas();
   const et = useEtiquetas();
   const moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
   const tasas = useMemo(() => ({ VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null }), [config]);
@@ -106,7 +108,7 @@ export default function PantallaTablero() {
   };
 
   const avisar = (o: Orden) => {
-    const link = generarEnlaceWhatsApp(o, config?.nombreNegocio ?? "nuestro negocio", tasas);
+    const link = generarEnlaceWhatsApp(o, config?.nombreNegocio ?? "nuestro negocio", tasas, { principal: negocio.principal, otras: negocio.otrasUsables });
     if (!link) return toast.warning(`Este ${et.clienteMin} no tiene un teléfono válido.`);
     window.open(link, "_blank");
   };

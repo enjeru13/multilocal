@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useMonedas } from "../context/useMonedas";
 import { Link } from "react-router-dom";
 import { FaBarcode, FaExclamationTriangle, FaFileInvoiceDollar, FaPlus, FaTimes, FaUser, FaSave, FaFolderOpen } from "react-icons/fa";
 import { formatearMoneda, convertirDesdePrincipal } from "../utils/monedaHelpers";
@@ -22,6 +23,7 @@ const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dar
  */
 export default function VentaFactura() {
   const venta = useVenta({ precioEditable: true });
+  const negocio = useMonedas();
   const { et, moneda, tasas, carrito, totales } = venta;
 
   const [busqueda, setBusqueda] = useState("");
@@ -266,9 +268,8 @@ export default function VentaFactura() {
 
           {hayItems && <DescuentoControl value={venta.descuento} onChange={venta.setDescuento} disabled={ocupado} inputRef={inputDescuento} />}
           <DesgloseTotales totales={totales} moneda={moneda} />
-          {(["VES", "COP"] as const)
-            .filter((m) => m !== moneda && tasas[m])
-            .map((m) => (
+          {negocio.otrasUsables
+                        .map((m) => (
               <p key={m} className="text-right text-xs text-gray-500 dark:text-gray-400 tabular-nums">
                 {formatearMoneda(convertirDesdePrincipal(total, m, tasas, moneda), m)}
               </p>

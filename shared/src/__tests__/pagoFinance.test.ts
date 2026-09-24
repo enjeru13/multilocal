@@ -93,3 +93,27 @@ describe("calcularResumenPago", () => {
     expect(r.faltante).toBe(0);
   });
 });
+
+describe("calcularTotalAbonado con principal en bolívares", () => {
+  const t = { VES: 500, COP: 4000 };
+
+  it("un pago en dólares vale lo que dice su tasa congelada (USD por 1 Bs)", () => {
+    // Cuando se cobró, el dólar valía 400 Bs: tasa cruzada = 1/400.
+    expect(calcularTotalAbonado([{ monto: 2, moneda: "USD", tasa: 1 / 400 }], t, "VES")).toBe(800);
+  });
+
+  it("sin tasa congelada usa la actual", () => {
+    expect(calcularTotalAbonado([{ monto: 2, moneda: "USD" }], t, "VES")).toBe(1000);
+    expect(calcularTotalAbonado([{ monto: 8000, moneda: "COP", tasa: null }], t, "VES")).toBe(1000);
+  });
+
+  it("un pago en la moneda principal no se convierte", () => {
+    expect(calcularTotalAbonado([{ monto: 1234.5, moneda: "VES", tasa: 1 }], t, "VES")).toBe(1234.5);
+  });
+
+  it("los vueltos en otra moneda usan la tasa actual", () => {
+    const p = [{ monto: 20, moneda: "USD" as const, tasa: 1 / 500, vueltos: [{ monto: 4000, moneda: "COP" }] }];
+    // 20 USD = 10000 Bs; vuelto 4000 COP = 500 Bs
+    expect(calcularTotalAbonado(p, t, "VES")).toBe(9500);
+  });
+});

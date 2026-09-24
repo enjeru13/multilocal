@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useMonedas } from "../context/useMonedas";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
@@ -17,10 +18,9 @@ const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dar
 
 function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compra; moneda: Moneda; onClose: () => void; onPagada: () => void }) {
   const { config } = useConfiguracion();
-  const tasas = { VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null };
-  const monedas = (["USD", "VES", "COP"] as Moneda[]).filter(
-    (m) => m === moneda || (m === "VES" && config?.tasaVES) || (m === "COP" && config?.tasaCOP)
-  );
+  const negocio = useMonedas();
+  const tasas = negocio.tasas;
+  const monedas = negocio.usables;
 
   const [monedaPago, setMonedaPago] = useState<Moneda>(moneda);
   const [monto, setMonto] = useState(montoAEntrada(compra.saldo, moneda));

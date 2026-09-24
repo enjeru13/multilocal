@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
-import { FaTrashAlt, FaPauseCircle } from "react-icons/fa";
+import { FaTrashAlt, FaPauseCircle, FaPrint } from "react-icons/fa";
+import ImprimirRecibo from "../impresion/informes/InformeRecibo";
 import type { Cliente, ClienteCreate } from "@lavanderia/shared/types/types";
 import { clientesService } from "../services/clientesService";
 import ModalPago from "../components/modal/ModalPago";
@@ -112,6 +113,22 @@ export default function VentaModales({
           </ModalPie>
         </Modal>
       )}
+
+      {venta.ultimaCobrada && !venta.ordenACobrar && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-gray-900 shadow-xl pl-4 pr-2 py-2">
+          <span className="text-sm text-gray-700 dark:text-gray-200">
+            {venta.et.orden} <strong>#{venta.ultimaCobrada.numero}</strong> cobrada
+          </span>
+          <Button size="sm" variant="primary" leftIcon={<FaPrint />} onClick={venta.abrirRecibo}>
+            Imprimir recibo
+          </Button>
+          <button type="button" onClick={venta.descartarUltimaCobrada} aria-label="Cerrar aviso" className="w-7 h-7 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+            ×
+          </button>
+        </div>
+      )}
+
+      {venta.recibo && <ImprimirRecibo open onClose={venta.cerrarRecibo} datos={venta.recibo} />}
 
       {venta.ordenACobrar && (
         <ModalPago

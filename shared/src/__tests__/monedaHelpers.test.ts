@@ -9,6 +9,8 @@ import {
   formatearMoneda,
   montoAEntrada,
   formatearEntradaMonto,
+  tasaCruzada,
+  monedasActivas,
 } from "../utils/monedaHelpers";
 
 const tasas = { VES: 500, COP: 4000 };
@@ -119,5 +121,36 @@ describe("campos de monto", () => {
     expect(formatearEntradaMonto("", "USD", "5")).toBe("");
     expect(formatearEntradaMonto("007", "USD", "")).toBe("7");
     expect(formatearEntradaMonto(",", "VES", "")).toBe("0,");
+  });
+});
+
+describe("moneda principal distinta del dólar", () => {
+  const t = { VES: 500, COP: 4000 };
+
+  it("tasaCruzada: unidades de la moneda por 1 de la principal", () => {
+    expect(tasaCruzada("VES", "USD", t)).toBe(500);
+    expect(tasaCruzada("USD", "VES", t)).toBeCloseTo(1 / 500, 10);
+    expect(tasaCruzada("COP", "VES", t)).toBe(8);
+    expect(tasaCruzada("VES", "VES", t)).toBe(1);
+    expect(tasaCruzada("COP", "USD", { VES: 500 })).toBeNull();
+  });
+
+  it("convierte hacia y desde una principal en bolívares", () => {
+    expect(convertirAmonedaPrincipal(2, "USD", t, "VES")).toBe(1000);
+    expect(convertirAmonedaPrincipal(8000, "COP", t, "VES")).toBe(1000);
+    expect(convertirDesdePrincipal(1000, "USD", t, "VES")).toBe(2);
+    expect(convertirDesdePrincipal(1000, "COP", t, "VES")).toBe(8000);
+  });
+
+  it("sin la tasa necesaria no convierte 1:1", () => {
+    expect(convertirAmonedaPrincipal(5, "COP", { VES: 500 }, "VES")).toBe(0);
+  });
+
+  it("monedasActivas deja la principal primero y siempre incluida", () => {
+    expect(monedasActivas("USD,VES,COP", "USD")).toEqual(["USD", "VES", "COP"]);
+    expect(monedasActivas("VES", "VES")).toEqual(["VES"]);
+    expect(monedasActivas("COP,USD", "VES")).toEqual(["VES", "USD", "COP"]);
+    expect(monedasActivas(null, "COP")).toEqual(["COP", "USD", "VES"]);
+    expect(monedasActivas("basura", "USD")).toEqual(["USD"]);
   });
 });

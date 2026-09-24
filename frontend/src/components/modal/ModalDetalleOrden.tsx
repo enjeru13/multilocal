@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useMonedas } from "../../context/useMonedas";
 import { useNavigate } from "react-router-dom";
 import { ordenesService } from "../../services/ordenesService";
 import { configuracionService } from "../../services/configuracionService";
@@ -26,6 +27,7 @@ import { useAuth } from "../../hooks/useAuth";
 import ModalReciboEntrega from "./ModalReciboEntrega";
 import dayjs from "dayjs";
 import { generarEnlaceWhatsApp } from "../../utils/whatsappHelpers";
+import { reciboDeOrden } from "../../utils/reciboData";
 import { FaWhatsapp } from "react-icons/fa";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -55,6 +57,7 @@ export default function ModalDetalleOrden({
 }: Props) {
   const navigate = useNavigate();
   const { config: perfil } = useConfiguracion();
+  const negocio = useMonedas();
   const et = useEtiquetas();
   const conEntrega = perfil?.moduloFechaEntrega !== false;
   const [observacionesEditadas, setObservacionesEditadas] = useState(
@@ -72,7 +75,7 @@ export default function ModalDetalleOrden({
   const [editDateValue, setEditDateValue] = useState("");
   const [guardandoFechaPago, setGuardandoFechaPago] = useState(false);
 
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [verDevolucion, setVerDevolucion] = useState(false);
   const [devoluciones, setDevoluciones] = useState<Devolucion[]>(orden.devoluciones ?? []);
 
@@ -188,7 +191,7 @@ export default function ModalDetalleOrden({
 
   const handleWhatsAppClick = () => {
     const nombreNegocio = configuracion?.nombreNegocio || "Mi negocio";
-    const link = generarEnlaceWhatsApp(orden, nombreNegocio, tasas);
+    const link = generarEnlaceWhatsApp(orden, nombreNegocio, tasas, { principal: negocio.principal, otras: negocio.otrasUsables });
 
     if (link) {
       window.open(link, "_blank");
@@ -197,81 +200,12 @@ export default function ModalDetalleOrden({
     }
   };
 
-  const generarDatosRecibo = (): ReciboData => {
-    const totalCantidadPiezas =
-      orden.detalles?.reduce((sum, detalle) => {
-        return (
-          sum + (detalle.servicio?.permiteDecimales ? 1 : detalle.cantidad)
-        );
-      }, 0) ?? 0;
-
-    return {
-      clienteInfo: {
-        nombre: orden.cliente?.nombre ?? "Sin cliente",
-        apellido: orden.cliente?.apellido ?? "",
-        identificacion: orden.cliente?.identificacion ?? "",
-        fechaIngreso: dayjs(orden.fechaIngreso).isValid()
-          ? dayjs(orden.fechaIngreso).toDate()
-          : new Date(),
-        fechaEntrega:
-          orden.fechaEntrega && dayjs(orden.fechaEntrega).isValid()
-            ? dayjs(orden.fechaEntrega).toDate()
-            : null,
-        telefono: orden.cliente?.telefono ?? "",
-        telefono_secundario: orden.cliente?.telefono_secundario ?? "",
-      },
-      // CORRECCIÓN AQUÍ: Se cambió precioUnit por precioUnitario para coincidir con la interfaz ReciboItem
-      items:
-        orden.detalles?.map((d) => ({
-          descripcion:
-            d.servicio?.nombreServicio ?? "Descripción no disponible",
-          cantidad: d.cantidad,
-          precioUnitario: d.precioUnit,
-          permiteDecimales: d.servicio?.permiteDecimales ?? false,
-        })) ?? [],
-      abono: resumen.abonado,
-      total: orden.total,
-      numeroOrden: orden.id,
-      observaciones:
-        observacionesEditadas.trim() === ""
-          ? null
-          : observacionesEditadas.trim(),
-
-      lavanderiaInfo: {
-        nombre: configuracion?.nombreNegocio ?? "Mi negocio",
-        rif: configuracion?.rif ?? null,
-        direccion: configuracion?.direccion ?? null,
-        telefonoPrincipal: configuracion?.telefonoPrincipal ?? null,
-        telefonoSecundario: configuracion?.telefonoSecundario ?? null,
-      },
-      mensajePieRecibo:
-        configuracion?.mensajePieRecibo === ""
-          ? null
-          : configuracion?.mensajePieRecibo ?? null,
-      monedaPrincipal: principalSeguro,
-      totalCantidadPiezas: totalCantidadPiezas,
-      pagos: (orden.pagos ?? [])
-        .filter((p) => p.monto > 0)
-        .map((p) => ({
-          metodo: METODO_TEXTO[p.metodoPago] ?? p.metodoPago,
-          moneda: p.moneda,
-          monto: p.monto,
-          vueltos: (p.vueltos ?? []).map((v) => ({ monto: v.monto, moneda: v.moneda })),
-        })),
-      desglose:
-        orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0
-          ? {
-              subtotal: orden.subtotal,
-              descuento: orden.descuento,
-              impuesto: orden.impuesto,
-              impuestoNombre: configuracion?.impuestoNombre || "IVA",
-              impuestoTasa: orden.impuestoTasa,
-              impuestoIncluido: configuracion?.preciosIncluyenImpuesto ?? true,
-              devuelto: orden.devuelto,
-            }
-          : undefined,
-    };
-  };
+  const generarDatosRecibo = (): ReciboData =>
+    reciboDeOrden(orden, configuracion ?? null, {
+      atendio: user?.name ?? user?.email ?? null,
+      abonado: resumen.abonado,
+      observaciones: observacionesEditadas,
+    });
 
   const isObservacionesDisabled = !hasRole(["ADMIN"]) || guardandoObservaciones;
 

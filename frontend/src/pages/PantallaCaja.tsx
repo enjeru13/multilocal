@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState, useCallback, useMemo } from "react";
+import { useMonedas } from "../context/useMonedas";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
@@ -45,9 +46,10 @@ export default function PantallaCaja() {
   const { config } = useConfiguracion();
   const { hasRole } = useAuth();
   const principal = (config?.monedaPrincipal ?? "USD") as Moneda;
-  const tasas = useMemo(() => ({ VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null }), [config]);
+  const negocio = useMonedas();
+  const tasas = negocio.tasas;
   const fmt = (n: number) => formatearMoneda(n, principal);
-  const monedasConTasa = (["USD", "VES", "COP"] as Moneda[]).filter((m) => m === principal || (m === "VES" && tasas.VES) || (m === "COP" && tasas.COP));
+  const monedasConTasa = negocio.usables;
 
   const [caja, setCaja] = useState<CajaActual | null>(null);
   const [historial, setHistorial] = useState<CajaSesion[]>([]);

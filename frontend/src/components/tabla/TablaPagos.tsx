@@ -1,4 +1,5 @@
 import { FaSearch, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
+import { useMonedas } from "../../context/useMonedas";
 import { formatearMoneda } from "../../utils/monedaHelpers";
 import type {
   Moneda,
@@ -54,6 +55,7 @@ export default function TablaPagos({
   onVerDetallesOrden,
 }: Props) {
   const et = useEtiquetas();
+  const negocio = useMonedas();
   const { config } = useConfiguracion();
   const tasas = { VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null };
   const getSortIcon = (column: SortKeys) => {
@@ -102,9 +104,11 @@ export default function TablaPagos({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <option value="TODAS">Todas</option>
-                  <option value="USD">USD</option>
-                  <option value="VES">VES</option>
-                  <option value="COP">COP</option>
+                  {negocio.activas.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
                 </select>
               </div>
             </th>

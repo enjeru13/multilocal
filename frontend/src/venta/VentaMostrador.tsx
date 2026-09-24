@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useMonedas } from "../context/useMonedas";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
@@ -48,6 +49,7 @@ const coincideExacto = (s: Servicio, q: string) => {
 export default function VentaMostrador() {
   const { config } = useConfiguracion();
   const et = useEtiquetas();
+  const negocio = useMonedas();
   const inventario = !!config?.moduloInventario;
   const clienteObligatorio = config?.clienteObligatorio !== false;
   const moneda: Moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
@@ -361,9 +363,8 @@ export default function VentaMostrador() {
           <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
             {carrito.length > 0 && <DescuentoControl value={descuento} onChange={setDescuento} disabled={guardando} />}
             <DesgloseTotales totales={totales} moneda={moneda} tamano="lg" />
-            {(["VES", "COP"] as const)
-              .filter((m) => m !== moneda && tasas[m])
-              .map((m) => (
+            {negocio.otrasUsables
+                            .map((m) => (
                 <p key={m} className="text-right text-xs text-gray-500 dark:text-gray-400">
                   {formatearMoneda(convertirDesdePrincipal(totalRedondeado, m, tasas, moneda), m)}
                 </p>

@@ -11,6 +11,7 @@ import dayjs from "dayjs";
 import { Prisma, Role } from "@prisma/client";
 import { obtenerEstadoPagoRaw } from "@lavanderia/shared/dist/utils/pagoFinance";
 import { convertirDesdePrincipal } from "@lavanderia/shared/dist/utils/monedaHelpers";
+import { resolverTasa } from "../lib/dinero";
 import {
   agregarLineas,
   calcularTotales,
@@ -102,10 +103,6 @@ export async function anularOrden(req: AuthRequest, res: Response) {
       cajaSesionId = caja.id;
     }
 
-    const principalAnular = (config?.monedaPrincipal ?? "USD") as Moneda;
-    const tasaPrincipal =
-      principalAnular === "VES" ? config?.tasaVES ?? 1 : principalAnular === "COP" ? config?.tasaCOP ?? 1 : 1;
-
     const actualizada = await prisma.$transaction(async (tx) => {
       await devolverStockDeOrden(tx, id, req.user?.id, "Anulación");
 
@@ -116,7 +113,8 @@ export async function anularOrden(req: AuthRequest, res: Response) {
             monto: -p.monto,
             moneda: p.moneda as Moneda,
             metodoPago: p.metodoPago,
-            tasa: conDevoluciones ? tasaPrincipal : p.tasa,
+            // El reembolso neto va en la moneda principal (tasa 1); los demás repiten la tasa del cobro.
+            tasa: conDevoluciones ? 1 : p.tasa,
             nota: `Reembolso por anulación - ref. #${id}`,
             cajaSesionId,
           },
@@ -715,15 +713,9 @@ export async function crearDevolucion(req: AuthRequest, res: Response) {
     let tasaReembolso = 1;
     let montoReembolso = 0;
     if (excedente > 0.005) {
-      if (monedaReembolso !== "USD") {
-        const t = monedaReembolso === "VES" ? tasas.VES : tasas.COP;
-        if (t && t > 0) tasaReembolso = t;
-        else if (monedaReembolso !== principal) {
-          return res.status(400).json({
-            message: `No hay una tasa ${monedaReembolso} configurada para reembolsar en esa moneda.`,
-          });
-        }
-      }
+      const conv = resolverTasa(config, monedaReembolso);
+      if ("error" in conv) return res.status(400).json({ message: conv.error });
+      tasaReembolso = conv.tasa;
       montoReembolso = convertirDesdePrincipal(excedente, monedaReembolso, tasas, principal);
       if (config?.moduloCaja) {
         const caja = await prisma.cajaSesion.findFirst({ where: { estado: "ABIERTA" } });

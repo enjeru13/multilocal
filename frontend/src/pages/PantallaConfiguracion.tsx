@@ -7,6 +7,7 @@ import {
   formatearTasa,
   parsearTasa,
   normalizarMoneda,
+  monedasActivas as monedasActivasDe,
   type Moneda,
 } from "../utils/monedaHelpers";
 import { configuracionService } from "../services/configuracionService";
@@ -15,11 +16,14 @@ import { RUBRO_PRESETS } from "../constants/rubroPresets";
 import type { Configuracion, Rubro, Terminologia } from "@lavanderia/shared/types/types";
 import { FormSkeleton } from "../components/Skeleton";
 import Button from "../components/ui/Button";
+import SelectorMonedas from "../components/ui/SelectorMonedas";
 
 export default function PantallaConfiguracion() {
   const { refetch } = useConfiguracion();
   const [tasas, setTasas] = useState({ VES: "", COP: "" });
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
+  const [monedasActivas, setMonedasActivas] = useState<Moneda[]>(["USD", "VES", "COP"]);
+  const [principalBloqueada, setPrincipalBloqueada] = useState(false);
   const [nombreNegocio, setNombreNegocio] = useState("");
   const [rif, setRif] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -53,6 +57,8 @@ export default function PantallaConfiguracion() {
 
         setNombreNegocio(config.nombreNegocio ?? "");
         setMonedaPrincipal(normalizarMoneda(config.monedaPrincipal ?? "USD"));
+        setMonedasActivas(monedasActivasDe(config.monedasActivas, normalizarMoneda(config.monedaPrincipal ?? "USD")));
+        setPrincipalBloqueada(!!config.principalBloqueada);
         setTasas({
           VES: formatearTasa(config.tasaVES ?? ""),
           COP: formatearTasa(config.tasaCOP ?? ""),
@@ -119,6 +125,7 @@ export default function PantallaConfiguracion() {
       await configuracionService.update({
         nombreNegocio: nombreNegocio.trim() || null,
         monedaPrincipal: principalValidada,
+        monedasActivas: monedasActivasDe(monedasActivas.join(","), principalValidada),
         tasaVES: parsearTasa(tasas.VES),
         tasaCOP: parsearTasa(tasas.COP),
         rif: rif.trim() || null,
@@ -439,61 +446,18 @@ export default function PantallaConfiguracion() {
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaCoins size={28} className="text-green-500 dark:text-green-400" />
-          Tasas de conversión
+          Monedas y tasas
         </h2>
 
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Moneda principal
-            </label>
-            <select
-              value={monedaPrincipal}
-              onChange={(e) =>
-                setMonedaPrincipal(normalizarMoneda(e.target.value))
-              }
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
-            >
-              <option value="USD">Dólares (USD)</option>
-              <option value="VES">Bolívares (VES)</option>
-              <option value="COP">Pesos Colombianos (COP)</option>
-            </select>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Tasa VES por USD
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={tasas.VES}
-                onChange={(e) =>
-                  setTasas({ ...tasas, VES: e.target.value.replace(".", ",") })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
-                placeholder="Ej. 140,00"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Tasa COP por USD
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={tasas.COP}
-                onChange={(e) =>
-                  setTasas({ ...tasas, COP: e.target.value.replace(".", ",") })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
-                placeholder="Ej. 4000,00"
-              />
-            </div>
-          </div>
-        </div>
+        <SelectorMonedas
+          principal={monedaPrincipal}
+          activas={monedasActivas}
+          tasas={tasas}
+          bloqueada={principalBloqueada}
+          onPrincipal={setMonedaPrincipal}
+          onActivas={setMonedasActivas}
+          onTasas={setTasas}
+        />
       </section>
 
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-5">

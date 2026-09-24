@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useMonedas } from "../../context/useMonedas";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import { FaUndoAlt } from "react-icons/fa";
@@ -23,6 +24,7 @@ const input = campo;
 
 export default function ModalDevolucion({ orden, monedaPrincipal, tasas, onClose, onDevuelto }: Props) {
   const et = useEtiquetas();
+  const negocio = useMonedas();
   const detalles = useMemo(() => orden.detalles ?? [], [orden.detalles]);
   const [cantidades, setCantidades] = useState<Record<number, string>>({});
   const [motivo, setMotivo] = useState("");
@@ -159,7 +161,7 @@ export default function ModalDevolucion({ orden, monedaPrincipal, tasas, onClose
               <div className="grid sm:grid-cols-2 gap-3">
                 <Campo etiqueta="Moneda">
                   <select value={monedaReembolso} onChange={(e) => setMonedaReembolso(e.target.value as Moneda)} className={input}>
-                    {(["USD", "VES", "COP"] as Moneda[]).map((m) => (
+                    {negocio.usables.map((m) => (
                       <option key={m} value={m}>
                         {m}
                       </option>

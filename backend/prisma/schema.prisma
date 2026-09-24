@@ -171,6 +171,8 @@ model Configuracion {
   id                 Int     @id @default(1)
   nombreNegocio      String?
   monedaPrincipal    Moneda  @default(USD)
+  // Monedas con las que trabaja el negocio (incluye la principal), separadas por coma.
+  monedasActivas     String  @default("USD,VES,COP")
   tasaUSD            Float?
   tasaVES            Float?
   tasaCOP            Float?

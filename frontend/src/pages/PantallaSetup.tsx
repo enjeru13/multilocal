@@ -20,13 +20,14 @@ import { authService } from "../services/authService";
 import { configuracionService } from "../services/configuracionService";
 import { RUBRO_PRESETS } from "../constants/rubroPresets";
 import { experienciaDe } from "../experiencia/experiencias";
-import { parsearTasa } from "../utils/monedaHelpers";
+import { parsearTasa, monedasActivas as monedasActivasDe } from "../utils/monedaHelpers";
 import type {
   Moneda,
   Rubro,
   Terminologia,
 } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
+import SelectorMonedas from "../components/ui/SelectorMonedas";
 import PanelMarca from "../components/PanelMarca";
 import SelectorTema from "../components/ui/SelectorTema";
 import VistaPreviaRubro from "../components/setup/VistaPreviaRubro";
@@ -111,6 +112,7 @@ export default function PantallaSetup() {
     RUBRO_PRESETS.GENERICO.terminologia,
   );
   const [moneda, setMoneda] = useState<Moneda>("USD");
+  const [monedasActivas, setMonedasActivas] = useState<Moneda[]>(["USD", "VES", "COP"]);
   const [tasaVES, setTasaVES] = useState("");
   const [tasaCOP, setTasaCOP] = useState("");
   const [impuestoActivo, setImpuestoActivo] = useState(false);
@@ -191,8 +193,9 @@ export default function PantallaSetup() {
       await configuracionService.update({
         nombreNegocio: nombreNegocio.trim(),
         monedaPrincipal: moneda,
-        tasaVES: moneda !== "VES" ? parsearTasa(tasaVES) : null,
-        tasaCOP: moneda !== "COP" ? parsearTasa(tasaCOP) : null,
+        monedasActivas: monedasActivasDe(monedasActivas.join(","), moneda),
+        tasaVES: parsearTasa(tasaVES),
+        tasaCOP: parsearTasa(tasaCOP),
         rif: rif.trim() || null,
         direccion: direccion.trim() || null,
         telefonoPrincipal: telefono.trim() || null,
@@ -454,48 +457,18 @@ export default function PantallaSetup() {
                     </h2>
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className={etiqueta}>Moneda principal</label>
-                      <select
-                        className={campo}
-                        value={moneda}
-                        onChange={(e) => setMoneda(e.target.value as Moneda)}
-                      >
-                        <option value="USD">Dólares (USD)</option>
-                        <option value="VES">Bolívares (VES)</option>
-                        <option value="COP">Pesos colombianos (COP)</option>
-                      </select>
-                    </div>
-                    {moneda !== "VES" && (
-                      <div>
-                        <label className={etiqueta}>Tasa VES por USD</label>
-                        <input
-                          className={campo}
-                          inputMode="decimal"
-                          value={tasaVES}
-                          onChange={(e) => setTasaVES(e.target.value)}
-                          placeholder="Opcional"
-                        />
-                      </div>
-                    )}
-                    {moneda !== "COP" && (
-                      <div>
-                        <label className={etiqueta}>Tasa COP por USD</label>
-                        <input
-                          className={campo}
-                          inputMode="decimal"
-                          value={tasaCOP}
-                          onChange={(e) => setTasaCOP(e.target.value)}
-                          placeholder="Opcional"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400 -mt-2">
-                    Las tasas te permiten cobrar en varias monedas; puedes
-                    dejarlas para después.
-                  </p>
+                  <SelectorMonedas
+                    principal={moneda}
+                    activas={monedasActivas}
+                    tasas={{ VES: tasaVES, COP: tasaCOP }}
+                    onPrincipal={setMoneda}
+                    onActivas={setMonedasActivas}
+                    onTasas={(t) => {
+                      setTasaVES(t.VES);
+                      setTasaCOP(t.COP);
+                    }}
+                  />
+                  <p className="text-xs text-gray-400 -mt-2">Las tasas puedes dejarlas para después: sin ellas solo podrás cobrar en la moneda principal.</p>
 
                   <div className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-2 divide-y divide-gray-100 dark:divide-gray-800">
                     <Interruptor

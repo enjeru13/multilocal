@@ -1,7 +1,7 @@
 import {
   type Moneda,
   type TasasConversion,
-  convertirAmonedaPrincipal,
+  tasaCruzada,
 } from "./monedaHelpers";
 
 export interface Pago {
@@ -27,32 +27,23 @@ export function calcularTotalAbonado(
   tasasActuales: TasasConversion,
   principal: Moneda = "USD"
 ): number {
+  const convertir = (monto: number, tasa: number | null) => (tasa ? parseFloat((monto / tasa).toFixed(2)) : 0);
+
   return pagos.reduce((sum, p) => {
-    const tasaGlobal =
-      p.moneda === "VES"
-        ? tasasActuales.VES
-        : p.moneda === "COP"
-        ? tasasActuales.COP
-        : undefined;
+    // La tasa congelada del pago es "unidades de su moneda por 1 de la principal".
+    // Una tasa 1 en una moneda distinta de la principal es el viejo error de 1:1: se
+    // ignora y se usa la tasa actual.
+    const global = tasaCruzada(p.moneda, principal, tasasActuales);
+    const congelada = p.tasa && p.tasa > 0 && (p.moneda === principal ? p.tasa === 1 : p.tasa !== 1) ? p.tasa : null;
+    const tasaDelPago = congelada ?? global;
 
-    // Safeguard: If tasa is 1 and currency is not USD, it's a 1:1 bug.
-    // We treat it as undefined so it falls back to the global rate.
-    const tasaEfectiva = (p.tasa && p.tasa > 1) || (p.tasa === 1 && p.moneda === "USD")
-      ? p.tasa
-      : tasaGlobal;
+    const montoAbonado = convertir(p.monto, tasaDelPago);
 
-    const tasasSnapshot: TasasConversion = {
-      ...tasasActuales,
-      [p.moneda]: tasaEfectiva,
-    };
-
-    const montoAbonado = convertirAmonedaPrincipal(p.monto, p.moneda, tasasSnapshot, principal);
-
-    // Subtract vueltos if they exist
+    // Los vueltos se descuentan con la misma tasa del pago (y la actual si son de otra moneda).
     const totalVueltos = (p.vueltos ?? []).reduce((vSum, v) => {
-      const vMoneda = v.moneda as Moneda; // Cast to Moneda for helper
-      // Use the same rate logic for vueltos
-      return vSum + convertirAmonedaPrincipal(v.monto, vMoneda, tasasSnapshot, principal);
+      const vMoneda = v.moneda as Moneda;
+      const t = vMoneda === p.moneda ? tasaDelPago : tasaCruzada(vMoneda, principal, tasasActuales);
+      return vSum + convertir(v.monto, t);
     }, 0);
 
     return sum + (montoAbonado - totalVueltos);

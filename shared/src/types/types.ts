@@ -405,6 +405,10 @@ export interface Configuracion {
   id: number;
   nombreNegocio: string | null;
   monedaPrincipal: Moneda;
+  /** Monedas con las que se trabaja, separadas por coma ("USD,VES"); incluye la principal. */
+  monedasActivas: string;
+  /** Solo en lectura: hay ventas o pagos registrados, así que la moneda principal ya no se puede cambiar. */
+  principalBloqueada?: boolean;
   tasaUSD: number | null;
   tasaVES: number | null;
   tasaCOP: number | null;
@@ -434,6 +438,7 @@ export interface Configuracion {
 export interface ConfiguracionCreate {
   nombreNegocio: string;
   monedaPrincipal: Moneda;
+  monedasActivas?: Moneda[];
   tasaUSD?: number | null;
   tasaVES?: number | null;
   tasaCOP?: number | null;
@@ -444,9 +449,12 @@ export interface ConfiguracionCreate {
   mensajePieRecibo?: string | null;
 }
 
-export type ConfiguracionUpdatePayload = Partial<Configuracion>;
+export type ConfiguracionUpdatePayload = Omit<Partial<Configuracion>, "monedasActivas" | "principalBloqueada"> & {
+  monedasActivas?: Moneda[];
+};
 
 export interface TasasConversion {
+  USD?: number | null;
   VES?: number | null;
   COP?: number | null;
 }
@@ -519,6 +527,8 @@ export interface ReciboData {
   mensajePieRecibo: string | null;
   monedaPrincipal: Moneda;
   totalCantidadPiezas: number;
+  /** Quién atendió (usuario que imprime). */
+  atendio?: string | null;
   /** Cómo pagó el cliente, en la moneda en que entregó cada pago (y el vuelto que recibió). */
   pagos?: {
     metodo: string;

@@ -38,6 +38,8 @@ export const TerminologiaSchema = z
 export const ConfiguracionSchema = z.object({
   nombreNegocio: z.string().min(1, "Debes indicar el nombre del negocio"),
   monedaPrincipal: MonedaSchema,
+  // Monedas con las que se trabaja; la principal siempre entra aunque no se incluya.
+  monedasActivas: z.array(MonedaSchema).min(1, "Elige al menos una moneda").optional(),
   tasaUSD: z.number().nullable().default(1),
   tasaVES: parseTasa,
   tasaCOP: parseTasa,

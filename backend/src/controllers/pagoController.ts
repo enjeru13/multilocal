@@ -3,6 +3,7 @@ import prisma from "../lib/prisma";
 import { PagoSchema } from "../schemas/pago.schema";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { recalcularEstadoOrden } from "../lib/ordenFinance";
+import { resolverMoneda } from "../lib/dinero";
 import type {
   Moneda,
   TasasConversion,
@@ -120,17 +121,9 @@ export async function createPago(req: Request, res: Response) {
     // Tasa congelada al momento del pago. USD siempre vale 1; VES/COP salen
     // de la configuración y sin tasa válida no se puede cobrar en esa moneda
     // (antes quedaba en 0 y luego se recalculaba con la tasa del día).
-    let tasaSnapshot = 1;
-    if (moneda === "VES" || moneda === "COP") {
-      const tasaConfig = moneda === "VES" ? config?.tasaVES : config?.tasaCOP;
-      if (tasaConfig && tasaConfig > 0) {
-        tasaSnapshot = tasaConfig;
-      } else if (moneda !== (config?.monedaPrincipal ?? "USD")) {
-        return res.status(400).json({
-          message: `No hay una tasa ${moneda} configurada. Define la tasa en Configuración antes de cobrar en ${moneda}.`,
-        });
-      }
-    }
+    const conv = resolverMoneda(config, moneda as Moneda, monto);
+    if ("error" in conv) return res.status(400).json({ message: conv.error });
+    const tasaSnapshot = conv.tasa;
 
     const nuevoPago = await prisma.pago.create({
       data: {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useMonedas } from "../context/useMonedas";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -36,6 +37,7 @@ const SIN_CATEGORIA = "Sin categoría";
  */
 export default function VentaCaja() {
   const venta = useVenta();
+  const negocio = useMonedas();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { abrirAyuda } = useAtajosContext();
@@ -319,9 +321,8 @@ export default function VentaCaja() {
 
             {hayItems && <DescuentoControl value={venta.descuento} onChange={venta.setDescuento} disabled={ocupado} inputRef={inputDescuento} />}
             <DesgloseTotales totales={totales} moneda={moneda} tamano="lg" />
-            {(["VES", "COP"] as const)
-              .filter((m) => m !== moneda && tasas[m])
-              .map((m) => (
+            {negocio.otrasUsables
+                            .map((m) => (
                 <p key={m} className="text-right text-sm text-gray-500 dark:text-gray-400 tabular-nums">
                   {formatearMoneda(convertirDesdePrincipal(totales.total, m, tasas, moneda), m)}
                 </p>

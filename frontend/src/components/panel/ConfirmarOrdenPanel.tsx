@@ -1,8 +1,10 @@
 import type { DescuentoOrden } from "@lavanderia/shared/types/types";
+import { useMonedas } from "../../context/useMonedas";
 import type { TotalesCalculados } from "@lavanderia/shared/utils/totales";
 import {
   formatearMoneda,
   convertirDesdePrincipal,
+  NOMBRE_MONEDA,
   type Moneda,
   type TasasConversion,
 } from "../../utils/monedaHelpers";
@@ -38,19 +40,8 @@ export default function ConfirmarOrdenPanel({
   const et = useEtiquetas();
   const totalCalculado = totales.total;
 
-  // Usamos 'totalCalculado' en lugar de 'total'
-  const totalVES = convertirDesdePrincipal(
-    totalCalculado,
-    "VES",
-    tasas,
-    monedaPrincipal
-  );
-  const totalCOP = convertirDesdePrincipal(
-    totalCalculado,
-    "COP",
-    tasas,
-    monedaPrincipal
-  );
+  const negocio = useMonedas();
+  const proyecciones = negocio.otrasUsables.map((m) => ({ moneda: m, monto: convertirDesdePrincipal(totalCalculado, m, tasas, monedaPrincipal) }));
 
   return (
     <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
@@ -72,32 +63,28 @@ export default function ConfirmarOrdenPanel({
         <DesgloseTotales totales={totales} moneda={monedaPrincipal} />
       </div>
 
-      <div className="bg-gray-100 dark:bg-gray-950 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 text-left transition-colors">
-        <p className="font-bold text-gray-800 dark:text-gray-100 text-lg">
-          Total proyectado en otras monedas:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
-            <span className="text-sm text-gray-700 dark:text-gray-400 block mb-1">
-              Bolívares (VES):
-            </span>
-            <span className="block text-green-700 dark:text-green-500 font-bold text-xl">
-              {formatearMoneda(totalVES, "VES")}
-            </span>
+      {proyecciones.length > 0 && (
+        <div className="bg-gray-100 dark:bg-gray-950 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 text-left transition-colors">
+          <p className="font-bold text-gray-800 dark:text-gray-100 text-lg">
+            Total proyectado en {proyecciones.length === 1 ? "otra moneda" : "otras monedas"}:
+          </p>
+          <div className={`grid grid-cols-1 gap-4 ${proyecciones.length > 1 ? "sm:grid-cols-2" : ""}`}>
+            {proyecciones.map((p) => (
+              <div key={p.moneda} className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
+                <span className="text-sm text-gray-700 dark:text-gray-400 block mb-1">
+                  {NOMBRE_MONEDA[p.moneda]} ({p.moneda}):
+                </span>
+                <span className="block text-green-700 dark:text-green-500 font-bold text-xl">
+                  {formatearMoneda(p.monto, p.moneda)}
+                </span>
+              </div>
+            ))}
           </div>
-          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm transition-colors">
-            <span className="text-sm text-gray-700 dark:text-gray-400 block mb-1">
-              Pesos (COP):
-            </span>
-            <span className="block text-green-700 dark:text-green-500 font-bold text-xl">
-              {formatearMoneda(totalCOP, "COP")}
-            </span>
-          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-500 italic mt-2">
+            Estas proyecciones se basan en las tasas de conversión actuales.
+          </p>
         </div>
-        <p className="text-xs text-gray-600 dark:text-gray-500 italic mt-2">
-          Estas proyecciones se basan en las tasas de conversión actuales.
-        </p>
-      </div>
+      )}
 
       <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-800 mt-6 transition-colors">
         <Button

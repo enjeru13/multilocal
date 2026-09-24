@@ -72,8 +72,21 @@ export function TkTitulo({ children }: { children: ReactNode }) {
   return <p className="mt-2 mb-0.5 font-black uppercase" style={{ fontSize: "0.95em" }}>{children}</p>;
 }
 
-/** Rótulo a la izquierda y cifra a la derecha; si el rótulo es largo, se parte sin tocar la cifra. */
-export function TkLinea({ etiqueta, valor, fuerte = false, sangria = false }: { etiqueta: ReactNode; valor?: ReactNode; fuerte?: boolean; sangria?: boolean }) {
+/**
+ * Rótulo a la izquierda y cifra a la derecha; si el rótulo es largo, se parte sin tocar la cifra.
+ * Con `apilar`, el valor va debajo del rótulo (nombres largos que no caben al lado).
+ */
+export function TkLinea({ etiqueta, valor, fuerte = false, sangria = false, apilar = false }: { etiqueta: ReactNode; valor?: ReactNode; fuerte?: boolean; sangria?: boolean; apilar?: boolean }) {
+  if (apilar && valor !== undefined) {
+    return (
+      <div className={sangria ? "pl-2" : ""}>
+        <p style={{ fontSize: "0.8em" }} className="uppercase leading-tight">
+          {etiqueta}
+        </p>
+        <p className={`break-words leading-tight ${fuerte ? "font-black" : "font-bold"}`}>{valor}</p>
+      </div>
+    );
+  }
   return (
     <div className={`flex justify-between items-baseline gap-2 ${fuerte ? "font-black" : ""} ${sangria ? "pl-2" : ""}`} style={fuerte ? { fontSize: "1.1em" } : undefined}>
       <span className="min-w-0 break-words">{etiqueta}</span>

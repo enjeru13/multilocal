@@ -1,8 +1,33 @@
 export type Moneda = "USD" | "VES" | "COP";
 
+/**
+ * Tasas de cambio, todas contra el dólar: unidades de cada moneda por 1 USD (USD vale 1).
+ * El negocio puede tener cualquier moneda como principal; las conversiones cruzan por el dólar.
+ */
 export interface TasasConversion {
+  USD?: number | null;
   VES?: number | null;
   COP?: number | null;
+}
+
+export const MONEDAS: Moneda[] = ["USD", "VES", "COP"];
+
+/** Tasa de una moneda contra el dólar; null si no está definida. */
+function tasaContraDolar(moneda: Moneda, tasas: TasasConversion): number | null {
+  const t = moneda === "USD" ? tasas.USD ?? 1 : tasas[moneda];
+  return t && t > 0 ? t : null;
+}
+
+/**
+ * Unidades de `moneda` por 1 unidad de la moneda principal, o null si falta alguna tasa.
+ * Con el dólar como principal es simplemente la tasa de la moneda.
+ * Ejemplo: principal USD, VES a 500 -> 500. Principal VES, USD -> 1/500.
+ */
+export function tasaCruzada(moneda: Moneda, principal: Moneda, tasas: TasasConversion): number | null {
+  if (moneda === principal) return 1;
+  const a = tasaContraDolar(moneda, tasas);
+  const b = tasaContraDolar(principal, tasas);
+  return a && b ? a / b : null;
 }
 
 /** Convierte cualquier valor a una moneda soportada (por defecto USD). */
@@ -27,10 +52,9 @@ export function convertirAmonedaPrincipal(
   if (typeof monto !== "number" || isNaN(monto)) return 0;
   if (moneda === principal) return parseFloat(monto.toFixed(2));
 
-  const tasa =
-    moneda === "VES" ? tasas.VES : moneda === "COP" ? tasas.COP : undefined;
+  const tasa = tasaCruzada(moneda, principal, tasas);
 
-  return tasa && tasa > 0 ? parseFloat((monto / tasa).toFixed(2)) : 0;
+  return tasa ? parseFloat((monto / tasa).toFixed(2)) : 0;
 }
 
 /**
@@ -46,10 +70,9 @@ export function convertirDesdePrincipal(
   if (typeof monto !== "number" || isNaN(monto)) return 0;
   if (destino === principal) return parseFloat(monto.toFixed(2));
 
-  const tasa =
-    destino === "VES" ? tasas.VES : destino === "COP" ? tasas.COP : undefined;
+  const tasa = tasaCruzada(destino, principal, tasas);
 
-  return tasa && tasa > 0 ? parseFloat((monto * tasa).toFixed(2)) : 0;
+  return tasa ? parseFloat((monto * tasa).toFixed(2)) : 0;
 }
 
 /**
@@ -170,3 +193,16 @@ export function formatearEntradaMonto(raw: string, moneda: Moneda = "USD", previ
   if (entero === "") entero = "0";
   return entero.replace(AGRUPAR, mil) + (fraccion !== null ? dec + fraccion : "");
 }
+
+/**
+ * Monedas con las que trabaja el negocio, la principal primero. `csv` es el valor guardado
+ * ("USD,VES"); la principal siempre cuenta aunque falte, y una lista vacía deja solo la principal.
+ */
+export function monedasActivas(csv: string | null | undefined, principal: Moneda): Moneda[] {
+  const pedidas = (csv ?? "").split(",").map((m) => m.trim().toUpperCase());
+  const validas = MONEDAS.filter((m) => pedidas.includes(m));
+  const conjunto = new Set<Moneda>([principal, ...(csv ? validas : MONEDAS)]);
+  return [principal, ...MONEDAS.filter((m) => m !== principal && conjunto.has(m))];
+}
+
+export const NOMBRE_MONEDA: Record<Moneda, string> = { USD: "Dólares", VES: "Bolívares", COP: "Pesos colombianos" };

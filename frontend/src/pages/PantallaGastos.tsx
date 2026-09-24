@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMonedas } from "../context/useMonedas";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { toast } from "react-toastify";
@@ -23,9 +24,7 @@ const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dar
 function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[]; onClose: () => void; onGuardado: () => void }) {
   const { config } = useConfiguracion();
   const principal = (config?.monedaPrincipal ?? "USD") as Moneda;
-  const monedas = (["USD", "VES", "COP"] as Moneda[]).filter(
-    (m) => m === principal || (m === "VES" && config?.tasaVES) || (m === "COP" && config?.tasaCOP)
-  );
+  const monedas = useMonedas().usables;
 
   const [concepto, setConcepto] = useState("");
   const [categoria, setCategoria] = useState("");
