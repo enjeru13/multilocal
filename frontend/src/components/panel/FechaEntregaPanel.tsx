@@ -10,7 +10,7 @@ export default function FechaEntregaPanel({
   setFechaEntrega,
 }: Props) {
   return (
-    <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
+    <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
       <header className="pb-4 border-b border-gray-200 dark:border-gray-800 mb-4 transition-colors">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaCalendarAlt size={28} className="text-orange-500 dark:text-orange-400" />

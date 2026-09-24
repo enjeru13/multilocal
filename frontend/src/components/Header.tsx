@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { FaKey, FaKeyboard, FaSearch, FaSignOutAlt } from "react-icons/fa";
 import ModalCambiarPassword from "./modal/ModalCambiarPassword";
@@ -6,6 +7,9 @@ import SelectorTema from "./ui/SelectorTema";
 import Kbd from "../atajos/Kbd";
 import { useAuth } from "../hooks/useAuth";
 import { useAtajosContext } from "../atajos/atajosCore";
+import { useNavegacion } from "../experiencia/navegacion";
+import { useConfiguracion } from "../context/configuracionCore";
+import { useSinConexion } from "../pwa/useSinConexion";
 
 const ROLES: Record<string, string> = { ADMIN: "Administrador", EMPLOYEE: "Empleado", CAJERO: "Cajero" };
 
@@ -24,9 +28,30 @@ export default function Header() {
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
   const nombre = user?.name || user?.email || "";
+  const { pathname } = useLocation();
+  const { todos } = useNavegacion();
+  const { config } = useConfiguracion();
+  const sinConexion = useSinConexion();
+  const actual = todos.find((n) => (n.to === "/" ? pathname === "/" : pathname === n.to || pathname.startsWith(`${n.to}/`)));
+  const negocio = config?.nombreNegocio?.trim() || "Mostrador";
 
   return (
-    <header className="h-14 shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-5 flex items-center gap-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+    <>
+    {/* Teléfono: título de la sección y buscador; el resto del menú vive en «Más». */}
+    <header className="md:hidden shrink-0 h-13 bg-white/90 dark:bg-gray-900/90 backdrop-blur px-4 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40 pt-[env(safe-area-inset-top)] box-content">
+      <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-extrabold shrink-0" aria-hidden>
+        {negocio.charAt(0).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1 leading-tight">
+        <h1 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 truncate">{actual?.label ?? negocio}</h1>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{sinConexion ? "Sin conexión" : negocio}</p>
+      </div>
+      <button type="button" onClick={() => abrirPaleta(true)} aria-label="Buscar" className="w-10 h-10 -mr-2 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 cursor-pointer">
+        <FaSearch />
+      </button>
+    </header>
+
+    <header className="hidden md:flex h-14 shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-5 flex items-center gap-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
       <button
         type="button"
         onClick={() => abrirPaleta(true)}
@@ -98,5 +123,6 @@ export default function Header() {
 
       {cambiandoPassword && <ModalCambiarPassword onClose={() => setCambiandoPassword(false)} />}
     </header>
+    </>
   );
 }

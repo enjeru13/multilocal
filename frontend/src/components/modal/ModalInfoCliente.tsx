@@ -29,14 +29,14 @@ export default function ModalInfoCliente({ cliente, onClose }: Props) {
   const vacio = <span className="text-gray-400">—</span>;
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-md" className="max-h-[92vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-md" className="max-h-[92dvh] flex flex-col overflow-hidden">
       <ModalEncabezado
         icono={cliente.tipo === "EMPRESA" ? <FaBuilding /> : <FaUser />}
         titulo={nombre}
         subtitulo={`${et.cliente} · ${cliente.identificacion || "sin documento"}`}
         onClose={onClose}
       />
-      <div className="px-6 py-2 flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+      <div className="px-4 sm:px-6 py-2 flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
         <Dato icono={<FaPhoneAlt />} etiqueta="Teléfono">
           {cliente.telefono || vacio}
         </Dato>

@@ -66,9 +66,9 @@ export default function VentaModales({
       )}
 
       {verEspera && (
-        <Modal open onClose={cerrarEspera} maxWidth="max-w-lg" className="max-h-[85vh] flex flex-col overflow-hidden">
+        <Modal open onClose={cerrarEspera} maxWidth="max-w-lg" className="max-h-[85dvh] flex flex-col overflow-hidden">
           <ModalEncabezado icono={<FaPauseCircle />} titulo={`Ventas ${nombreEspera}`} subtitulo={`${venta.enEspera.length} guardada(s)`} onClose={cerrarEspera} />
-          <div className="px-6 py-4 flex-1 overflow-y-auto">
+          <div className="px-4 sm:px-6 py-4 flex-1 overflow-y-auto">
             {venta.enEspera.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">No hay ventas guardadas.</p>
             ) : (

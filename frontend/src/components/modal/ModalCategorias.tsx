@@ -151,10 +151,10 @@ export default function CategoriasModal({ onClose }: Props) {
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="h-[80vh] max-h-[620px] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="h-[80dvh] max-h-[620px] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaTags />} titulo="Categorías" subtitulo={cargando ? undefined : `${categorias.length} en total`} onClose={onClose} />
 
-      <form onSubmit={handleSubmit} className="px-6 pt-4 pb-3 flex gap-2.5 items-center">
+      <form onSubmit={handleSubmit} className="px-4 sm:px-6 pt-4 pb-3 flex gap-2.5 items-center">
         <input
           type="text"
           placeholder={modoEdicion ? "Nuevo nombre de la categoría" : "Nombre de la nueva categoría"}
@@ -173,7 +173,7 @@ export default function CategoriasModal({ onClose }: Props) {
         )}
       </form>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 min-h-0">
         {cargando ? (
           <p className="text-center text-sm text-gray-500 py-10">Cargando categorías…</p>
         ) : errorCarga ? (

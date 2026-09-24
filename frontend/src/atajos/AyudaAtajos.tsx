@@ -23,9 +23,9 @@ export default function AyudaAtajos() {
   });
 
   return (
-    <Modal open onClose={() => abrirAyuda(false)} maxWidth="max-w-2xl" className="max-h-[88vh] flex flex-col overflow-hidden">
+    <Modal open onClose={() => abrirAyuda(false)} maxWidth="max-w-2xl" className="max-h-[88dvh] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaKeyboard />} titulo="Atajos de teclado" subtitulo="Trabaja sin soltar el teclado" onClose={() => abrirAyuda(false)} />
-      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
+      <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-5">
         <p className="text-sm text-gray-600 dark:text-gray-400 rounded-xl bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 px-4 py-3">
           Con <Kbd combo="Ctrl+K" /> abres el buscador de comandos desde cualquier pantalla.
         </p>

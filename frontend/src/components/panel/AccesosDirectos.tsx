@@ -11,13 +11,13 @@ export default function AccesosDirectos({ compacto = false }: { compacto?: boole
 
   if (compacto) {
     return (
-      <nav aria-label="Accesos directos" className="flex flex-wrap gap-2">
+      <nav aria-label="Accesos directos" className="max-md:hidden flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible [scrollbar-width:none]">
         {lista.map((a) => (
           <Link
             key={a.id}
             to={a.to}
             title={a.descripcion}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 sm:py-1.5 rounded-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
           >
             <span className="text-blue-600 dark:text-blue-400">{a.icon}</span>
             {a.label}

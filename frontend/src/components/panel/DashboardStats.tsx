@@ -50,13 +50,13 @@ function StatCard({ title, value, icon: Icon, colorName, description }: StatCard
     const colors = colorMap[colorName];
 
     return (
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 flex items-center gap-4">
-            <div className={`p-3.5 rounded-lg ${colors.bg}`}>
-                <Icon className={`text-2xl ${colors.text}`} />
+        <div className="bg-white dark:bg-gray-900 p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 flex items-center gap-3 sm:gap-4">
+            <div className={`p-2.5 sm:p-3.5 rounded-lg ${colors.bg} max-[400px]:hidden`}>
+                <Icon className={`text-xl sm:text-2xl ${colors.text}`} />
             </div>
             <div className="min-w-0">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate uppercase tracking-wider">{title}</p>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{value}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{value}</h3>
                 <p className="text-[10px] text-gray-400 mt-0.5 truncate">{description}</p>
             </div>
         </div>
@@ -77,7 +77,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
 
     return (
         <div
-            className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 ${tarjetas === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+            className={`grid grid-cols-2 gap-2.5 sm:gap-4 mb-6 sm:mb-8 ${tarjetas === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
         >
             <StatCard
                 title={`Total ${et.ordenes}`}

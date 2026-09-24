@@ -44,10 +44,10 @@ export default function ListaClientesModal({ onSelect, onClose }: Props) {
   });
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="h-[80vh] max-h-[640px] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="h-[80dvh] max-h-[640px] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaUser />} titulo={`Elegir ${et.clienteMin}`} subtitulo={cargando ? undefined : `${clientes.length} registrados`} onClose={onClose} />
 
-      <div className="px-6 pt-4 pb-3">
+      <div className="px-4 sm:px-6 pt-4 pb-3">
         <div className="relative">
           <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
           <input

@@ -3,6 +3,9 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { FaCashRegister } from "react-icons/fa";
 import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
+import { useEsCompacto } from "../hooks/useMediaQuery";
+import Button from "../components/ui/Button";
+import { formatearMoneda } from "../utils/monedaHelpers";
 
 // Componentes panel
 import ClientePanel from "../components/panel/ClientePanel";
@@ -46,6 +49,7 @@ import { FormSkeleton } from "../components/Skeleton";
 export default function PantallaPrincipal() {
   const { config } = useConfiguracion();
   const et = useEtiquetas();
+  const compacto = useEsCompacto();
   const clienteObligatorio = config?.clienteObligatorio !== false;
   const modoMostrador = config?.moduloFechaEntrega === false;
   const [cliente, setCliente] = useState<Cliente | null>(null);
@@ -163,7 +167,7 @@ export default function PantallaPrincipal() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         <FormSkeleton />
       </div>
     );
@@ -172,7 +176,7 @@ export default function PantallaPrincipal() {
   // Negocios de mostrador: se vende desde la pantalla de venta rápida; aquí solo el resumen.
   if (modoMostrador) {
     return (
-      <div className="p-6 space-y-8 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 space-y-8 max-w-5xl mx-auto">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Resumen</h1>
@@ -188,7 +192,6 @@ export default function PantallaPrincipal() {
         <AccesosDirectos />
         <DashboardStats data={dashboard} />
 
-      <PanelMonedas data={dashboard} />
         <PanelMonedas data={dashboard} />
         <DashboardTendencia data={dashboard} />
       </div>
@@ -196,9 +199,9 @@ export default function PantallaPrincipal() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 flex flex-col gap-6 sm:gap-8 max-w-5xl mx-auto">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Nueva {et.orden}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Nueva {et.orden}</h1>
         <p className="text-gray-500 dark:text-gray-400">
           Gestiona {et.serviciosMin} y {et.clientesMin}.
         </p>
@@ -206,9 +209,11 @@ export default function PantallaPrincipal() {
 
       <AccesosDirectos compacto />
 
-      <DashboardStats data={dashboard} />
-
-      <PanelMonedas data={dashboard} />
+      {/* En teléfono lo primero es recibir la orden: el resumen del día va al final. */}
+      <div className="max-lg:order-last space-y-6 sm:space-y-8">
+        <DashboardStats data={dashboard} />
+        <PanelMonedas data={dashboard} />
+      </div>
 
       <ClientePanel
         cliente={cliente}
@@ -234,14 +239,17 @@ export default function PantallaPrincipal() {
         setFechaEntrega={setFechaEntrega}
       />
 
-      <ResumenOrdenPanel
-        cliente={cliente}
-        serviciosSeleccionados={serviciosSeleccionados}
-        serviciosCatalogo={serviciosCatalogo}
-        observaciones={observaciones}
-        fechaEntrega={fechaEntrega}
-        monedaPrincipal={monedaPrincipal}
-      />
+      {/* En teléfono el formulario ya muestra todo lo cargado: el resumen repetido sobra. */}
+      <div className="max-md:hidden">
+        <ResumenOrdenPanel
+          cliente={cliente}
+          serviciosSeleccionados={serviciosSeleccionados}
+          serviciosCatalogo={serviciosCatalogo}
+          observaciones={observaciones}
+          fechaEntrega={fechaEntrega}
+          monedaPrincipal={monedaPrincipal}
+        />
+      </div>
 
       <ConfirmarOrdenPanel
         totales={totales}
@@ -254,6 +262,18 @@ export default function PantallaPrincipal() {
         isFormValid={isFormValid}
         isSaving={isSaving}
       />
+
+      {compacto && serviciosSeleccionados.length > 0 && (
+        <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 order-last px-4 sm:px-6 pt-2.5 pb-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-xl font-extrabold tabular-nums leading-tight">{formatearMoneda(totales.total, monedaPrincipal)}</p>
+          </div>
+          <Button variant="primary" size="lg" onClick={crearOrden} isLoading={isSaving} disabled={!isFormValid || isSaving}>
+            Crear {et.ordenMin}
+          </Button>
+        </div>
+      )}
 
       {mostrarFormularioCliente && (
         <FormularioCliente

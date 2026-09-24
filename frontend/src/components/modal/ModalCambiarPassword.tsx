@@ -39,7 +39,7 @@ export default function ModalCambiarPassword({ onClose }: { onClose: () => void 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-sm">
       <ModalEncabezado icono={<FaKey />} titulo="Cambiar mi contraseña" subtitulo="Usarás la nueva la próxima vez que entres" onClose={onClose} />
-      <form id="password-form" onSubmit={guardar} className="px-6 py-5 space-y-4">
+      <form id="password-form" onSubmit={guardar} className="px-4 sm:px-6 py-5 space-y-4">
         <Campo etiqueta="Contraseña actual">
           <input className={campo} type="password" value={actual} onChange={(e) => setActual(e.target.value)} autoFocus autoComplete="current-password" />
         </Campo>

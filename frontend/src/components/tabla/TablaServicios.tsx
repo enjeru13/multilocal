@@ -3,6 +3,7 @@ import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import type { Servicio } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../ui/Button";
+import TarjetaRegistro from "../ui/TarjetaRegistro";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { estadoStock } from "../../utils/stockHelpers";
 
@@ -24,7 +25,48 @@ export default function TablaServicios({ servicios, onEditar, onEliminar, moneda
   const columnas = 3 + (inventario ? (veCosto ? 3 : 1) : 1) + 1;
 
   return (
-    <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all">
+    <>
+    <ul className="md:hidden space-y-2.5">
+      {servicios.length === 0 && <li className="text-center text-sm text-gray-500 dark:text-gray-400 italic py-8">No hay {et.serviciosMin} registrados.</li>}
+      {servicios.map((s) => {
+        const stock = estadoStock(s);
+        const margen = s.costoBase !== null && s.costoBase !== undefined && s.precioBase > 0 ? ((s.precioBase - s.costoBase) / s.precioBase) * 100 : null;
+        const datos: { k: string; v: React.ReactNode }[] = [];
+        if (inventario && stock !== null) datos.push({ k: "Existencias", v: s.stockActual });
+        if (veCosto && s.costoBase !== null && s.costoBase !== undefined) datos.push({ k: "Costo", v: formatearMoneda(s.costoBase, monedaPrincipal) });
+        if (veCosto && margen !== null) datos.push({ k: "Margen", v: `${margen.toFixed(1)}%` });
+        return (
+          <TarjetaRegistro
+            key={s.id}
+            titulo={s.nombreServicio}
+            destacado={<span className="text-indigo-700 dark:text-indigo-400">{formatearMoneda(s.precioBase, monedaPrincipal)}</span>}
+            subtitulo={[s.categoria?.nombre || "Sin categoría", inventario ? s.sku || s.codigoBarras : null].filter(Boolean).join(" · ")}
+            chips={
+              <>
+                {stock === "bajo" && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[11px] font-semibold"><FaExclamationTriangle size={9} /> Stock bajo</span>}
+                {stock === "sin" && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-300 px-2 py-0.5 text-[11px] font-semibold"><FaExclamationTriangle size={9} /> Agotado</span>}
+                {config?.impuestoActivo && s.exentoImpuesto && <span className="rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-[11px] font-semibold">Exento</span>}
+              </>
+            }
+            datos={datos}
+            acciones={
+              hasRole(["ADMIN"]) ? (
+                <>
+                  <Button onClick={() => onEditar(s)} variant="secondary" size="sm" className="flex-1" leftIcon={<FaPen size={11} />}>
+                    Editar
+                  </Button>
+                  <Button onClick={() => onEliminar(s.id)} title={`Eliminar ${et.servicioMin}`} aria-label="Eliminar" variant="iconDanger" size="icon">
+                    <FaTrashAlt size={12} />
+                  </Button>
+                </>
+              ) : undefined
+            }
+          />
+        );
+      })}
+    </ul>
+
+    <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all">
       <table className="min-w-full text-sm transition-colors">
         <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
           <tr>
@@ -149,5 +191,6 @@ export default function TablaServicios({ servicios, onEditar, onEliminar, moneda
         </tbody>
       </table>
     </div>
+    </>
   );
 }

@@ -78,7 +78,7 @@ export default function FormularioProveedor({ proveedor, onClose, onSubmit }: Pr
           e.preventDefault();
           guardar();
         }}
-        className="px-6 py-5 space-y-4"
+        className="px-4 sm:px-6 py-5 space-y-4"
       >
         <Campo etiqueta="Nombre" error={error}>
           <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className={`${campo} ${error ? campoError : ""}`} placeholder="Ej. Repuestos Andinos CA" disabled={cargando} autoFocus />

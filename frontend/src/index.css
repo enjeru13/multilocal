@@ -244,3 +244,51 @@
     animation: fadeIn 0.5s ease-out forwards;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------
+   Teléfono y app instalada
+   --------------------------------------------------------------------------------------------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Sin el destello gris al tocar y sin el retardo de doble toque en botones y enlaces. */
+a,
+button,
+[role="button"],
+[role="radio"],
+label,
+select,
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* En la app instalada no se «estira» toda la página al llegar al borde. */
+body {
+  overscroll-behavior-y: none;
+}
+
+@media (max-width: 767px) {
+  /* iOS acerca la pantalla al tocar un campo con letra menor a 16 px: se evita. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Las barras de desplazamiento no hacen falta al tacto. */
+  * {
+    scrollbar-width: thin;
+  }
+}
+
+/* Utilidades de área segura para barras fijas. */
+.pb-seguro {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-seguro {
+  padding-top: env(safe-area-inset-top);
+}

@@ -72,10 +72,10 @@ export default function ModalAjustePrecios({ categorias, monedaPrincipal, onClos
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92dvh] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaPercent />} titulo="Ajustar precios" subtitulo="Sube o baja varios precios de una vez" onClose={onClose} />
 
-      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
+      <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-5">
         <div className="grid sm:grid-cols-2 gap-4">
           <Campo etiqueta="Cambio (%)" ayuda="10 sube un 10%; -5 baja un 5%.">
             <input type="text" inputMode="decimal" value={porcentaje} onChange={(e) => setPorcentaje(e.target.value)} className={`${campo} text-right tabular-nums`} autoFocus />

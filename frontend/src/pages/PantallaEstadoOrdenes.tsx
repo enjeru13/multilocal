@@ -322,7 +322,7 @@ export default function PantallaEstadoOrdenes() {
             Buscar
           </label>
           <div className="relative w-64">
-            <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
+            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               id="filtroBusquedaOrdenes"

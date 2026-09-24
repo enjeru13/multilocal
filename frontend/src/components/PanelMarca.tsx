@@ -30,7 +30,7 @@ export default function PanelMarca({
 
   return (
     <div
-      className={`relative ${className} overflow-hidden bg-linear-to-br from-blue-600 to-indigo-800 dark:from-blue-800 dark:to-indigo-950 text-white p-8 md:p-12 flex flex-col justify-between min-h-65`}
+      className={`relative ${className} overflow-hidden bg-linear-to-br from-blue-600 to-indigo-800 dark:from-blue-800 dark:to-indigo-950 text-white p-5 md:p-12 flex flex-col justify-between md:min-h-65 max-md:flex-row max-md:items-center max-md:gap-4`}
     >
       <div
         aria-hidden
@@ -42,16 +42,16 @@ export default function PanelMarca({
       />
 
       <div className="relative">
-        <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-3xl font-black ring-1 ring-white/30">
+        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-2xl md:text-3xl font-black ring-1 ring-white/30">
           {inicial}
         </div>
       </div>
 
-      <div className="relative my-8">
-        <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight wrap-break-word">
+      <div className="relative md:my-8 min-w-0">
+        <h1 className="text-xl md:text-3xl lg:text-4xl font-extrabold leading-tight wrap-break-word">
           {titulo}
         </h1>
-        <p className="mt-3 text-blue-100 text-lg max-w-sm">{lema}</p>
+        <p className="mt-1 md:mt-3 text-blue-100 text-sm md:text-lg max-w-sm">{lema}</p>
       </div>
 
       <ul className="relative hidden md:block space-y-3 text-sm text-blue-50/90">

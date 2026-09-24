@@ -169,7 +169,7 @@ export default function FormularioServicio({
   const conError = (k: keyof typeof errores) => (errores[k] ? campoError : "");
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92dvh] flex flex-col overflow-hidden">
       <ModalEncabezado
         icono={<MdOutlineLocalLaundryService />}
         titulo={servicio ? `Editar ${et.servicioMin}` : `Nuevo ${et.servicioMin}`}
@@ -177,7 +177,7 @@ export default function FormularioServicio({
         onClose={onClose}
       />
 
-      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+      <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-6">
         <Seccion titulo="Datos básicos">
           <Campo etiqueta={`Nombre del ${et.servicioMin}`} error={errores.nombre}>
             <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className={`${campo} ${conError("nombre")}`} placeholder="Ej. Lavado y secado por kilo" disabled={cargando} autoFocus />

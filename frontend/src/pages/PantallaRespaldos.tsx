@@ -7,6 +7,7 @@ import { respaldosService, type Respaldo, type ResumenLegado } from "../services
 import Button from "../components/ui/Button";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import Modal from "../components/ui/Modal";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 import { ModalEncabezado, ModalPie } from "../components/ui/Formulario";
 
 const ETIQUETA: Record<Respaldo["tipo"], string> = {
@@ -102,7 +103,7 @@ export default function PantallaRespaldos() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaDatabase className="text-indigo-500" /> Respaldos
@@ -147,7 +148,28 @@ export default function PantallaRespaldos() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+      <ul className="md:hidden space-y-2.5">
+        {respaldos.length === 0 && <li className="text-center text-sm text-gray-500 dark:text-gray-400 italic py-8">Aún no hay respaldos.</li>}
+        {respaldos.map((r) => (
+          <TarjetaRegistro
+            key={r.nombre}
+            titulo={dayjs(r.fecha).format("DD/MM/YYYY HH:mm")}
+            subtitulo={`${ETIQUETA[r.tipo]} · ${tamano(r.tamano)}`}
+            acciones={
+              <>
+                <Button onClick={() => respaldosService.descargar(r.nombre)} variant="secondary" size="sm" className="flex-1" leftIcon={<FaDownload size={11} />}>
+                  Descargar
+                </Button>
+                <Button onClick={() => setARestaurar(r.nombre)} variant="iconWarning" size="icon" title="Restaurar este respaldo" aria-label="Restaurar">
+                  <FaUndo size={12} />
+                </Button>
+              </>
+            }
+          />
+        ))}
+      </ul>
+
+      <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>
@@ -191,7 +213,7 @@ export default function PantallaRespaldos() {
       {legado && (
         <Modal open onClose={() => !trabajando && setLegado(null)} maxWidth="max-w-lg">
           <ModalEncabezado icono={<FaFileImport />} titulo="Importar del sistema anterior" subtitulo={legado.resumen.negocio ?? legado.archivo.name} onClose={() => !trabajando && setLegado(null)} />
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-4 sm:px-6 py-5 space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">El archivo trae:</p>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
               {(

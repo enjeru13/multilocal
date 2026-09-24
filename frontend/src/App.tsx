@@ -45,7 +45,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen text-gray-600">
+      <div className="flex justify-center items-center h-dvh text-gray-600">
         Cargando autenticación...
       </div>
     );

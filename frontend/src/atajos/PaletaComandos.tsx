@@ -101,7 +101,7 @@ export default function PaletaComandos() {
         />
         <Kbd combo="Esc" className="text-gray-400" />
       </div>
-      <ul ref={listaRef} className="max-h-[50vh] overflow-y-auto py-2">
+      <ul ref={listaRef} className="max-h-[50dvh] overflow-y-auto py-2">
         {filtrados.length === 0 && <li className="px-4 py-6 text-center text-sm text-gray-500">Nada coincide con "{texto}".</li>}
         {filtrados.map((c, i) => {
           const encabezado = c.grupo !== grupoActual;

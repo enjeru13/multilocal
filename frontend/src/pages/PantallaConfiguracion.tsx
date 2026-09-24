@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint, FaBoxes, FaTruck, FaCashRegister, FaCalendarAlt, FaAddressCard, FaUserCheck } from "react-icons/fa";
 import { SelectorHoja, SelectorRollo } from "../impresion/SelectorPapel";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -17,6 +17,7 @@ import type { Configuracion, Rubro, Terminologia } from "@lavanderia/shared/type
 import { FormSkeleton } from "../components/Skeleton";
 import Button from "../components/ui/Button";
 import SelectorMonedas from "../components/ui/SelectorMonedas";
+import Interruptor from "../components/ui/Interruptor";
 
 export default function PantallaConfiguracion() {
   const { refetch } = useConfiguracion();
@@ -159,25 +160,25 @@ export default function PantallaConfiguracion() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-8">
+      <div className="max-w-4xl mx-auto p-4 sm:p-8">
         <FormSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-8 space-y-10">
-      <header className="pb-4 border-b border-gray-200 dark:border-gray-800 mb-6">
+    <div className="max-w-4xl mx-auto p-4 sm:p-8 space-y-6 sm:space-y-10">
+      <header className="pb-4 border-b border-gray-200 dark:border-gray-800 sm:mb-6">
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-3 text-gray-900 dark:text-gray-100">
-          <MdSettings size={36} className="text-indigo-600 dark:text-indigo-400" />
+          <MdSettings className="text-3xl sm:text-4xl shrink-0 text-indigo-600 dark:text-indigo-400" />
           Configuración del sistema
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
+        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mt-2">
           Ajusta datos generales del negocio y tasas monetarias.
         </p>
       </header>
 
-      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaStore size={28} className="text-indigo-500 dark:text-indigo-400" />
           Información del negocio
@@ -264,7 +265,7 @@ export default function PantallaConfiguracion() {
         </div>
       </section>
 
-      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100">
             <FaLayerGroup size={26} className="text-purple-500 dark:text-purple-400" />
@@ -275,7 +276,7 @@ export default function PantallaConfiguracion() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div role="radiogroup" aria-label="Rubro" className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {(Object.keys(RUBRO_PRESETS) as Rubro[]).map((r) => {
             const preset = RUBRO_PRESETS[r];
             const activo = rubro === r;
@@ -283,10 +284,12 @@ export default function PantallaConfiguracion() {
               <button
                 key={r}
                 type="button"
+                role="radio"
+                aria-checked={activo}
                 onClick={() => aplicarPresetRubro(r)}
-                className={`text-left p-4 rounded-lg border transition-colors ${
+                className={`text-left p-4 rounded-xl border transition-colors cursor-pointer ${
                   activo
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-500"
+                    ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 ring-1 ring-blue-500"
                     : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
               >
@@ -297,61 +300,23 @@ export default function PantallaConfiguracion() {
           })}
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 pt-2">
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Control de inventario/stock
-            <input
-              type="checkbox"
-              checked={moduloInventario}
-              onChange={(e) => setModuloInventario(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Proveedores y compras
-            <input
-              type="checkbox"
-              checked={moduloProveedores}
-              onChange={(e) => setModuloProveedores(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Caja (apertura/cierre)
-            <input
-              type="checkbox"
-              checked={moduloCaja}
-              onChange={(e) => setModuloCaja(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Fecha de entrega (trabajos que se entregan después)
-            <input
-              type="checkbox"
-              checked={moduloFechaEntrega}
-              onChange={(e) => setModuloFechaEntrega(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Ficha de cliente completa (natural/empresa, RIF, etc.)
-            <input
-              type="checkbox"
-              checked={moduloClienteTipo}
-              onChange={(e) => setModuloClienteTipo(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-            Cliente obligatorio para vender
-            <input
-              type="checkbox"
-              checked={clienteObligatorio}
-              onChange={(e) => setClienteObligatorio(e.target.checked)}
-              className="accent-purple-600 w-5 h-5 cursor-pointer"
-            />
-          </label>
+        <div className="space-y-5 pt-2">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Qué controlas</h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Interruptor variante="tarjeta" activo={moduloInventario} onChange={setModuloInventario} icono={<FaBoxes />} titulo="Inventario" detalle="Existencias, mínimos y movimientos." />
+              <Interruptor variante="tarjeta" activo={moduloProveedores} onChange={setModuloProveedores} icono={<FaTruck />} titulo="Proveedores y compras" detalle="Reposición y cuentas por pagar." />
+              <Interruptor variante="tarjeta" activo={moduloCaja} onChange={setModuloCaja} icono={<FaCashRegister />} titulo="Caja" detalle="Apertura, egresos y cierre con arqueo." />
+              <Interruptor variante="tarjeta" activo={moduloFechaEntrega} onChange={setModuloFechaEntrega} icono={<FaCalendarAlt />} titulo="Fecha de entrega" detalle="Para trabajos que se entregan después." />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Cómo tratas a tus clientes</h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Interruptor variante="tarjeta" activo={moduloClienteTipo} onChange={setModuloClienteTipo} icono={<FaAddressCard />} titulo="Ficha de cliente completa" detalle="Persona o empresa, documento y contactos." />
+              <Interruptor variante="tarjeta" activo={clienteObligatorio} onChange={setClienteObligatorio} icono={<FaUserCheck />} titulo="Cliente obligatorio" detalle="Apagado, puedes vender sin registrar a nadie." />
+            </div>
+          </div>
         </div>
 
         <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
@@ -386,21 +351,13 @@ export default function PantallaConfiguracion() {
         </div>
       </section>
 
-      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaPercent size={26} className="text-amber-500 dark:text-amber-400" />
           Impuestos y descuentos
         </h2>
 
-        <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-          Cobrar impuesto en las ventas
-          <input
-            type="checkbox"
-            checked={impuestoActivo}
-            onChange={(e) => setImpuestoActivo(e.target.checked)}
-            className="accent-purple-600 w-5 h-5 cursor-pointer"
-          />
-        </label>
+        <Interruptor variante="tarjeta" activo={impuestoActivo} onChange={setImpuestoActivo} icono={<FaPercent />} titulo="Cobrar impuesto en las ventas" detalle="Se calcula solo en cada venta y se muestra desglosado." />
 
         {impuestoActivo && (
           <div className="space-y-4 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
@@ -414,20 +371,7 @@ export default function PantallaConfiguracion() {
                 <input type="text" inputMode="decimal" value={impuestoTasa} onChange={(e) => setImpuestoTasa(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="16" />
               </div>
             </div>
-            <label className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 py-1">
-              <span>
-                Los precios ya incluyen el impuesto
-                <span className="block text-xs text-gray-400">
-                  Si está activo, el total no cambia y el impuesto se muestra desglosado. Si no, se suma encima del precio.
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={preciosIncluyenImpuesto}
-                onChange={(e) => setPreciosIncluyenImpuesto(e.target.checked)}
-                className="accent-purple-600 w-5 h-5 cursor-pointer shrink-0 ml-4"
-              />
-            </label>
+            <Interruptor variante="tarjeta" activo={preciosIncluyenImpuesto} onChange={setPreciosIncluyenImpuesto} titulo="Los precios ya incluyen el impuesto" detalle="Activo: el total no cambia y el impuesto se muestra desglosado. Apagado: se suma encima del precio." />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Puedes marcar productos como exentos en su ficha. Las ventas ya hechas conservan el impuesto con que se cobraron.
             </p>
@@ -443,7 +387,7 @@ export default function PantallaConfiguracion() {
         </div>
       </section>
 
-      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaCoins size={28} className="text-green-500 dark:text-green-400" />
           Monedas y tasas
@@ -460,7 +404,7 @@ export default function PantallaConfiguracion() {
         />
       </section>
 
-      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-5">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-5">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100">
             <FaPrint size={26} className="text-blue-500 dark:text-blue-400" />
@@ -482,8 +426,9 @@ export default function PantallaConfiguracion() {
       </section>
 
       {/* FOOTER CON BOTÓN ACTUALIZADO */}
-      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800 max-md:sticky max-md:bottom-0 max-md:z-20 max-md:-mx-4 max-md:-mb-4 max-md:px-4 max-md:py-3 max-md:pt-3 max-md:bg-white/95 max-md:dark:bg-gray-900/95 max-md:backdrop-blur">
         <Button
+          className="max-md:w-full"
           onClick={guardarConfiguracion}
           isLoading={cargando}
           disabled={cargando}

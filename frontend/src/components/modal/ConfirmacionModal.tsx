@@ -29,7 +29,7 @@ const ConfirmacionModal: React.FC<ConfirmacionModalProps> = ({
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{titulo}</h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{mensaje}</p>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30 rounded-b-2xl">
+      <div className="grid grid-cols-2 gap-2.5 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30 rounded-b-2xl">
         <Button onClick={onCancel} variant="secondary">
           {textoCancelar}
         </Button>

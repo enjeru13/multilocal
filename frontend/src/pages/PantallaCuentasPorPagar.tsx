@@ -13,6 +13,7 @@ import CampoMonto from "../components/ui/CampoMonto";
 import ImprimirPorPagar from "../impresion/informes/InformePagar";
 import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 
 const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm";
 
@@ -60,7 +61,7 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
   return (
     <Modal open onClose={onClose} maxWidth="max-w-md">
       <ModalEncabezado icono={<FaFileInvoiceDollar />} titulo={`Pagar compra #${compra.id}`} subtitulo={compra.proveedor?.nombre} onClose={onClose} />
-      <form id="pagar-compra-form" onSubmit={pagar} className="px-6 py-5 space-y-4">
+      <form id="pagar-compra-form" onSubmit={pagar} className="px-4 sm:px-6 py-5 space-y-4">
         <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/70 dark:border-amber-500/20 px-4 py-3 flex items-center justify-between">
           <span className="text-sm text-amber-800 dark:text-amber-300">Se debe</span>
           <strong className="text-lg tabular-nums text-amber-900 dark:text-amber-200">{formatearMoneda(compra.saldo, moneda)}</strong>
@@ -127,7 +128,7 @@ export default function PantallaCuentasPorPagar() {
   const fmt = (n: number) => formatearMoneda(n, moneda);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -179,7 +180,57 @@ export default function PantallaCuentasPorPagar() {
             </section>
           )}
 
-          <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <ul className="md:hidden space-y-2.5">
+            {(!data || data.compras.length === 0) && <li className="text-center text-sm text-gray-500 dark:text-gray-400 italic py-8">No debes nada por ahora.</li>}
+            {data?.compras.map((c) => (
+              <TarjetaRegistro
+                key={c.id}
+                titulo={
+                  <>
+                    <span className="text-blue-700 dark:text-blue-400 mr-1.5">#{c.id}</span>
+                    {c.proveedor?.nombre}
+                  </>
+                }
+                subtitulo={`Compra del ${dayjs(c.fecha).format("DD/MM/YYYY")}`}
+                destacado={fmt(c.saldo)}
+                chips={
+                  c.fechaVencimiento ? (
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${c.vencida ? "bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-300" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+                      {c.vencida && <FaExclamationCircle size={9} />} Vence {dayjs(c.fechaVencimiento).format("DD/MM/YYYY")}
+                    </span>
+                  ) : undefined
+                }
+                datos={[{ k: "Total de la compra", v: fmt(c.total) }, { k: "Pagos hechos", v: (c.pagos ?? []).length }]}
+                acciones={
+                  <>
+                    <Button variant="primary" size="sm" className="flex-1" onClick={() => setAPagar(c)}>
+                      Pagar
+                    </Button>
+                    <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAbierta(abierta === c.id ? null : c.id)}>
+                      {abierta === c.id ? "Ocultar pagos" : "Ver pagos"}
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+            {abierta !== null && (
+              <li className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-3.5 text-sm space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Pagos de la compra #{abierta}</p>
+                {((data?.compras.find((x) => x.id === abierta)?.pagos) ?? []).length === 0 && <p className="text-gray-500 dark:text-gray-400">Aún no se ha pagado nada.</p>}
+                {(data?.compras.find((x) => x.id === abierta)?.pagos ?? []).map((p) => (
+                  <div key={p.id} className="flex justify-between gap-3 text-gray-700 dark:text-gray-300">
+                    <span>{dayjs(p.fecha).format("DD/MM/YYYY")}</span>
+                    <span className="tabular-nums font-medium">
+                      {formatearMoneda(p.montoMoneda, p.moneda)}
+                      {p.moneda !== moneda && <span className="text-gray-500 dark:text-gray-400 font-normal"> ≈ {fmt(p.monto)}</span>}
+                    </span>
+                  </div>
+                ))}
+              </li>
+            )}
+          </ul>
+
+          <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>

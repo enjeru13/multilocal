@@ -290,7 +290,7 @@ function FormularioClienteCompleto({
   const conError = (k: string) => (errores[k] ? campoError : "");
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] overflow-hidden flex flex-col">
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92dvh] overflow-hidden flex flex-col">
       <ModalEncabezado
         icono={<FaUserEdit />}
         titulo={cliente ? `Editar ${et.clienteMin}` : `Nuevo ${et.clienteMin}`}
@@ -298,7 +298,7 @@ function FormularioClienteCompleto({
         onClose={onClose}
       />
 
-      <form id="cliente-form" onSubmit={handleSubmit} className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+      <form id="cliente-form" onSubmit={handleSubmit} className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-6">
         <Seccion titulo="Identificación">
           <div className="flex flex-wrap items-end gap-3">
             <Segmentado

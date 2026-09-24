@@ -1,4 +1,5 @@
-import { FaSearch, FaPen, FaTrashAlt } from "react-icons/fa";
+import { FaSearch, FaPen, FaTrashAlt, FaPhoneAlt } from "react-icons/fa";
+import TarjetaRegistro from "../ui/TarjetaRegistro";
 import type { Cliente } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../ui/Button";
@@ -49,7 +50,39 @@ export default function TablaClientes({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
+      <ul className="md:hidden space-y-2.5">
+        {clientes.map((c) => (
+          <TarjetaRegistro
+            key={c.id}
+            onClick={() => onVerInfo(c)}
+            titulo={c.tipo === "EMPRESA" ? c.nombre : `${c.nombre} ${c.apellido}`}
+            subtitulo={[c.identificacion, c.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+            datos={c.direccion ? [{ k: "Dirección", v: c.direccion }] : undefined}
+            acciones={
+              <>
+                {c.telefono && (
+                  <a
+                    href={`tel:${c.telefono}`}
+                    className="flex-1 h-9 inline-flex items-center justify-center gap-2 rounded-lg text-[13px] font-medium bg-emerald-600 text-white active:bg-emerald-700"
+                  >
+                    <FaPhoneAlt size={11} /> Llamar
+                  </a>
+                )}
+                <Button onClick={() => onEditar(c)} title={`Editar ${et.clienteMin}`} aria-label="Editar" variant="iconInfo" size="icon" className="ml-auto">
+                  <FaPen size={12} />
+                </Button>
+                {hasRole(["ADMIN"]) && (
+                  <Button onClick={() => onEliminar(c.id)} title={`Eliminar ${et.clienteMin}`} aria-label="Eliminar" variant="iconDanger" size="icon">
+                    <FaTrashAlt size={12} />
+                  </Button>
+                )}
+              </>
+            }
+          />
+        ))}
+      </ul>
+
+      <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>

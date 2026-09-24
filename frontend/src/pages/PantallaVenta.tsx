@@ -10,7 +10,7 @@ export default function PantallaVenta() {
   const { config, loading } = useConfiguracion();
   if (loading || !config) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         <FormSkeleton />
       </div>
     );

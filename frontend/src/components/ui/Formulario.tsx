@@ -3,7 +3,7 @@ import { FaTimes } from "react-icons/fa";
 
 /** Estilo único de los campos de texto, números y listas. */
 export const campo =
-  "w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:opacity-60 transition-colors";
+  "w-full h-11 sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:opacity-60 transition-colors";
 
 export const campoError = "border-red-400 dark:border-red-500/70 focus:ring-red-500/40 focus:border-red-500";
 
@@ -65,7 +65,7 @@ export function ModalEncabezado({
   onClose: () => void;
 }) {
   return (
-    <div className="flex items-start gap-3.5 px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
+    <div className="flex items-start gap-3.5 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
       {icono && (
         <span className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shrink-0">
           {icono}
@@ -75,7 +75,7 @@ export function ModalEncabezado({
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">{titulo}</h2>
         {subtitulo && <p className="text-sm text-gray-500 dark:text-gray-400 break-words">{subtitulo}</p>}
       </div>
-      <button onClick={onClose} type="button" title="Cerrar" aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 cursor-pointer">
+      <button onClick={onClose} type="button" title="Cerrar" aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 -m-1 cursor-pointer">
         <FaTimes />
       </button>
     </div>
@@ -85,9 +85,9 @@ export function ModalEncabezado({
 /** Pie de ventana con acciones alineadas a la derecha. */
 export function ModalPie({ children, izquierda }: { children: ReactNode; izquierda?: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 px-6 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
-      {izquierda && <div className="text-xs text-gray-500 dark:text-gray-400">{izquierda}</div>}
-      <div className="ml-auto flex items-center gap-2.5">{children}</div>
+    <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+      {izquierda && <div className="text-xs text-gray-500 dark:text-gray-400 max-sm:hidden">{izquierda}</div>}
+      <div className="ml-auto flex items-center gap-2.5 max-sm:w-full max-sm:[&>*]:flex-1">{children}</div>
     </div>
   );
 }
@@ -108,7 +108,7 @@ export function Opcion({
 }) {
   return (
     <label className="flex items-start gap-3 py-1.5 cursor-pointer">
-      <input type="checkbox" checked={activo} onChange={(e) => onChange(e.target.checked)} disabled={disabled} className="mt-0.5 accent-blue-600 w-4 h-4 cursor-pointer" />
+      <input type="checkbox" checked={activo} onChange={(e) => onChange(e.target.checked)} disabled={disabled} className="mt-0.5 accent-blue-600 w-5 h-5 sm:w-4 sm:h-4 cursor-pointer" />
       <span>
         <span className="block text-sm font-medium text-gray-800 dark:text-gray-200">{titulo}</span>
         {detalle && <span className="block text-xs text-gray-500 dark:text-gray-400">{detalle}</span>}
@@ -138,7 +138,7 @@ export function Segmentado<T extends string>({
           role="radio"
           aria-checked={valor === o.id}
           onClick={() => onChange(o.id)}
-          className={`px-4 h-8 rounded-md text-[13px] font-medium cursor-pointer transition-colors ${
+          className={`px-4 h-9 sm:h-8 rounded-md text-[13px] font-medium cursor-pointer transition-colors ${
             valor === o.id ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
           }`}
         >

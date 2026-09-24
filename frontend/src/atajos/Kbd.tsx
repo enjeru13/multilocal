@@ -1,7 +1,7 @@
 /** Tecla estilo "keycap": muestra un combo como Alt+V o F9. */
 export default function Kbd({ combo, className = "" }: { combo: string; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 ${className}`}>
+    <span className={`max-md:hidden inline-flex items-center gap-0.5 ${className}`}>
       {combo.split("+").map((k, i) => (
         <kbd
           key={i}

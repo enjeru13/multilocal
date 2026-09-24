@@ -13,6 +13,7 @@ import { inventarioService, type MovimientoInventario } from "../services/invent
 import { useAuth } from "../hooks/useAuth";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 import ImprimirInventario, { type ModoInventario } from "../impresion/informes/InformeInventario";
 import { Campo, ModalEncabezado, ModalPie, Segmentado, campo } from "../components/ui/Formulario";
 
@@ -105,14 +106,14 @@ export default function PantallaInventario() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <TableSkeleton rows={8} cols={5} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Inventario</h1>
@@ -132,10 +133,10 @@ export default function PantallaInventario() {
       <ImprimirInventario open={imprimir !== null} modo={imprimir ?? "existencias"} onClose={() => setImprimir(null)} />
 
       <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full sm:w-auto">
           <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Buscar</label>
-          <div className="relative w-72">
-            <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
+          <div className="relative w-full sm:w-72">
+            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={busqueda}
@@ -163,7 +164,53 @@ export default function PantallaInventario() {
       ) : filtrados.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">Sin resultados con estos filtros.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+        <>
+        <ul className="md:hidden space-y-2.5">
+          {filtrados.map((i) => {
+            const bajo = i.stockMinimo !== null && i.stockActual <= i.stockMinimo;
+            return (
+              <TarjetaRegistro
+                key={i.id}
+                titulo={i.nombreServicio}
+                subtitulo={i.sku ?? undefined}
+                destacado={
+                  <span className={bajo ? "text-red-600 dark:text-red-400" : undefined}>
+                    {i.stockActual}
+                    <span className="block text-[10px] font-medium text-gray-400 uppercase tracking-wide">en stock</span>
+                  </span>
+                }
+                chips={bajo ? <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-300 px-2 py-0.5 text-[11px] font-semibold"><FaExclamationTriangle size={9} /> Por debajo del mínimo</span> : undefined}
+                datos={[
+                  { k: "Mínimo", v: i.stockMinimo ?? "—" },
+                  { k: "Precio", v: formatearMoneda(i.precioBase, monedaPrincipal) },
+                  ...(i.costoBase !== null ? [{ k: "Costo", v: formatearMoneda(i.costoBase, monedaPrincipal) }] : []),
+                ]}
+                acciones={
+                  <>
+                    {hasRole(["ADMIN"]) && (
+                      <Button
+                        onClick={() => {
+                          setAjustando(i);
+                          setAjTipo("ENTRADA");
+                        }}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1"
+                        leftIcon={<FaSlidersH size={11} />}
+                      >
+                        Ajustar
+                      </Button>
+                    )}
+                    <Button onClick={() => abrirHistorial(i)} variant="secondary" size="sm" className="flex-1" leftIcon={<FaHistory size={11} />}>
+                      Historial
+                    </Button>
+                  </>
+                }
+              />
+            );
+          })}
+        </ul>
+        <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
           <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
@@ -243,6 +290,7 @@ export default function PantallaInventario() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {ajustando && (
@@ -254,7 +302,7 @@ export default function PantallaInventario() {
               e.preventDefault();
               guardarAjuste();
             }}
-            className="px-6 py-5 space-y-4"
+            className="px-4 sm:px-6 py-5 space-y-4"
           >
             <div className="rounded-xl bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">Existencias actuales</span>
@@ -288,7 +336,7 @@ export default function PantallaInventario() {
       )}
 
       {historialDe && (
-        <Modal open onClose={() => setHistorialDe(null)} maxWidth="max-w-2xl" className="max-h-[88vh] flex flex-col overflow-hidden">
+        <Modal open onClose={() => setHistorialDe(null)} maxWidth="max-w-2xl" className="max-h-[88dvh] flex flex-col overflow-hidden">
           <ModalEncabezado icono={<FaHistory />} titulo="Historial de existencias" subtitulo={historialDe.nombreServicio} onClose={() => setHistorialDe(null)} />
           <div className="px-6 py-4 flex-1 overflow-y-auto">
             {movimientos.length === 0 ? (

@@ -154,7 +154,7 @@ export default function PantallaCaja() {
     }
   };
 
-  if (!caja) return <div className="p-6 text-gray-500">Cargando caja...</div>;
+  if (!caja) return <div className="p-4 sm:p-6 text-gray-500">Cargando caja...</div>;
 
   const totalContadoPrincipal = filasArqueo.reduce((s, f) => {
     const txt = contado[f.moneda];
@@ -163,7 +163,7 @@ export default function PantallaCaja() {
   const hayConteo = filasArqueo.some((f) => contado[f.moneda]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaCashRegister className="text-emerald-600" /> Caja
@@ -189,7 +189,7 @@ export default function PantallaCaja() {
           <p className="text-xs text-gray-400">Si empiezas con efectivo en otra moneda, regístralo después como un ingreso en esa moneda.</p>
         </section>
       ) : (
-        <section className={`${tarjeta} p-6 space-y-5`}>
+        <section className={`${tarjeta} p-4 sm:p-6 space-y-5`}>
           <div className="flex justify-between items-start flex-wrap gap-3">
             <div>
               <h2 className="font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function PantallaCaja() {
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Desde {dayjs(caja.sesion.fechaApertura).format("DD/MM/YYYY HH:mm")} · {caja.cantidadPagos} pagos</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 max-sm:w-full [&>button]:max-sm:flex-1">
               <Button onClick={() => { setMovMoneda(principal); setMovTipo("INGRESO"); }} variant="iconSuccess" size="sm" leftIcon={<FaPlus size={10} />}>
                 Ingreso
               </Button>
@@ -351,7 +351,7 @@ export default function PantallaCaja() {
               e.preventDefault();
               guardarMovimiento();
             }}
-            className="px-6 py-5 space-y-4"
+            className="px-4 sm:px-6 py-5 space-y-4"
           >
             <Campo etiqueta="Monto">
               <div className="flex items-center gap-3">
@@ -375,9 +375,9 @@ export default function PantallaCaja() {
       )}
 
       {cerrando && caja.abierta && (
-        <Modal open onClose={() => setCerrando(false)} maxWidth="max-w-lg" className="max-h-[92vh] flex flex-col overflow-hidden">
+        <Modal open onClose={() => setCerrando(false)} maxWidth="max-w-lg" className="max-h-[92dvh] flex flex-col overflow-hidden">
           <ModalEncabezado icono={<FaLock />} titulo="Cerrar caja" subtitulo="Cuenta el efectivo de cada moneda; te mostramos si cuadra" onClose={() => setCerrando(false)} />
-          <div className="px-6 py-5 flex-1 overflow-y-auto space-y-4">
+          <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-4">
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
               {filasArqueo.map((f, i) => {
                 const txt = contado[f.moneda] ?? "";

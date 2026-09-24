@@ -17,6 +17,7 @@ import Modal from "../components/ui/Modal";
 import CampoMonto from "../components/ui/CampoMonto";
 import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 
 const METODOS: Record<MetodoPago, string> = { EFECTIVO: "Efectivo", TRANSFERENCIA: "Transferencia", PAGO_MOVIL: "Pago móvil" };
 const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm";
@@ -72,9 +73,9 @@ function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[];
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92dvh] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaMoneyCheckAlt />} titulo="Nuevo gasto" subtitulo="Lo que sale del negocio: servicios, alquiler, sueldos…" onClose={onClose} />
-      <form id="gasto-form" onSubmit={guardar} className="px-6 py-5 flex-1 overflow-y-auto space-y-4">
+      <form id="gasto-form" onSubmit={guardar} className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-4">
         <Campo etiqueta="¿En qué se gastó?">
           <input className={campo} value={concepto} onChange={(e) => setConcepto(e.target.value)} maxLength={120} autoFocus placeholder="Ej. Recibo de luz de septiembre" />
         </Campo>
@@ -176,7 +177,7 @@ export default function PantallaGastos() {
   const maxCat = Math.max(1, ...(data?.porCategoria.map((c) => c.monto) ?? [1]));
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -230,7 +231,32 @@ export default function PantallaGastos() {
           </section>
         </div>
 
-        <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <ul className="md:hidden space-y-2.5">
+          {(!data || data.gastos.length === 0) && <li className="text-center text-sm text-gray-500 dark:text-gray-400 italic py-8">No hay gastos en este periodo.</li>}
+          {data?.gastos.map((g) => (
+            <TarjetaRegistro
+              key={g.id}
+              titulo={g.concepto}
+              subtitulo={`${dayjs(g.fecha).format("DD/MM/YYYY")} · ${g.categoria}`}
+              destacado={
+                <>
+                  {fmt(g.monto)}
+                  {g.moneda !== moneda && <span className="block text-[11px] font-normal text-gray-400">{formatearMoneda(g.montoMoneda, g.moneda)}</span>}
+                </>
+              }
+              datos={[{ k: "Pago", v: `${METODOS[g.metodoPago]}${g.cajaMovimientoId ? " · caja" : ""}` }, ...(g.nota ? [{ k: "Nota", v: g.nota }] : [])]}
+              acciones={
+                hasRole(["ADMIN"]) ? (
+                  <Button variant="iconDanger" size="icon" title="Eliminar gasto" aria-label="Eliminar gasto" onClick={() => setAEliminar(g.id)} className="ml-auto">
+                    <FaTrashAlt size={12} />
+                  </Button>
+                ) : undefined
+              }
+            />
+          ))}
+        </ul>
+
+        <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>

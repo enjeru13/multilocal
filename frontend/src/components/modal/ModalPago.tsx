@@ -231,8 +231,8 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
   const equivalencias = negocio.otras.filter(habilitada);
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-2xl" className="max-h-[92vh] overflow-hidden flex flex-col">
-      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
+    <Modal open onClose={onClose} maxWidth="max-w-2xl" className="max-h-[92dvh] overflow-hidden flex flex-col">
+      <div className="flex items-start justify-between gap-4 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Cobrar {et.ordenMin} #{orden.id}
@@ -244,7 +244,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
         </button>
       </div>
 
-      <div className="px-6 py-5 overflow-y-auto flex-1 space-y-5">
+      <div className="px-4 sm:px-6 py-5 overflow-y-auto flex-1 space-y-5">
         <ResumenCobro total={orden.total} abonado={resumen.abonado} saldo={saldo} moneda={principal} />
 
         {equivalencias.length > 0 && saldo > EPS && (
@@ -435,7 +435,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
         )}
       </div>
 
-      <div className="px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+      <div className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
         <p className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
           {recibido > EPS ? (
             <>

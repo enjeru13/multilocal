@@ -215,10 +215,10 @@ export default function PantallaPagos() {
       </h1>
 
       <div className="mb-5 flex flex-wrap items-center gap-4 font-semibold">
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full sm:w-auto">
           <label htmlFor="filtroBusqueda" className="text-xs text-gray-500 dark:text-gray-400 mb-1">Buscar</label>
-          <div className="relative w-72">
-            <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
+          <div className="relative w-full sm:w-72">
+            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               id="filtroBusqueda"
@@ -230,7 +230,7 @@ export default function PantallaPagos() {
           </div>
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full sm:w-auto">
           <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mes</label>
           <select
             value={mesSeleccionado}
@@ -243,7 +243,7 @@ export default function PantallaPagos() {
           </select>
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full sm:w-auto">
           <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Año</label>
           <select
             value={anioSeleccionado}

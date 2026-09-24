@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import type { Role } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 import { Campo, ModalEncabezado, ModalPie, campo } from "../components/ui/Formulario";
 
 const ROLES: { valor: Role; etiqueta: string; ayuda: string }[] = [
@@ -95,7 +96,7 @@ export default function PantallaUsuarios() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Usuarios</h1>
@@ -108,7 +109,42 @@ export default function PantallaUsuarios() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+      <ul className="md:hidden space-y-2.5">
+        {usuarios.map((u) => (
+          <TarjetaRegistro
+            key={u.id}
+            atenuada={!u.activo}
+            titulo={
+              <>
+                {u.name ?? "—"} {u.id === user?.id && <span className="text-xs font-normal text-blue-500">(tú)</span>}
+              </>
+            }
+            subtitulo={u.email}
+            chips={
+              <>
+                <span className="rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 text-[11px] font-semibold">{etiquetaRol(u.role)}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${u.activo ? "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300" : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+                  {u.activo ? "Activo" : "Desactivado"}
+                </span>
+              </>
+            }
+            acciones={
+              <>
+                <Button onClick={() => abrir(u)} variant="secondary" size="sm" className="flex-1" leftIcon={<FaPen size={11} />}>
+                  Editar
+                </Button>
+                {u.id !== user?.id && (
+                  <Button onClick={() => alternarActivo(u)} variant={u.activo ? "iconDanger" : "iconSuccess"} size="icon" title={u.activo ? "Desactivar" : "Reactivar"} aria-label={u.activo ? "Desactivar" : "Reactivar"}>
+                    {u.activo ? <FaUserSlash size={12} /> : <FaUserCheck size={12} />}
+                  </Button>
+                )}
+              </>
+            }
+          />
+        ))}
+      </ul>
+
+      <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>
@@ -175,7 +211,7 @@ export default function PantallaUsuarios() {
               e.preventDefault();
               guardar();
             }}
-            className="px-6 py-5 space-y-4"
+            className="px-4 sm:px-6 py-5 space-y-4"
           >
             <Campo etiqueta="Nombre">
               <input className={campo} value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus />

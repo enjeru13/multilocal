@@ -20,8 +20,8 @@ export default function ClientePanel({
   const et = useEtiquetas();
   const opcional = config?.clienteObligatorio === false;
   return (
-    <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
-      <header className="pb-4 border-b border-gray-200 dark:border-gray-800 mb-6 transition-colors">
+    <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-4 sm:space-y-6">
+      <header className="pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-800 sm:mb-6 transition-colors">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaUser size={28} className="text-indigo-500 dark:text-indigo-400" />
           {et.cliente}
@@ -31,7 +31,7 @@ export default function ClientePanel({
         </h2>
       </header>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5 transition-all">
         <div>
           {cliente ? (
             <div className="bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-800 text-green-800 dark:text-green-400 px-5 py-2.5 rounded-lg font-bold inline-flex items-center gap-3 shadow-sm transition-colors">
@@ -56,14 +56,15 @@ export default function ClientePanel({
         </div>
 
         {/* 2. Botones actualizados usando el componente UI */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-4">
           <Button
             onClick={onAbrirFormulario}
             variant="primary"
             leftIcon={<FaUserPlus />}
           // Puedes agregar size="lg" si quieres que sean grandes como en el otro panel
           >
-            Registrar nuevo
+            <span className="sm:hidden">Nuevo</span>
+            <span className="max-sm:hidden">Registrar nuevo</span>
           </Button>
 
           <Button
@@ -71,7 +72,8 @@ export default function ClientePanel({
             variant="secondary"
             leftIcon={<FaUserCheck />}
           >
-            Seleccionar existente
+            <span className="sm:hidden">Existente</span>
+            <span className="max-sm:hidden">Seleccionar existente</span>
           </Button>
         </div>
       </div>

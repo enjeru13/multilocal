@@ -9,6 +9,7 @@ import Kbd from "../atajos/Kbd";
 import Button from "../components/ui/Button";
 import DescuentoControl from "../components/venta/DescuentoControl";
 import { CampoMontoNumero } from "../components/ui/CampoMonto";
+import { useEsCompacto } from "../hooks/useMediaQuery";
 import DesgloseTotales from "../components/venta/DesgloseTotales";
 import { TableSkeleton } from "../components/Skeleton";
 import { useVenta } from "./useVenta";
@@ -24,6 +25,7 @@ const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dar
 export default function VentaFactura() {
   const venta = useVenta({ precioEditable: true });
   const negocio = useMonedas();
+  const compacto = useEsCompacto();
   const { et, moneda, tasas, carrito, totales } = venta;
 
   const [busqueda, setBusqueda] = useState("");
@@ -39,7 +41,10 @@ export default function VentaFactura() {
   const ocupado = venta.guardando || !!venta.ordenACobrar;
   const hayItems = carrito.length > 0;
 
-  const enfocar = () => setTimeout(() => buscador.current?.focus(), 0);
+  // En teléfono no se devuelve el foco al buscador: abriría el teclado tras cada toque.
+  const enfocar = () => {
+    if (!compacto) setTimeout(() => buscador.current?.focus(), 0);
+  };
 
   const teclado = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
@@ -109,7 +114,7 @@ export default function VentaFactura() {
               <FaBarcode className="absolute top-4 left-4 text-gray-400" />
               <input
                 ref={buscador}
-                autoFocus
+                autoFocus={!compacto}
                 value={busqueda}
                 onChange={(e) => {
                   setBusqueda(e.target.value);
@@ -117,12 +122,39 @@ export default function VentaFactura() {
                 }}
                 onKeyDown={teclado}
                 disabled={ocupado}
-                placeholder="Código, nombre, descripción… (F2)"
+                placeholder={compacto ? "Código o nombre" : "Código, nombre, descripción… (F2)"}
                 className="w-full pl-11 pr-4 py-3 text-lg rounded-xl bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none"
                 aria-label="Buscar en el catálogo"
               />
             </div>
             {resultados.length > 0 && (
+              compacto ? (
+                <ul className="border-t border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+                  {resultados.map((s) => {
+                    const sinStock = venta.disponible(s) - venta.enCarrito(s.id) <= 0;
+                    return (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          disabled={sinStock}
+                          onClick={() => {
+                            if (venta.agregar(s)) setBusqueda("");
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left active:bg-blue-50 dark:active:bg-blue-900/20 disabled:opacity-40 cursor-pointer"
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-medium text-gray-900 dark:text-gray-100 truncate">{s.nombreServicio}</span>
+                            <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {[s.sku || s.codigoBarras, venta.inventario && s.controlaStock ? `${s.stockActual} en stock` : null].filter(Boolean).join(" · ")}
+                            </span>
+                          </span>
+                          <span className="font-bold tabular-nums text-blue-700 dark:text-blue-400 shrink-0">{formatearMoneda(s.precioBase, moneda)}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
               <div className="border-t border-gray-100 dark:border-gray-800 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-xs uppercase tracking-wider text-gray-400">
@@ -164,6 +196,7 @@ export default function VentaFactura() {
                 </table>
                 <p className="px-4 py-1.5 text-[11px] text-gray-400">↑↓ elegir · Enter agregar · 3*código = 3 unidades</p>
               </div>
+              )
             )}
           </section>
 
@@ -172,6 +205,67 @@ export default function VentaFactura() {
             {carrito.length === 0 ? (
               <p className="py-10 text-center text-gray-400 dark:text-gray-600">La factura está vacía. Busca un producto arriba.</p>
             ) : (
+              compacto ? (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {carrito.map((l) => {
+                    const precio = l.precio ?? l.servicio.precioBase;
+                    const modificado = l.precio !== undefined && l.precio !== l.servicio.precioBase;
+                    const bajoCosto = l.servicio.costoBase != null && precio < l.servicio.costoBase;
+                    return (
+                      <li key={l.servicio.id} className="p-3.5 space-y-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[15px] text-gray-900 dark:text-gray-100">{l.servicio.nombreServicio}</p>
+                            <p className="text-xs text-gray-400">{l.servicio.sku || l.servicio.codigoBarras || ""}</p>
+                          </div>
+                          <button type="button" onClick={() => venta.quitar(l.servicio.id)} className="w-9 h-9 -mt-1 -mr-1.5 flex items-center justify-center text-gray-400 hover:text-red-500 cursor-pointer" title="Quitar" aria-label="Quitar">
+                            <FaTimes />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-[1fr_1fr] gap-2.5">
+                          <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                            Cantidad
+                            <input
+                              type="number"
+                              min={0}
+                              inputMode={l.servicio.permiteDecimales ? "decimal" : "numeric"}
+                              step={l.servicio.permiteDecimales ? "any" : 1}
+                              value={l.cantidad}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value);
+                                if (!isNaN(v)) venta.cambiarCantidad(l.servicio.id, l.servicio.permiteDecimales ? v : Math.round(v));
+                              }}
+                              className="mt-1 w-full h-11 text-right px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent tabular-nums text-base font-medium normal-case text-gray-900 dark:text-gray-100"
+                            />
+                          </label>
+                          <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                            Precio unit.
+                            <CampoMontoNumero
+                              moneda={moneda}
+                              valor={precio}
+                              onValor={(v) => venta.fijarPrecio(l.servicio.id, v === null ? undefined : v === l.servicio.precioBase ? undefined : v)}
+                              className={`mt-1 w-full h-11 text-right px-3 rounded-lg border bg-transparent tabular-nums text-base font-medium normal-case text-gray-900 dark:text-gray-100 ${
+                                bajoCosto ? "border-red-400 text-red-600" : modificado ? "border-amber-400" : "border-gray-300 dark:border-gray-700"
+                              }`}
+                            />
+                          </label>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-xs">
+                            {modificado && (
+                              <button type="button" onClick={() => venta.fijarPrecio(l.servicio.id, undefined)} className="text-amber-600 underline cursor-pointer">
+                                volver al precio de lista ({formatearMoneda(l.servicio.precioBase, moneda)})
+                              </button>
+                            )}
+                            {bajoCosto && <span className="text-red-500 block">Por debajo del costo</span>}
+                          </span>
+                          <span className="font-extrabold tabular-nums text-base">{formatearMoneda(precio * l.cantidad, moneda)}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
@@ -237,6 +331,7 @@ export default function VentaFactura() {
                   </tbody>
                 </table>
               </div>
+              )
             )}
           </section>
         </div>
@@ -275,7 +370,7 @@ export default function VentaFactura() {
               </p>
             ))}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 max-lg:hidden">
             <Button variant="secondary" size="lg" onClick={() => venta.ponerEnEspera() && enfocar()} disabled={!hayItems || ocupado} leftIcon={<FaSave />}>
               Cotización
             </Button>
@@ -283,12 +378,27 @@ export default function VentaFactura() {
               Facturar
             </Button>
           </div>
-          <p className="text-[11px] text-gray-400 flex justify-between">
+          <p className="text-[11px] text-gray-400 flex justify-between max-lg:hidden">
             <span><Kbd combo="F5" /> guardar</span>
             <span><Kbd combo="F9" /> facturar</span>
           </p>
         </aside>
       </div>
+
+      {compacto && hayItems && (
+        <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 px-4 sm:px-6 pt-2.5 pb-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-xl font-extrabold tabular-nums leading-tight">{formatearMoneda(totales.total, moneda)}</p>
+          </div>
+          <Button variant="secondary" onClick={() => venta.ponerEnEspera()} disabled={ocupado} aria-label="Guardar como cotización" title="Guardar como cotización">
+            <FaSave />
+          </Button>
+          <Button variant="whatsapp" size="lg" onClick={venta.cobrar} isLoading={venta.guardando} disabled={ocupado}>
+            Facturar
+          </Button>
+        </div>
+      )}
 
       <VentaModales
         venta={venta}

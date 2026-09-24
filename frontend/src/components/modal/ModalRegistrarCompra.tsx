@@ -103,10 +103,10 @@ export default function ModalRegistrarCompra({
   const restante = pago === "ABONO" ? Math.max(0, total - (parsearMonto(abono, monedaPrincipal) || 0)) : pago === "CREDITO" ? total : 0;
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92dvh] flex flex-col overflow-hidden">
       <ModalEncabezado icono={<FaBoxOpen />} titulo="Registrar compra" subtitulo={`Proveedor: ${proveedor.nombre}`} onClose={onClose} />
 
-      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+      <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-6">
         <Seccion titulo="Productos comprados">
           <div className="grid grid-cols-[1fr_84px_100px_auto] gap-2 items-end">
             <Campo etiqueta="Producto">

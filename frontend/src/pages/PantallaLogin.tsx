@@ -93,16 +93,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-4 transition-colors duration-300">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-dvh flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-3 sm:p-4 transition-colors duration-300">
+      <div className="absolute top-4 right-4 z-10">
         <SelectorTema />
       </div>
-      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden w-full max-w-6xl md:min-h-[560px] md:h-[80vh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
+      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden w-full max-w-6xl md:min-h-[560px] md:h-[80dvh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
         <PanelMarca nombre={marca.nombreNegocio} rubro={marca.rubro} />
 
-        <div className="p-8 sm:p-12 w-full md:w-1/2 flex flex-col justify-center bg-white dark:bg-gray-900 transition-colors">
-          <h2 className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">Bienvenido de nuevo</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-[15px]">
+        <div className="p-6 sm:p-12 w-full md:w-1/2 flex flex-col justify-center bg-white dark:bg-gray-900 transition-colors">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">Bienvenido de nuevo</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 text-[15px]">
             Accede a tu cuenta para gestionar tu negocio.
           </p>
 

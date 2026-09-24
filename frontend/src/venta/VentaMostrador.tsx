@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useMonedas } from "../context/useMonedas";
+import { useEsCompacto } from "../hooks/useMediaQuery";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
@@ -50,6 +51,7 @@ export default function VentaMostrador() {
   const { config } = useConfiguracion();
   const et = useEtiquetas();
   const negocio = useMonedas();
+  const compacto = useEsCompacto();
   const inventario = !!config?.moduloInventario;
   const clienteObligatorio = config?.clienteObligatorio !== false;
   const moneda: Moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
@@ -97,6 +99,11 @@ export default function VentaMostrador() {
       .then((r) => setCajaCerrada(!r.data.abierta))
       .catch(() => setCajaCerrada(false));
   }, [config?.moduloCaja, ordenACobrar]);
+
+  // En teléfono no se devuelve el foco al buscador: abriría el teclado tras cada toque.
+  const enfocar = () => {
+    if (!compacto) buscador.current?.focus();
+  };
 
   const disponible = (s: Servicio) => (inventario && s.controlaStock ? s.stockActual : Infinity);
 
@@ -181,7 +188,7 @@ export default function VentaMostrador() {
     setCliente(null);
     setDescuento(null);
     setBusqueda("");
-    buscador.current?.focus();
+    enfocar();
   };
 
   const cobrar = async () => {
@@ -216,9 +223,9 @@ export default function VentaMostrador() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-4">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaCashRegister className="text-blue-600" /> Nueva {et.ordenMin}
         </h1>
         {cajaCerrada && (
@@ -231,22 +238,23 @@ export default function VentaMostrador() {
         )}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-6 items-start">
+      <div className="grid lg:grid-cols-[1fr_380px] gap-4 sm:gap-6 items-start">
         <section className="space-y-4">
           <div className="relative">
             <FaBarcode className="absolute top-3.5 left-4 text-gray-400" />
             <input
               ref={buscador}
-              autoFocus
+              autoFocus={!compacto}
+              enterKeyHint="search"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               onKeyDown={alEnter}
-              placeholder="Escanea el código de barras o busca por nombre / SKU…"
-              className="w-full pl-11 pr-4 py-3 text-lg rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={compacto ? "Busca por nombre o código" : "Escanea el código de barras o busca por nombre / SKU…"}
+              className="w-full pl-11 pr-4 py-3 text-base sm:text-lg rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
             {filtrados.map((s) => {
               const sinStock = disponible(s) - enCarrito(s.id) <= 0;
               return (
@@ -256,13 +264,13 @@ export default function VentaMostrador() {
                   disabled={sinStock}
                   onClick={() => {
                     agregar(s);
-                    buscador.current?.focus();
+                    enfocar();
                   }}
-                  className="text-left p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-blue-400 hover:shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-left p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-blue-400 hover:shadow-sm active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{s.nombreServicio}</p>
-                  <div className="flex items-end justify-between mt-2">
-                    <span className="text-lg font-bold text-indigo-700 dark:text-indigo-400">
+                  <div className="flex flex-wrap items-end justify-between gap-x-2 mt-2">
+                    <span className="text-base sm:text-lg font-bold text-indigo-700 dark:text-indigo-400">
                       {formatearMoneda(s.precioBase, moneda)}
                     </span>
                     {inventario && s.controlaStock && (
@@ -288,7 +296,7 @@ export default function VentaMostrador() {
           </div>
         </section>
 
-        <aside className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-5 space-y-4 lg:sticky lg:top-4">
+        <aside id="carrito-venta" className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-4 sm:p-5 space-y-4 lg:sticky lg:top-4 scroll-mt-4">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs uppercase font-semibold text-gray-500 dark:text-gray-400">
@@ -314,22 +322,22 @@ export default function VentaMostrador() {
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2 max-h-[45vh] overflow-y-auto">
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2 max-h-[45dvh] overflow-y-auto">
             {carrito.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">
                 El carrito está vacío. Escanea o elige un producto.
               </p>
             )}
             {carrito.map((l) => (
-              <div key={l.servicio.id} className="flex items-center gap-2 text-sm">
-                <div className="flex-1 min-w-0">
+              <div key={l.servicio.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+                <div className="basis-full sm:basis-0 sm:flex-1 min-w-0">
                   <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{l.servicio.nombreServicio}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{formatearMoneda(l.servicio.precioBase, moneda)} c/u</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="w-7 h-7 rounded-md border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center"
+                    className="w-9 h-9 sm:w-7 sm:h-7 rounded-md border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center cursor-pointer active:bg-gray-100 dark:active:bg-gray-800"
                     onClick={() => cambiarCantidad(l.servicio.id, l.cantidad - 1)}
                   >
                     <FaMinus size={9} />
@@ -343,17 +351,17 @@ export default function VentaMostrador() {
                       const v = parseFloat(e.target.value);
                       if (!isNaN(v)) cambiarCantidad(l.servicio.id, l.servicio.permiteDecimales ? v : Math.round(v));
                     }}
-                    className="w-14 text-center py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100"
+                    className="w-16 sm:w-14 h-9 sm:h-auto text-center sm:py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100"
                   />
                   <button
                     type="button"
-                    className="w-7 h-7 rounded-md border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center"
+                    className="w-9 h-9 sm:w-7 sm:h-7 rounded-md border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center cursor-pointer active:bg-gray-100 dark:active:bg-gray-800"
                     onClick={() => cambiarCantidad(l.servicio.id, l.cantidad + 1)}
                   >
                     <FaPlus size={9} />
                   </button>
                 </div>
-                <p className="w-20 text-right font-semibold text-gray-800 dark:text-gray-200">
+                <p className="ml-auto sm:w-20 text-right font-semibold tabular-nums text-gray-800 dark:text-gray-200">
                   {formatearMoneda(l.servicio.precioBase * l.cantidad, moneda)}
                 </p>
               </div>
@@ -364,7 +372,7 @@ export default function VentaMostrador() {
             {carrito.length > 0 && <DescuentoControl value={descuento} onChange={setDescuento} disabled={guardando} />}
             <DesgloseTotales totales={totales} moneda={moneda} tamano="lg" />
             {negocio.otrasUsables
-                            .map((m) => (
+              .map((m) => (
                 <p key={m} className="text-right text-xs text-gray-500 dark:text-gray-400">
                   {formatearMoneda(convertirDesdePrincipal(totalRedondeado, m, tasas, moneda), m)}
                 </p>
@@ -375,12 +383,30 @@ export default function VentaMostrador() {
             <Button variant="ghost" size="lg" onClick={vaciar} disabled={carrito.length === 0 && !cliente}>
               Vaciar
             </Button>
-            <Button className="flex-1" size="lg" variant="whatsapp" onClick={cobrar} isLoading={guardando} disabled={carrito.length === 0}>
+            <Button className="flex-1 max-lg:hidden" size="lg" variant="whatsapp" onClick={cobrar} isLoading={guardando} disabled={carrito.length === 0}>
               Cobrar
             </Button>
           </div>
         </aside>
       </div>
+
+      {compacto && carrito.length > 0 && (
+        <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 px-4 sm:px-6 pt-2.5 pb-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => document.getElementById("carrito-venta")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="min-w-0 flex-1 text-left cursor-pointer"
+          >
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              {carrito.reduce((n, l) => n + l.cantidad, 0)} en el carrito · ver
+            </p>
+            <p className="text-xl font-extrabold tabular-nums leading-tight">{formatearMoneda(totalRedondeado, moneda)}</p>
+          </button>
+          <Button variant="whatsapp" size="lg" onClick={cobrar} isLoading={guardando}>
+            Cobrar
+          </Button>
+        </div>
+      )}
 
       {verClientes && (
         <ListaClientesModal

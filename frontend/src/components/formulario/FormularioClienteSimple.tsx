@@ -90,7 +90,7 @@ export default function FormularioClienteSimple({ cliente, onClose, onSubmit }: 
   const error = (clave: string) => errores[clave];
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92vh] overflow-hidden flex flex-col">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92dvh] overflow-hidden flex flex-col">
       <ModalEncabezado
         icono={<FaUserEdit />}
         titulo={cliente ? `Editar ${t("clienteUno").toLowerCase()}` : `Nuevo ${t("clienteUno").toLowerCase()}`}
@@ -98,7 +98,7 @@ export default function FormularioClienteSimple({ cliente, onClose, onSubmit }: 
         onClose={onClose}
       />
 
-      <form id="cliente-simple-form" onSubmit={guardar} className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
+      <form id="cliente-simple-form" onSubmit={guardar} className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-5">
         <Campo etiqueta="Nombre o razón social" error={error("nombre")}>
           <input className={`${campo} ${error("nombre") ? campoError : ""}`} value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus placeholder="Ej. María Pérez" />
         </Campo>

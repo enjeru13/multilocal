@@ -209,14 +209,14 @@ export default function PantallaServicios() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <TableSkeleton rows={10} cols={5} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{et.servicios}</h1>
 
@@ -247,15 +247,15 @@ export default function PantallaServicios() {
       </div>
 
       <div className="mb-5 flex items-center gap-3 font-semibold">
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full sm:w-auto">
           <label
             htmlFor="filtroBusquedaServicio"
             className="text-xs text-gray-500 dark:text-gray-400 mb-1"
           >
             {inventario ? "Buscar por nombre, código o categoría" : "Buscar por Nombre, Descripción o Categoría"}
           </label>
-          <div className="relative w-72">
-            <FaSearch className="absolute top-2.5 left-3 text-gray-400 dark:text-gray-500" />
+          <div className="relative w-full sm:w-72">
+            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               id="filtroBusquedaServicio"

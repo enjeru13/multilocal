@@ -10,6 +10,7 @@ import type {
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import Button from "../ui/Button";
+import TarjetaRegistro from "../ui/TarjetaRegistro";
 import { nombreCliente } from "../../utils/clienteHelpers";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
@@ -66,7 +67,53 @@ export default function TablaPagos({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
+    <>
+    <div className="md:hidden space-y-2.5">
+      <label className="flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+        Moneda
+        <select
+          value={monedaFiltro}
+          onChange={(e) => setMonedaFiltro(e.target.value as Moneda | "TODAS")}
+          className="h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200"
+        >
+          <option value="TODAS">Todas</option>
+          {negocio.activas.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </label>
+      <ul className="space-y-2.5">
+        {pagos.length === 0 && <li className="text-center text-sm text-gray-500 dark:text-gray-400 italic py-8">No se encontraron pagos registrados.</li>}
+        {pagos.map((pago) => (
+          <TarjetaRegistro
+            key={pago.id}
+            onClick={cargandoOrdenDetalle ? undefined : () => onVerDetallesOrden(pago.ordenId)}
+            titulo={
+              <>
+                <span className="text-blue-700 dark:text-blue-400 mr-1.5">#{pago.ordenId}</span>
+                {nombreCliente(pago.orden?.cliente)}
+              </>
+            }
+            subtitulo={`${dayjs(pago.fechaPago).format("DD MMM YYYY")} · ${metodoPagoDisplay[pago.metodoPago]}`}
+            destacado={
+              <span className={pago.monto < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"}>
+                {formatearMoneda(pago.monto, pago.moneda)}
+              </span>
+            }
+            datos={[
+              ...(pago.moneda !== monedaPrincipal
+                ? [{ k: `En ${monedaPrincipal}`, v: "≈ " + formatearMoneda(calcularTotalAbonado([{ ...pago, tasa: pago.tasa ?? null, vueltos: [] }], tasas, monedaPrincipal), monedaPrincipal) }]
+                : []),
+              ...(pago.vueltos ?? []).map((v) => ({ k: "Vuelto", v: formatearMoneda(v.monto, v.moneda as Moneda) })),
+            ]}
+          />
+        ))}
+      </ul>
+    </div>
+
+    <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
       <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
         <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
           <tr className="text-left">
@@ -208,5 +255,6 @@ export default function TablaPagos({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

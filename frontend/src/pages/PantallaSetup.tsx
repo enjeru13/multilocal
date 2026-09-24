@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import type { IconType } from "react-icons";
 import {
@@ -11,6 +11,13 @@ import {
   FaCogs,
   FaShoppingBasket,
   FaCoins,
+  FaBoxes,
+  FaTruck,
+  FaCashRegister,
+  FaCalendarAlt,
+  FaAddressCard,
+  FaUserCheck,
+  FaPercent,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
@@ -21,12 +28,10 @@ import { configuracionService } from "../services/configuracionService";
 import { RUBRO_PRESETS } from "../constants/rubroPresets";
 import { experienciaDe } from "../experiencia/experiencias";
 import { parsearTasa, monedasActivas as monedasActivasDe } from "../utils/monedaHelpers";
-import type {
-  Moneda,
-  Rubro,
-  Terminologia,
-} from "@lavanderia/shared/types/types";
+import type { Moneda, Rubro, Terminologia } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
+import Interruptor from "../components/ui/Interruptor";
+import { Campo, campo } from "../components/ui/Formulario";
 import SelectorMonedas from "../components/ui/SelectorMonedas";
 import PanelMarca from "../components/PanelMarca";
 import SelectorTema from "../components/ui/SelectorTema";
@@ -39,41 +44,38 @@ const ICONOS: Record<Rubro, IconType> = {
   GENERICO: FaStore,
 };
 
-const campo =
-  "w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-base text-gray-900 dark:text-gray-100";
-const etiqueta =
-  "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5";
+const PASOS = [
+  { titulo: "Tu cuenta", corto: "Cuenta" },
+  { titulo: "Tu negocio", corto: "Negocio" },
+  { titulo: "Dinero y módulos", corto: "Dinero" },
+] as const;
 
-const PASOS = ["Tu cuenta", "Tu negocio", "Dinero y módulos"] as const;
-
-function Interruptor({
-  activo,
-  onChange,
-  titulo,
-  detalle,
-}: {
-  activo: boolean;
-  onChange: (v: boolean) => void;
-  titulo: string;
-  detalle: string;
-}) {
+/** Encabezado de cada paso: recuadro con icono, título y una línea que explica para qué sirve. */
+function EncabezadoPaso({ icono, titulo, detalle }: { icono: ReactNode; titulo: string; detalle: string }) {
   return (
-    <label className="flex items-center justify-between gap-4 py-2 cursor-pointer">
-      <span>
-        <span className="block text-sm font-medium text-gray-800 dark:text-gray-200">
-          {titulo}
-        </span>
-        <span className="block text-xs text-gray-500 dark:text-gray-400">
-          {detalle}
-        </span>
-      </span>
-      <input
-        type="checkbox"
-        checked={activo}
-        onChange={(e) => onChange(e.target.checked)}
-        className="accent-blue-600 w-5 h-5 shrink-0 cursor-pointer"
-      />
-    </label>
+    <div className="flex items-center gap-3.5">
+      <span className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shrink-0">{icono}</span>
+      <div className="min-w-0">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{titulo}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{detalle}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Bloque con título, explicación y contenido: separa las decisiones de cada paso. */
+function Bloque({ titulo, detalle, opcional, children }: { titulo: string; detalle?: string; opcional?: boolean; children: ReactNode }) {
+  return (
+    <section>
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{titulo}</h3>
+          {detalle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{detalle}</p>}
+        </div>
+        {opcional && <span className="text-[11px] text-gray-400 shrink-0">Opcional</span>}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -108,9 +110,7 @@ export default function PantallaSetup() {
   const [moduloFechaEntrega, setModuloFechaEntrega] = useState(true);
   const [moduloClienteTipo, setModuloClienteTipo] = useState(true);
   const [clienteObligatorio, setClienteObligatorio] = useState(true);
-  const [terminologia, setTerminologia] = useState<Required<Terminologia>>(
-    RUBRO_PRESETS.GENERICO.terminologia,
-  );
+  const [terminologia, setTerminologia] = useState<Required<Terminologia>>(RUBRO_PRESETS.GENERICO.terminologia);
   const [moneda, setMoneda] = useState<Moneda>("USD");
   const [monedasActivas, setMonedasActivas] = useState<Moneda[]>(["USD", "VES", "COP"]);
   const [tasaVES, setTasaVES] = useState("");
@@ -141,26 +141,18 @@ export default function PantallaSetup() {
     };
   }, [acento]);
 
-  const emailValido = useMemo(
-    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
-    [email],
-  );
+  const emailValido = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email]);
 
   const avanzar = () => {
     if (paso === 0) {
-      if (!nombre.trim() || !email.trim() || !password)
-        return toast.error("Completa nombre, correo y contraseña.");
-      if (!emailValido)
-        return toast.error("El correo no tiene un formato válido.");
-      if (password.length < 6)
-        return toast.error("La contraseña debe tener al menos 6 caracteres.");
-      if (password !== confirmPassword)
-        return toast.error("Las contraseñas no coinciden.");
+      if (!nombre.trim() || !email.trim() || !password) return toast.error("Completa nombre, correo y contraseña.");
+      if (!emailValido) return toast.error("El correo no tiene un formato válido.");
+      if (password.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres.");
+      if (password !== confirmPassword) return toast.error("Las contraseñas no coinciden.");
       return setPaso(1);
     }
     if (paso === 1) {
-      if (!nombreNegocio.trim())
-        return toast.error("Indica el nombre del negocio.");
+      if (!nombreNegocio.trim()) return toast.error("Indica el nombre del negocio.");
       if (!rubro) return toast.error("Elige a qué se dedica el negocio.");
       return setPaso(2);
     }
@@ -183,9 +175,7 @@ export default function PantallaSetup() {
 
       const loginOk = await login({ email: email.trim(), password });
       if (!loginOk) {
-        toast.error(
-          "Cuenta creada, pero el inicio de sesión automático falló. Inicia sesión manualmente.",
-        );
+        toast.error("Cuenta creada, pero el inicio de sesión automático falló. Inicia sesión manualmente.");
         navigate("/login");
         return;
       }
@@ -219,24 +209,15 @@ export default function PantallaSetup() {
       navigate("/");
     } catch (error) {
       console.error("Error en el setup inicial:", error);
-      const mensaje = isAxiosError(error)
-        ? error.response?.data?.message
-        : null;
-      toast.error(
-        mensaje ??
-          "Ocurrió un error al configurar el sistema. Intenta de nuevo.",
-      );
+      const mensaje = isAxiosError(error) ? error.response?.data?.message : null;
+      toast.error(mensaje ?? "Ocurrió un error al configurar el sistema. Intenta de nuevo.");
     } finally {
       setEnviando(false);
     }
   };
 
   const enter = (e: React.KeyboardEvent) => {
-    if (
-      e.key === "Enter" &&
-      paso < 2 &&
-      (e.target as HTMLElement).tagName === "INPUT"
-    ) {
+    if (e.key === "Enter" && paso < 2 && (e.target as HTMLElement).tagName === "INPUT") {
       e.preventDefault();
       avanzar();
     }
@@ -245,111 +226,56 @@ export default function PantallaSetup() {
   const conVistaPrevia = paso >= 1 && rubro;
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-4">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-dvh flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-0 sm:p-4">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
         <SelectorTema />
       </div>
-      <div className="w-full max-w-6xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col md:flex-row md:min-h-150">
-        <div className="hidden lg:flex lg:w-[34%]">
-          <PanelMarca
-            nombre={nombreNegocio || null}
-            rubro={rubro}
-            className="w-full"
-          />
+      <div className="w-full max-w-7xl bg-white dark:bg-gray-900 sm:rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-clip flex flex-col lg:flex-row min-h-dvh sm:min-h-150 sm:my-8">
+        <div className="lg:flex lg:w-[30%] shrink-0">
+          <PanelMarca nombre={nombreNegocio || null} rubro={rubro} className="w-full" />
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col" onKeyDown={enter}>
-          <div className="px-8 pt-7 pb-5 border-b border-gray-200 dark:border-gray-800">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Configuración inicial
-            </h1>
-            <ol className="flex items-center gap-2 mt-4 text-xs font-semibold">
+          <header className="px-5 sm:px-8 pt-6 pb-5 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-baseline justify-between gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 pr-24 sm:pr-0">Configuración inicial</h1>
+              <span className="text-xs font-medium text-gray-400 shrink-0 max-sm:hidden">
+                Paso {paso + 1} de {PASOS.length}
+              </span>
+            </div>
+            <ol className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
               {PASOS.map((p, i) => (
-                <li key={p} className="flex items-center gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                      i < paso
-                        ? "bg-blue-600 text-white"
-                        : i === paso
-                          ? "bg-blue-600 text-white ring-4 ring-blue-500/20"
-                          : "bg-gray-200 dark:bg-gray-800 text-gray-500"
-                    }`}
-                  >
-                    {i < paso ? <FaCheck size={9} /> : i + 1}
+                <li key={p.titulo} aria-current={i === paso ? "step" : undefined}>
+                  <span className={`block h-1.5 rounded-full transition-colors ${i <= paso ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-800"}`} />
+                  <span className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${i === paso ? "text-gray-900 dark:text-gray-100" : i < paso ? "text-blue-600 dark:text-blue-400" : "text-gray-400"}`}>
+                    {i < paso ? <FaCheck size={9} /> : <span className="tabular-nums">{i + 1}.</span>}
+                    <span className="sm:hidden">{p.corto}</span>
+                    <span className="max-sm:hidden">{p.titulo}</span>
                   </span>
-                  <span
-                    className={
-                      i === paso
-                        ? "text-gray-900 dark:text-gray-100"
-                        : "text-gray-400"
-                    }
-                  >
-                    {p}
-                  </span>
-                  {i < PASOS.length - 1 && (
-                    <span className="w-6 h-px bg-gray-300 dark:bg-gray-700" />
-                  )}
                 </li>
               ))}
             </ol>
-          </div>
+          </header>
 
-          <div
-            className={`flex-1 p-8 grid gap-8 ${conVistaPrevia ? "xl:grid-cols-[1fr_320px]" : ""}`}
-          >
-            <div className="space-y-5 min-w-0">
+          <div className={`flex-1 px-5 sm:px-8 py-6 sm:py-7 grid gap-8 content-start ${conVistaPrevia ? "xl:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+            <div className="@container space-y-7 min-w-0 max-w-2xl">
               {paso === 0 && (
                 <>
-                  <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
-                    <FaUserShield size={22} />
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      Cuenta de administrador
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Con esta cuenta manejarás el sistema. Después podrás crear
-                    usuarios para tu equipo.
-                  </p>
-                  <div>
-                    <label className={etiqueta}>Tu nombre</label>
-                    <input
-                      className={campo}
-                      value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
-                      placeholder="Ej. María Pérez"
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <label className={etiqueta}>Correo electrónico</label>
-                    <input
-                      type="email"
-                      className={campo}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="tu@email.com"
-                    />
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={etiqueta}>Contraseña</label>
-                      <input
-                        type="password"
-                        className={campo}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
-                      />
-                    </div>
-                    <div>
-                      <label className={etiqueta}>Confirmar contraseña</label>
-                      <input
-                        type="password"
-                        className={campo}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Repite la contraseña"
-                      />
+                  <EncabezadoPaso icono={<FaUserShield />} titulo="Cuenta de administrador" detalle="Con ella manejarás el sistema y crearás las cuentas de tu equipo." />
+                  <div className="space-y-4">
+                    <Campo etiqueta="Tu nombre">
+                      <input className={campo} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. María Pérez" autoComplete="name" autoFocus />
+                    </Campo>
+                    <Campo etiqueta="Correo electrónico">
+                      <input type="email" className={campo} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" autoComplete="email" />
+                    </Campo>
+                    <div className="grid @xl:grid-cols-2 gap-4">
+                      <Campo etiqueta="Contraseña" ayuda="Mínimo 6 caracteres.">
+                        <input type="password" className={campo} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                      </Campo>
+                      <Campo etiqueta="Confirmar contraseña">
+                        <input type="password" className={campo} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+                      </Campo>
                     </div>
                   </div>
                 </>
@@ -357,25 +283,14 @@ export default function PantallaSetup() {
 
               {paso === 1 && (
                 <>
-                  <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
-                    <FaStore size={22} />
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      Sobre tu negocio
-                    </h2>
-                  </div>
-                  <div>
-                    <label className={etiqueta}>Nombre del negocio</label>
-                    <input
-                      className={campo}
-                      value={nombreNegocio}
-                      onChange={(e) => setNombreNegocio(e.target.value)}
-                      placeholder="Ej. Mi Negocio C.A."
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <label className={etiqueta}>¿A qué se dedica?</label>
-                    <div className="grid sm:grid-cols-2 gap-3">
+                  <EncabezadoPaso icono={<FaStore />} titulo="Sobre tu negocio" detalle="Con esto el sistema se adapta a lo que vendes." />
+
+                  <Bloque titulo="Nombre del negocio">
+                    <input className={campo} value={nombreNegocio} onChange={(e) => setNombreNegocio(e.target.value)} placeholder="Ej. Mi Negocio C.A." autoFocus />
+                  </Bloque>
+
+                  <Bloque titulo="¿A qué se dedica?" detalle="Prepara el menú, los términos y los módulos. Puedes cambiarlo después en Configuración.">
+                    <div role="radiogroup" aria-label="Rubro" className="grid @xl:grid-cols-2 gap-3">
                       {(Object.keys(RUBRO_PRESETS) as Rubro[]).map((r) => {
                         const p = RUBRO_PRESETS[r];
                         const Icono = ICONOS[r];
@@ -384,78 +299,48 @@ export default function PantallaSetup() {
                           <button
                             key={r}
                             type="button"
+                            role="radio"
+                            aria-checked={activo}
                             onClick={() => elegirRubro(r)}
-                            className={`text-left p-4 rounded-xl border transition-colors cursor-pointer ${
-                              activo
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500"
-                                : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            className={`relative h-full flex items-start gap-3.5 text-left p-4 rounded-xl border transition-colors cursor-pointer ${
+                              activo ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 ring-1 ring-blue-500" : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                             }`}
                           >
-                            <span className="flex items-center gap-2.5 font-semibold text-gray-900 dark:text-gray-100">
-                              <Icono
-                                className={
-                                  activo
-                                    ? "text-blue-600 dark:text-blue-400"
-                                    : "text-gray-400"
-                                }
-                              />
-                              {p.label}
+                            <span className={`w-10 h-10 rounded-lg flex items-center justify-center text-base shrink-0 ${activo ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
+                              <Icono />
                             </span>
-                            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                              {p.descripcion}
+                            <span className="min-w-0 flex-1 pr-5">
+                              <span className="block font-semibold text-gray-900 dark:text-gray-100 leading-tight">{p.label}</span>
+                              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">{p.descripcion}</span>
+                            </span>
+                            <span className={`absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center ${activo ? "bg-blue-600 text-white" : "border border-gray-300 dark:border-gray-600"}`}>
+                              {activo && <FaCheck size={9} />}
                             </span>
                           </button>
                         );
                       })}
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                      Puedes cambiarlo cuando quieras en Configuración.
-                    </p>
-                  </div>
-                  <details className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-                    <summary className="text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                      Datos para tus recibos (opcional)
-                    </summary>
-                    <div className="grid sm:grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <label className={etiqueta}>
-                          RIF / NIT / documento fiscal
-                        </label>
-                        <input
-                          className={campo}
-                          value={rif}
-                          onChange={(e) => setRif(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className={etiqueta}>Teléfono</label>
-                        <input
-                          className={campo}
-                          value={telefono}
-                          onChange={(e) => setTelefono(e.target.value)}
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={etiqueta}>Dirección</label>
-                        <input
-                          className={campo}
-                          value={direccion}
-                          onChange={(e) => setDireccion(e.target.value)}
-                        />
-                      </div>
+                  </Bloque>
+
+                  <Bloque titulo="Datos para tus recibos" detalle="Salen en el encabezado de recibos y facturas. Puedes completarlos después." opcional>
+                    <div className="grid @xl:grid-cols-2 gap-4">
+                      <Campo etiqueta="RIF / NIT / documento fiscal">
+                        <input className={campo} value={rif} onChange={(e) => setRif(e.target.value)} placeholder="J-12345678-9" />
+                      </Campo>
+                      <Campo etiqueta="Teléfono">
+                        <input className={campo} type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="0414-1234567" />
+                      </Campo>
+                      <Campo etiqueta="Dirección" className="@xl:col-span-2">
+                        <input className={campo} value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, sector, ciudad" />
+                      </Campo>
                     </div>
-                  </details>
+                  </Bloque>
                 </>
               )}
 
               {paso === 2 && (
                 <>
-                  <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
-                    <FaCoins size={22} />
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      Dinero y módulos
-                    </h2>
-                  </div>
+                  <EncabezadoPaso icono={<FaCoins />} titulo="Dinero y módulos" detalle={`Ya vienen elegidos para ${preset.label.toLowerCase()}; ajústalos si lo necesitas.`} />
 
                   <SelectorMonedas
                     principal={moneda}
@@ -468,95 +353,50 @@ export default function PantallaSetup() {
                       setTasaCOP(t.COP);
                     }}
                   />
-                  <p className="text-xs text-gray-400 -mt-2">Las tasas puedes dejarlas para después: sin ellas solo podrás cobrar en la moneda principal.</p>
+                  {monedasActivas.length > 1 && <p className="text-xs text-gray-400 -mt-4">Las tasas puedes dejarlas para después: sin ellas solo podrás cobrar en la moneda principal.</p>}
 
-                  <div className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-2 divide-y divide-gray-100 dark:divide-gray-800">
-                    <Interruptor
-                      activo={impuestoActivo}
-                      onChange={setImpuestoActivo}
-                      titulo="Cobro impuesto (IVA)"
-                      detalle="Se calcula solo en cada venta y se muestra desglosado."
-                    />
-                    {impuestoActivo && (
-                      <div className="py-3 grid sm:grid-cols-[1fr_120px] gap-3 items-end">
-                        <div>
-                          <label className={etiqueta}>Nombre</label>
-                          <input
-                            className={campo}
-                            value={impuestoNombre}
-                            onChange={(e) => setImpuestoNombre(e.target.value)}
-                            maxLength={20}
-                          />
-                        </div>
-                        <div>
-                          <label className={etiqueta}>Tasa %</label>
-                          <input
-                            className={campo}
-                            inputMode="decimal"
-                            value={impuestoTasa}
-                            onChange={(e) => setImpuestoTasa(e.target.value)}
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Interruptor
-                            activo={preciosIncluyen}
-                            onChange={setPreciosIncluyen}
-                            titulo="Mis precios ya incluyen el impuesto"
-                            detalle="Si no, se suma encima del precio."
-                          />
-                        </div>
+                  <Bloque titulo="Impuesto">
+                    <div className={`rounded-xl border ${impuestoActivo ? "border-blue-500/60" : "border-gray-200 dark:border-gray-800"}`}>
+                      <div className="p-1">
+                        <Interruptor activo={impuestoActivo} onChange={setImpuestoActivo} icono={<FaPercent />} titulo="Cobro impuesto (IVA)" detalle="Se calcula solo en cada venta y se muestra desglosado." variante="fila" />
                       </div>
-                    )}
-                  </div>
+                      {impuestoActivo && (
+                        <div className="border-t border-gray-100 dark:border-gray-800 p-4 space-y-4">
+                          <div className="grid grid-cols-[1fr_7rem] gap-3">
+                            <Campo etiqueta="Nombre">
+                              <input className={campo} value={impuestoNombre} onChange={(e) => setImpuestoNombre(e.target.value)} maxLength={20} />
+                            </Campo>
+                            <Campo etiqueta="Tasa %">
+                              <input className={`${campo} text-right`} inputMode="decimal" value={impuestoTasa} onChange={(e) => setImpuestoTasa(e.target.value)} />
+                            </Campo>
+                          </div>
+                          <Interruptor activo={preciosIncluyen} onChange={setPreciosIncluyen} titulo="Mis precios ya incluyen el impuesto" detalle="Si lo apagas, se suma encima del precio." />
+                        </div>
+                      )}
+                    </div>
+                  </Bloque>
 
-                  <div className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-2 divide-y divide-gray-100 dark:divide-gray-800">
-                    <Interruptor
-                      activo={moduloInventario}
-                      onChange={setModuloInventario}
-                      titulo="Inventario"
-                      detalle="Existencias, mínimos y movimientos."
-                    />
-                    <Interruptor
-                      activo={moduloProveedores}
-                      onChange={setModuloProveedores}
-                      titulo="Proveedores y compras"
-                      detalle="Reposición y cuentas por pagar."
-                    />
-                    <Interruptor
-                      activo={moduloCaja}
-                      onChange={setModuloCaja}
-                      titulo="Caja"
-                      detalle="Apertura, egresos y cierre con arqueo."
-                    />
-                    <Interruptor
-                      activo={moduloFechaEntrega}
-                      onChange={setModuloFechaEntrega}
-                      titulo="Fecha de entrega"
-                      detalle="Para trabajos que se entregan después (tablero de órdenes)."
-                    />
-                    <Interruptor
-                      activo={moduloClienteTipo}
-                      onChange={setModuloClienteTipo}
-                      titulo="Ficha de cliente completa"
-                      detalle="Persona o empresa, documento y contactos."
-                    />
-                    <Interruptor
-                      activo={clienteObligatorio}
-                      onChange={setClienteObligatorio}
-                      titulo="Cliente obligatorio"
-                      detalle="Si está apagado, puedes vender sin registrar a nadie."
-                    />
-                  </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Ya vienen elegidos para {preset.label.toLowerCase()};
-                    ajústalos si lo necesitas.
-                  </p>
+                  <Bloque titulo="Qué necesitas controlar" detalle="Se pueden activar o apagar cuando quieras.">
+                    <div className="grid @xl:grid-cols-2 gap-3">
+                      <Interruptor variante="tarjeta" activo={moduloInventario} onChange={setModuloInventario} icono={<FaBoxes />} titulo="Inventario" detalle="Existencias, mínimos y movimientos." />
+                      <Interruptor variante="tarjeta" activo={moduloProveedores} onChange={setModuloProveedores} icono={<FaTruck />} titulo="Proveedores y compras" detalle="Reposición y cuentas por pagar." />
+                      <Interruptor variante="tarjeta" activo={moduloCaja} onChange={setModuloCaja} icono={<FaCashRegister />} titulo="Caja" detalle="Apertura, egresos y cierre con arqueo." />
+                      <Interruptor variante="tarjeta" activo={moduloFechaEntrega} onChange={setModuloFechaEntrega} icono={<FaCalendarAlt />} titulo="Fecha de entrega" detalle="Para trabajos que se entregan después." />
+                    </div>
+                  </Bloque>
+
+                  <Bloque titulo="Cómo tratas a tus clientes">
+                    <div className="grid @xl:grid-cols-2 gap-3">
+                      <Interruptor variante="tarjeta" activo={moduloClienteTipo} onChange={setModuloClienteTipo} icono={<FaAddressCard />} titulo="Ficha de cliente completa" detalle="Persona o empresa, documento y contactos." />
+                      <Interruptor variante="tarjeta" activo={clienteObligatorio} onChange={setClienteObligatorio} icono={<FaUserCheck />} titulo="Cliente obligatorio" detalle="Apagado, puedes vender sin registrar a nadie." />
+                    </div>
+                  </Bloque>
                 </>
               )}
             </div>
 
             {conVistaPrevia && rubro && (
-              <aside className="xl:sticky xl:top-6 self-start">
+              <aside className="xl:sticky xl:top-6 self-start min-w-0">
                 <VistaPreviaRubro
                   rubro={rubro}
                   nombre={nombreNegocio}
@@ -570,39 +410,24 @@ export default function PantallaSetup() {
             )}
           </div>
 
-          <div className="px-8 py-5 border-t border-gray-200 dark:border-gray-800 flex justify-between">
+          <footer className="sticky bottom-0 z-10 px-5 sm:px-8 py-4 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {paso > 0 ? (
-              <Button
-                onClick={() => setPaso((p) => (p - 1) as 0 | 1)}
-                variant="ghost"
-                leftIcon={<FaArrowLeft />}
-                disabled={enviando}
-              >
+              <Button onClick={() => setPaso((p) => (p - 1) as 0 | 1)} variant="ghost" leftIcon={<FaArrowLeft />} disabled={enviando}>
                 Atrás
               </Button>
             ) : (
               <span />
             )}
             {paso < 2 ? (
-              <Button
-                onClick={avanzar}
-                variant="primary"
-                rightIcon={<FaArrowRight />}
-              >
+              <Button onClick={avanzar} variant="primary" rightIcon={<FaArrowRight />}>
                 Siguiente
               </Button>
             ) : (
-              <Button
-                onClick={finalizar}
-                variant="primary"
-                isLoading={enviando}
-                disabled={enviando}
-                rightIcon={<FaCheck />}
-              >
+              <Button onClick={finalizar} variant="primary" isLoading={enviando} disabled={enviando} rightIcon={<FaCheck />}>
                 Empezar a usar el sistema
               </Button>
             )}
-          </div>
+          </footer>
         </div>
       </div>
     </div>

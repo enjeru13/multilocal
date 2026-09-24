@@ -57,6 +57,8 @@ export default function PantallaTablero() {
   const tasas = useMemo(() => ({ VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null }), [config]);
 
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  // En teléfono se ve una columna a la vez, con pestañas.
+  const [pestana, setPestana] = useState<Columna>("PENDIENTE");
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [entregaRapida, setEntregaRapida] = useState("");
@@ -145,14 +147,14 @@ export default function PantallaTablero() {
 
   if (cargando) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <TableSkeleton rows={6} cols={3} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -161,26 +163,26 @@ export default function PantallaTablero() {
           <p className="text-gray-500 dark:text-gray-400">Arrastra las tarjetas o usa los botones para avanzar cada {et.ordenMin}.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <form onSubmit={rapida} className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3 max-sm:w-full">
+          <form onSubmit={rapida} className="flex items-center gap-2 max-sm:w-full">
             <input
               ref={inputRapido}
               value={entregaRapida}
               onChange={(e) => setEntregaRapida(e.target.value)}
               placeholder={`N° de ${et.ordenMin} para entregar`}
               inputMode="numeric"
-              className="w-52 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+              className="w-52 max-sm:flex-1 max-sm:w-auto px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
               aria-label="Entrega rápida por número"
             />
             <Kbd combo="F2" className="text-gray-400" />
           </form>
-          <div className="relative">
-            <FaSearch className="absolute top-2.5 left-3 text-gray-400" size={12} />
+          <div className="relative max-sm:w-full">
+            <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400" size={12} />
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder={`Buscar ${et.clienteMin} o prenda`}
-              className="pl-8 pr-3 py-2 w-56 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+              className="pl-8 pr-3 py-2 w-56 max-sm:w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
@@ -192,6 +194,27 @@ export default function PantallaTablero() {
           </button>
         </div>
       </header>
+
+      <div role="tablist" aria-label="Estado" className="lg:hidden sticky top-0 z-10 -mx-4 px-4 py-2 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur grid grid-cols-3 gap-1.5">
+        {COLUMNAS.map((c) => {
+          const n = visibles.filter((o) => o.estado === c.id).length;
+          const on = pestana === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => setPestana(c.id)}
+              className={`h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${on ? "bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 ring-1 ring-gray-200 dark:ring-gray-700" : "text-gray-500 dark:text-gray-400"}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${c.barra}`} />
+              {c.id === "PENDIENTE" ? "Por hacer" : c.id === "LISTO" ? "Listas" : "Entregadas"}
+              <span className={`text-[11px] px-1.5 rounded-full ${c.chip}`}>{n}</span>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-3 items-start">
         {COLUMNAS.map((col) => {
@@ -206,7 +229,7 @@ export default function PantallaTablero() {
               }}
               onDragLeave={() => setDestino((d) => (d === col.id ? null : d))}
               onDrop={() => soltar(col.id)}
-              className={`rounded-xl border bg-gray-100/60 dark:bg-gray-900/60 transition-colors ${
+              className={`${pestana === col.id ? "" : "max-lg:hidden"} rounded-xl border bg-gray-100/60 dark:bg-gray-900/60 transition-colors ${
                 destino === col.id ? "border-blue-400 bg-blue-50/60 dark:bg-blue-900/10" : "border-gray-200 dark:border-gray-800"
               }`}
             >
@@ -224,7 +247,7 @@ export default function PantallaTablero() {
                 </p>
               </div>
 
-              <div className="p-3 pt-1 space-y-3 min-h-40 max-h-[calc(100vh-18rem)] overflow-y-auto">
+              <div className="p-3 pt-1 space-y-3 min-h-40 lg:max-h-[calc(100dvh-18rem)] lg:overflow-y-auto">
                 {lista.length === 0 && <p className="text-center text-sm text-gray-400 dark:text-gray-600 py-8">Nada por aquí.</p>}
                 {lista.map((o) => {
                   const saldoO = saldoDe(o);

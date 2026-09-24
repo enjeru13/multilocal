@@ -28,10 +28,10 @@ const base =
   "inline-flex items-center justify-center font-medium rounded-lg whitespace-nowrap transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-[13px] gap-1.5",
-  md: "h-9 px-4 text-sm gap-2",
-  lg: "h-11 px-6 text-[15px] gap-2.5",
-  icon: "h-8 w-8 text-xs",
+  sm: "h-9 sm:h-8 px-3 text-[13px] gap-1.5",
+  md: "h-11 sm:h-9 px-4 text-sm gap-2",
+  lg: "h-12 sm:h-11 px-6 text-[15px] gap-2.5",
+  icon: "h-10 w-10 sm:h-8 sm:w-8 text-xs",
 };
 
 // Sólidos: acción principal. Suaves ("icon*"): acciones por fila, sin borde, con tinte.

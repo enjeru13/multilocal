@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 import { toast } from "react-toastify";
 import { FaPlus, FaPen, FaTrashAlt, FaBoxOpen } from "react-icons/fa";
 import { proveedoresService } from "../services/proveedoresService";
@@ -85,14 +86,14 @@ export default function PantallaProveedores() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <TableSkeleton rows={6} cols={4} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Proveedores</h1>
         <Button
@@ -110,7 +111,39 @@ export default function PantallaProveedores() {
       {proveedores.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">No hay proveedores registrados.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+        <>
+        <ul className="md:hidden space-y-2.5">
+          {proveedores.map((p) => (
+            <TarjetaRegistro
+              key={p.id}
+              titulo={p.nombre}
+              subtitulo={[p.identificacion, p.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+              acciones={
+                <>
+                  <Button onClick={() => setProveedorParaCompra(p)} variant="whatsapp" size="sm" className="flex-1" leftIcon={<FaBoxOpen size={12} />} disabled={productos.length === 0}>
+                    Registrar compra
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setProveedorSeleccionado(p);
+                      setMostrarFormulario(true);
+                    }}
+                    title="Editar proveedor"
+                    aria-label="Editar"
+                    variant="iconInfo"
+                    size="icon"
+                  >
+                    <FaPen size={12} />
+                  </Button>
+                  <Button onClick={() => setProveedorAEliminar(p.id)} title="Eliminar proveedor" aria-label="Eliminar" variant="iconDanger" size="icon">
+                    <FaTrashAlt size={12} />
+                  </Button>
+                </>
+              }
+            />
+          ))}
+        </ul>
+        <div className="hidden md:block overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
           <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
@@ -172,6 +205,7 @@ export default function PantallaProveedores() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {productos.length === 0 && (

@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useNavegacion } from "../experiencia/navegacion";
 import Kbd from "../atajos/Kbd";
+import { useEsCompacto } from "../hooks/useMediaQuery";
 
 const CLAVE = "mostrador.sidebar";
 
@@ -14,13 +15,17 @@ export default function Sidebar() {
   const { isAuthenticated } = useAuth();
   const { config } = useConfiguracion();
   const { secciones, experiencia } = useNavegacion();
-  const [plegado, setPlegado] = useState(() => {
+  const compacto = useEsCompacto();
+  const [plegadoGuardado, setPlegado] = useState(() => {
     try {
       return localStorage.getItem(CLAVE) === "1";
     } catch {
       return false;
     }
   });
+
+  // En tablets (menos de 1024 px) el menú siempre va plegado: el contenido necesita el espacio.
+  const plegado = plegadoGuardado || compacto;
 
   if (!isAuthenticated) return null;
 
@@ -39,7 +44,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${plegado ? "w-[68px]" : "w-60"} shrink-0 h-screen sticky top-0 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-[width] duration-200`}
+      className={`hidden md:flex ${plegado ? "w-[68px]" : "w-60"} shrink-0 h-dvh sticky top-0 flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-[width] duration-200`}
     >
       {/* Marca */}
       <div className={`h-14 shrink-0 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 ${plegado ? "justify-center" : "px-4"}`}>

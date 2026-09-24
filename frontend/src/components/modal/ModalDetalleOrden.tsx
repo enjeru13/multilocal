@@ -260,10 +260,10 @@ export default function ModalDetalleOrden({
       open
       onClose={onClose}
       maxWidth="max-w-2xl"
-      className="max-h-[92vh] flex flex-col overflow-hidden"
+      className="max-h-[92dvh] flex flex-col overflow-hidden"
     >
       {/* Encabezado */}
-      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-start justify-between gap-4 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -283,7 +283,7 @@ export default function ModalDetalleOrden({
       </div>
 
       {/* Contenido */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-6">
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
           {filaMeta("Ingreso", dayjs(orden.fechaIngreso).format("DD/MM/YYYY"))}
           {conEntrega && filaMeta("Entrega estimada", orden.fechaEntrega ? dayjs(orden.fechaEntrega).format("DD/MM/YYYY") : "Sin definir")}
@@ -437,7 +437,7 @@ export default function ModalDetalleOrden({
       </div>
 
       {/* Acciones: a la izquierda lo de consulta, a la derecha lo que hace avanzar la orden */}
-      <div className="flex flex-wrap items-center gap-2 px-6 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+      <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
         <Button size="sm" variant="ghost" onClick={() => setVerModalRecibo(true)} leftIcon={<FaReceipt />} disabled={cargandoConfiguracion}>
           Recibo
         </Button>

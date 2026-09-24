@@ -85,7 +85,7 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
       : Math.min(1.4, Math.max(0.6, (anchoVista - 48) / (prefs.ticketMm * MM_A_PX)));
 
   return (
-    <Modal open={open} onClose={onClose} maxWidth="max-w-5xl" className="flex flex-col h-[92vh] overflow-hidden print:hidden">
+    <Modal open={open} onClose={onClose} maxWidth="max-w-5xl" className="flex flex-col h-[92dvh] overflow-hidden print:hidden">
       <ModalEncabezado icono={<FaPrint />} titulo={titulo} subtitulo={subtitulo} onClose={onClose} />
 
       {/* Papel */}

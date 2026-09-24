@@ -84,15 +84,15 @@ export default function ServiciosPanel({
   };
 
   return (
-    <section className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 transition-all duration-300">
+    <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 transition-all duration-300">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-3">
         <FaTshirt size={28} className="text-blue-600 dark:text-blue-400" /> Selección de {et.servicios}
       </h2>
 
       {/* --- FILA DE AGREGAR --- */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30">
+      <div className="grid grid-cols-2 md:flex gap-3 sm:gap-4 mb-6 items-end bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-xl border border-blue-100 dark:border-blue-900/30">
         {/* SELECTOR SERVICIO */}
-        <div className="flex-1 w-full">
+        <div className="col-span-2 md:flex-1 w-full">
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
             {et.servicio}
           </label>
@@ -111,7 +111,7 @@ export default function ServiciosPanel({
         </div>
 
         {/* INPUT PRECIO (EDITABLE) */}
-        <div className="w-full md:w-40">
+        <div className="md:w-40">
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
             Precio Unit.
           </label>
@@ -130,7 +130,7 @@ export default function ServiciosPanel({
         </div>
 
         {/* INPUT CANTIDAD (VALIDACIÓN DECIMALES) */}
-        <div className="w-full md:w-32">
+        <div className="md:w-32">
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
             Cantidad {servicioActual?.permiteDecimales ? "(Dec)" : "(Ent)"}
           </label>
@@ -160,14 +160,14 @@ export default function ServiciosPanel({
         </div>
 
         {/* BOTÓN AGREGAR (Reemplazado) */}
-        <div className="w-full md:w-auto">
+        <div className="col-span-2 md:col-span-1 md:w-auto">
           <Button
             onClick={agregarServicio}
             disabled={!servicioId || cantidad <= 0}
             variant="primary"
             leftIcon={<FaPlus />}
             // Forzamos la clase para que se comporte igual en responsive que tu input anterior
-            className="w-full md:w-auto h-[46px]"
+            className="w-full md:w-auto h-11 md:h-[46px]"
           >
             Agregar
           </Button>
@@ -181,7 +181,29 @@ export default function ServiciosPanel({
             Aún no has agregado nada.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all">
+          <>
+          <ul className="md:hidden divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+            {serviciosSeleccionados.map((item, index) => {
+              const s = serviciosCatalogo.find((cat) => cat.id === item.servicioId);
+              const precio = item.precio ?? s?.precioBase ?? 0;
+              return (
+                <li key={`${item.servicioId}-${index}`} className="flex items-center gap-3 p-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{s?.nombreServicio}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                      {item.cantidad} × {formatearMoneda(precio, monedaPrincipal)}
+                      {s && precio !== s.precioBase && <span className="ml-1.5 font-bold text-orange-500">Editado</span>}
+                    </p>
+                  </div>
+                  <p className="font-bold tabular-nums text-green-600 dark:text-green-500">{formatearMoneda(precio * item.cantidad, monedaPrincipal)}</p>
+                  <button onClick={() => eliminarServicio(item.servicioId)} className="w-10 h-10 -mr-2 flex items-center justify-center text-red-500 dark:text-red-400 active:bg-red-50 dark:active:bg-red-900/40 rounded-full cursor-pointer" title={`Eliminar ${et.servicioMin}`} aria-label={`Eliminar ${et.servicioMin}`}>
+                    <FaTrashAlt />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="max-md:hidden overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
@@ -248,6 +270,7 @@ export default function ServiciosPanel({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </section>

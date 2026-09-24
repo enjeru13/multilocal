@@ -44,7 +44,7 @@ export default function ConfirmarOrdenPanel({
   const proyecciones = negocio.otrasUsables.map((m) => ({ moneda: m, monto: convertirDesdePrincipal(totalCalculado, m, tasas, monedaPrincipal) }));
 
   return (
-    <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
+    <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
       <div className="text-center pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center gap-2 mb-2">
           <FaDollarSign size={32} className="text-green-600 dark:text-green-500" />
@@ -53,7 +53,7 @@ export default function ConfirmarOrdenPanel({
         <p className="text-base text-gray-600 dark:text-gray-400 mb-2">
           Monto final a cobrar.
         </p>
-        <p className="text-4xl font-extrabold text-green-700 dark:text-green-500 tracking-tight">
+        <p className="text-3xl sm:text-4xl font-extrabold text-green-700 dark:text-green-500 tracking-tight">
           {formatearMoneda(totalCalculado, monedaPrincipal)}
         </p>
       </div>
@@ -64,7 +64,7 @@ export default function ConfirmarOrdenPanel({
       </div>
 
       {proyecciones.length > 0 && (
-        <div className="bg-gray-100 dark:bg-gray-950 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 text-left transition-colors">
+        <div className="bg-gray-100 dark:bg-gray-950 p-4 sm:p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 text-left transition-colors">
           <p className="font-bold text-gray-800 dark:text-gray-100 text-lg">
             Total proyectado en {proyecciones.length === 1 ? "otra moneda" : "otras monedas"}:
           </p>
@@ -86,7 +86,7 @@ export default function ConfirmarOrdenPanel({
         </div>
       )}
 
-      <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-800 mt-6 transition-colors">
+      <div className="grid grid-cols-2 sm:flex sm:justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200 dark:border-gray-800 mt-6 transition-colors">
         <Button
           onClick={onCancelar}
           variant="secondary"
