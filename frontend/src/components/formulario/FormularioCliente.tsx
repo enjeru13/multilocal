@@ -10,6 +10,7 @@ import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { Campo, Seccion, Segmentado, ModalEncabezado, ModalPie, campo, campoError } from "../ui/Formulario";
 import FormularioClienteSimple from "./FormularioClienteSimple";
 import { useConfiguracion } from "../../context/configuracionCore";
 import { useEtiquetas } from "../../context/configuracionCore";
@@ -283,222 +284,107 @@ function FormularioClienteCompleto({
     }
   };
 
-  return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold flex items-center gap-3">
-            <FaUserEdit className="text-2xl" />
-            {cliente ? `Editar ${et.cliente}` : `Registrar ${et.cliente}`}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none cursor-pointer"
-            title="Cerrar"
-          >
-            &times;
-          </button>
-        </div>
+  const esEmpresa = form.tipo === "EMPRESA";
+  const prefijo = form.identificacion.slice(0, 2) as "V-" | "J-" | "E-";
+  const numeroDoc = form.identificacion.replace(/^(V-|J-|E-)/, "");
+  const conError = (k: string) => (errores[k] ? campoError : "");
 
-        <form
-          id="cliente-form"
-          onSubmit={handleSubmit}
-          className="px-6 py-6 flex-1 overflow-y-auto space-y-6 text-base text-gray-800 dark:text-gray-200"
-        >
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Identificación
-            </label>
-            <div className="flex gap-3">
-              <select
-                className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-base font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                value={form.identificacion.slice(0, 2)}
-                onChange={(e) => {
-                  const prefijo = e.target.value as "V-" | "J-" | "E-";
-                  const sinPrefijo = form.identificacion.replace(
-                    /^(V-|J-|E-)/,
-                    ""
-                  );
-                  handleIdentificacionChange(prefijo, sinPrefijo);
-                }}
-              >
-                <option value="V-">V</option>
-                <option value="E-">E</option>
-                <option value="J-">J</option>
-              </select>
+  return (
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] overflow-hidden flex flex-col">
+      <ModalEncabezado
+        icono={<FaUserEdit />}
+        titulo={cliente ? `Editar ${et.clienteMin}` : `Nuevo ${et.clienteMin}`}
+        subtitulo={cliente ? undefined : "Completa los datos de contacto y de identificación"}
+        onClose={onClose}
+      />
+
+      <form id="cliente-form" onSubmit={handleSubmit} className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+        <Seccion titulo="Identificación">
+          <div className="flex flex-wrap items-end gap-3">
+            <Segmentado
+              ariaLabel="Tipo de cliente"
+              valor={esEmpresa ? "EMPRESA" : "NATURAL"}
+              onChange={(t) => handleIdentificacionChange(t === "EMPRESA" ? "J-" : "V-", numeroDoc)}
+              opciones={[
+                { id: "NATURAL", label: "Persona" },
+                { id: "EMPRESA", label: "Empresa" },
+              ]}
+            />
+          </div>
+          <Campo etiqueta={esEmpresa ? "RIF" : "Cédula / documento"} error={errores.identificacion} ayuda={esEmpresa ? "Ej. J-12345678-0" : "Ej. V-12345678"}>
+            <div className="flex gap-2">
+              {!esEmpresa && (
+                <select
+                  aria-label="Prefijo del documento"
+                  className={`${campo} w-20!`}
+                  value={prefijo}
+                  onChange={(e) => handleIdentificacionChange(e.target.value as "V-" | "E-", numeroDoc)}
+                >
+                  <option value="V-">V</option>
+                  <option value="E-">E</option>
+                </select>
+              )}
+              {esEmpresa && <span className={`${campo} w-14! flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500`}>J</span>}
               <input
                 name="identificacion"
-                value={form.identificacion.replace(/^(V-|J-|E-)/, "")}
-                onChange={(e) => {
-                  const prefijo = form.identificacion.slice(0, 2) as
-                    | "V-"
-                    | "J-"
-                    | "E-";
-                  handleIdentificacionChange(prefijo, e.target.value);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                placeholder="Número sin prefijo (Ej: 12345678-0, 9876543)"
+                value={numeroDoc}
+                onChange={(e) => handleIdentificacionChange(prefijo, e.target.value)}
+                className={`${campo} flex-1 ${conError("identificacion")}`}
+                placeholder={esEmpresa ? "12345678-0" : "12345678"}
+                inputMode="numeric"
+                autoFocus={!cliente}
                 required
               />
             </div>
-            {errores.identificacion && (
-              <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                {errores.identificacion}
-              </p>
-            )}
-          </div>
+          </Campo>
+        </Seccion>
 
-          {form.tipo === "EMPRESA" ? (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Razón Social
-              </label>
-              <input
-                name="razon_social"
-                value={form.razon_social || ""}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                placeholder="Ej. Prado Expres C.A."
-                required
-              />
-              {errores.razon_social && (
-                <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                  {errores.razon_social}
-                </p>
-              )}
-            </div>
+        <Seccion titulo={esEmpresa ? "Empresa" : "Datos personales"}>
+          {esEmpresa ? (
+            <Campo etiqueta="Razón social" error={errores.razon_social}>
+              <input name="razon_social" value={form.razon_social || ""} onChange={handleChange} className={`${campo} ${conError("razon_social")}`} placeholder="Ej. Prado Expres C.A." required />
+            </Campo>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre
-                </label>
-                <input
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                  required
-                />
-                {errores.nombre && (
-                  <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                    {errores.nombre}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Apellido
-                </label>
-                <input
-                  name="apellido"
-                  value={form.apellido}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                  required
-                />
-                {errores.apellido && (
-                  <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                    {errores.apellido}
-                  </p>
-                )}
-              </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Campo etiqueta="Nombre" error={errores.nombre}>
+                <input name="nombre" value={form.nombre} onChange={handleChange} className={`${campo} ${conError("nombre")}`} required />
+              </Campo>
+              <Campo etiqueta="Apellido" error={errores.apellido}>
+                <input name="apellido" value={form.apellido} onChange={handleChange} className={`${campo} ${conError("apellido")}`} required />
+              </Campo>
             </div>
           )}
+        </Seccion>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Teléfono principal
-              </label>
-              <input
-                name="telefono"
-                value={form.telefono}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                required
-              />
-              {errores.telefono && (
-                <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                  {errores.telefono}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Teléfono secundario (Opcional)
-              </label>
-              <input
-                name="telefono_secundario"
-                value={form.telefono_secundario || ""}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                placeholder="Ej. +58 412 1234567"
-              />
-              {errores.telefono_secundario && (
-                <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                  {errores.telefono_secundario}
-                </p>
-              )}
-            </div>
+        <Seccion titulo="Contacto">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Campo etiqueta="Teléfono principal" error={errores.telefono}>
+              <input name="telefono" value={form.telefono} onChange={handleChange} className={`${campo} ${conError("telefono")}`} placeholder="0412-1234567" inputMode="tel" required />
+            </Campo>
+            <Campo etiqueta="Teléfono secundario" opcional error={errores.telefono_secundario}>
+              <input name="telefono_secundario" value={form.telefono_secundario || ""} onChange={handleChange} className={`${campo} ${conError("telefono_secundario")}`} placeholder="+58 412 1234567" inputMode="tel" />
+            </Campo>
           </div>
+          <Campo etiqueta="Correo electrónico" opcional error={errores.email}>
+            <input name="email" type="email" value={form.email || ""} onChange={handleChange} className={`${campo} ${conError("email")}`} placeholder="cliente@email.com" />
+          </Campo>
+        </Seccion>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Dirección
-            </label>
-            <textarea
-              name="direccion"
-              value={form.direccion}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 resize-y"
-              required
-            ></textarea>
-            {errores.direccion && (
-              <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                {errores.direccion}
-              </p>
-            )}
-          </div>
+        <Seccion titulo="Dirección">
+          <Campo etiqueta="Dirección" error={errores.direccion}>
+            <textarea name="direccion" value={form.direccion} onChange={handleChange} rows={2} className={`${campo} h-auto! py-2 resize-y ${conError("direccion")}`} required />
+          </Campo>
+        </Seccion>
+      </form>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Correo electrónico (Opcional)
-            </label>
-            <input
-              name="email"
-              type="email"
-              value={form.email || ""}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-              placeholder="Ej. cliente@email.com"
-            />
-            {errores.email && (
-              <p className="text-red-600 dark:text-red-400 text-xs mt-1 font-medium">
-                {errores.email}
-              </p>
-            )}
-          </div>
-        </form>
-
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3 text-sm font-medium">
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="secondary"
-            disabled={estaGuardando}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            form="cliente-form"
-            variant="primary"
-            isLoading={estaGuardando}
-          >
-            {cliente ? `Actualizar ${et.cliente}` : `Registrar ${et.cliente}`}
-          </Button>
-        </div>
+      <ModalPie>
+        <Button type="button" onClick={onClose} variant="secondary" disabled={estaGuardando}>
+          Cancelar
+        </Button>
+        <Button type="submit" form="cliente-form" variant="primary" isLoading={estaGuardando}>
+          {cliente ? "Guardar cambios" : `Registrar ${et.clienteMin}`}
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

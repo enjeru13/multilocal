@@ -13,12 +13,11 @@ import { useConfiguracion } from "../context/configuracionCore";
 import SelectorPeriodo from "../components/SelectorPeriodo";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import Modal from "../components/ui/Modal";
+import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 
 const METODOS: Record<MetodoPago, string> = { EFECTIVO: "Efectivo", TRANSFERENCIA: "Transferencia", PAGO_MOVIL: "Pago móvil" };
 const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm";
-const campo =
-  "w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 text-sm";
 
 function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[]; onClose: () => void; onGuardado: () => void }) {
   const { config } = useConfiguracion();
@@ -67,64 +66,59 @@ function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[];
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="p-6">
-      <form onSubmit={guardar} className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <FaMoneyCheckAlt /> Nuevo gasto
-        </h2>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">¿En qué se gastó?</label>
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92vh] flex flex-col overflow-hidden">
+      <ModalEncabezado icono={<FaMoneyCheckAlt />} titulo="Nuevo gasto" subtitulo="Lo que sale del negocio: servicios, alquiler, sueldos…" onClose={onClose} />
+      <form id="gasto-form" onSubmit={guardar} className="px-6 py-5 flex-1 overflow-y-auto space-y-4">
+        <Campo etiqueta="¿En qué se gastó?">
           <input className={campo} value={concepto} onChange={(e) => setConcepto(e.target.value)} maxLength={120} autoFocus placeholder="Ej. Recibo de luz de septiembre" />
-        </div>
+        </Campo>
         <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Categoría</label>
+          <Campo etiqueta="Categoría">
             <input className={campo} list="categorias-gasto" value={categoria} onChange={(e) => setCategoria(e.target.value)} maxLength={40} placeholder="Elige o escribe" />
             <datalist id="categorias-gasto">
               {categorias.map((c) => (
                 <option key={c} value={c} />
               ))}
             </datalist>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Fecha</label>
+          </Campo>
+          <Campo etiqueta="Fecha">
             <input type="date" className={campo} value={fecha} max={dayjs().format("YYYY-MM-DD")} onChange={(e) => setFecha(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Monto</label>
+          </Campo>
+          <Campo etiqueta="Monto">
             <div className="flex gap-2">
-              <input className={campo} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" />
-              <select className={`${campo} w-24`} value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)}>
+              <input className={`${campo} text-right tabular-nums`} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" />
+              <select className={`${campo} w-24!`} value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)} aria-label="Moneda">
                 {monedas.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Método de pago</label>
+          </Campo>
+          <Campo etiqueta="Método de pago">
             <select className={campo} value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)}>
               {(Object.keys(METODOS) as MetodoPago[]).map((m) => (
-                <option key={m} value={m}>{METODOS[m]}</option>
+                <option key={m} value={m}>
+                  {METODOS[m]}
+                </option>
               ))}
             </select>
-          </div>
+          </Campo>
         </div>
-        {config?.moduloCaja && metodo === "EFECTIVO" && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" checked={desdeCaja} onChange={(e) => setDesdeCaja(e.target.checked)} className="accent-blue-600 w-4 h-4" />
-            Sale de la caja abierta (queda como egreso)
-          </label>
-        )}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Nota (opcional)</label>
+        {config?.moduloCaja && metodo === "EFECTIVO" && <Opcion activo={desdeCaja} onChange={setDesdeCaja} titulo="Sale de la caja abierta" detalle="Queda como egreso de la caja." />}
+        <Campo etiqueta="Nota" opcional>
           <input className={campo} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
-        </div>
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>Cancelar</Button>
-          <Button type="submit" variant="primary" isLoading={guardando}>Guardar gasto</Button>
-        </div>
+        </Campo>
       </form>
+      <ModalPie>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>
+          Cancelar
+        </Button>
+        <Button type="submit" form="gasto-form" variant="primary" isLoading={guardando}>
+          Guardar gasto
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

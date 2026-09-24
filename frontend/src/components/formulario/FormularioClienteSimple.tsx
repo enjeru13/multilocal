@@ -9,6 +9,7 @@ import type {
 } from "@lavanderia/shared/types/types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { Campo, ModalEncabezado, ModalPie, campo, campoError } from "../ui/Formulario";
 import { useConfiguracion } from "../../context/configuracionCore";
 
 type Props = {
@@ -16,9 +17,6 @@ type Props = {
   onClose: () => void;
   onSubmit: (data: ClienteCreate | (ClienteUpdatePayload & { id: number })) => Promise<void>;
 };
-
-const inputCls =
-  "w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100";
 
 // Ficha mínima: solo el nombre es obligatorio. El documento de identidad es
 // texto libre porque varía por país (cédula, RIF, NIT, CC, pasaporte...).
@@ -89,58 +87,45 @@ export default function FormularioClienteSimple({ cliente, onClose, onSubmit }: 
     }
   };
 
-  const campo = (clave: string) =>
-    errores[clave] ? <p className="text-red-600 dark:text-red-400 text-xs mt-1">{errores[clave]}</p> : null;
+  const error = (clave: string) => errores[clave];
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-md" className="overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
-        <h2 className="text-lg font-semibold flex items-center gap-3">
-          <FaUserEdit className="text-2xl" />
-          {cliente ? `Editar ${t("clienteUno")}` : `Nuevo ${t("clienteUno")}`}
-        </h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none" title="Cerrar">
-          &times;
-        </button>
-      </div>
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[92vh] overflow-hidden flex flex-col">
+      <ModalEncabezado
+        icono={<FaUserEdit />}
+        titulo={cliente ? `Editar ${t("clienteUno").toLowerCase()}` : `Nuevo ${t("clienteUno").toLowerCase()}`}
+        subtitulo={cliente ? undefined : "Solo el nombre es obligatorio"}
+        onClose={onClose}
+      />
 
-      <form onSubmit={guardar} className="p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Nombre</label>
-          <input className={inputCls} value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus placeholder="Nombre o razón social" />
-          {campo("nombre")}
+      <form id="cliente-simple-form" onSubmit={guardar} className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
+        <Campo etiqueta="Nombre o razón social" error={error("nombre")}>
+          <input className={`${campo} ${error("nombre") ? campoError : ""}`} value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus placeholder="Ej. María Pérez" />
+        </Campo>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Campo etiqueta="Teléfono" opcional error={error("telefono")}>
+            <input className={`${campo} ${error("telefono") ? campoError : ""}`} value={telefono} onChange={(e) => setTelefono(e.target.value)} inputMode="tel" placeholder="0412-1234567" />
+          </Campo>
+          <Campo etiqueta="Documento" opcional error={error("identificacion")} ayuda="Cédula, RIF, NIT, pasaporte…">
+            <input className={`${campo} ${error("identificacion") ? campoError : ""}`} value={identificacion} onChange={(e) => setIdentificacion(e.target.value)} />
+          </Campo>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Teléfono</label>
-            <input className={inputCls} value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Opcional" />
-            {campo("telefono")}
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Documento</label>
-            <input className={inputCls} value={identificacion} onChange={(e) => setIdentificacion(e.target.value)} placeholder="Opcional" />
-            {campo("identificacion")}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Correo</label>
-          <input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Opcional" />
-          {campo("email")}
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Dirección</label>
-          <input className={inputCls} value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Opcional" />
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>
-            Cancelar
-          </Button>
-          <Button type="submit" variant="primary" isLoading={guardando}>
-            Guardar
-          </Button>
-        </div>
+        <Campo etiqueta="Correo" opcional error={error("email")}>
+          <input className={`${campo} ${error("email") ? campoError : ""}`} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" />
+        </Campo>
+        <Campo etiqueta="Dirección" opcional>
+          <input className={campo} value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+        </Campo>
       </form>
+
+      <ModalPie>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>
+          Cancelar
+        </Button>
+        <Button type="submit" form="cliente-simple-form" variant="primary" isLoading={guardando}>
+          {cliente ? "Guardar cambios" : "Guardar"}
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

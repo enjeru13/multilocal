@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
-import { FaFileInvoiceDollar, FaExclamationCircle } from "react-icons/fa";
+import { FaFileInvoiceDollar, FaExclamationCircle, FaChevronRight } from "react-icons/fa";
 import type { Compra, CuentasPorPagar, MetodoPago, Moneda } from "@lavanderia/shared/types/types";
 import { comprasService } from "../services/comprasService";
 import { convertirDesdePrincipal, formatearMoneda } from "../utils/monedaHelpers";
 import { useConfiguracion } from "../context/configuracionCore";
 import Modal from "../components/ui/Modal";
+import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 
 const tarjeta = "bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm";
-const campo =
-  "px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 text-sm";
 
 function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compra; moneda: Moneda; onClose: () => void; onPagada: () => void }) {
   const { config } = useConfiguracion();
@@ -57,37 +56,45 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-md" className="p-6">
-      <form onSubmit={pagar} className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Pagar compra #{compra.id}</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {compra.proveedor?.nombre} · se debe <strong className="text-gray-900 dark:text-gray-100">{formatearMoneda(compra.saldo, moneda)}</strong>
-        </p>
-        <div className="flex gap-2">
-          <input className={`${campo} flex-1`} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto a pagar" />
-          <select className={`${campo} w-24`} value={monedaPago} onChange={(e) => cambiarMoneda(e.target.value as Moneda)}>
-            {monedas.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
+    <Modal open onClose={onClose} maxWidth="max-w-md">
+      <ModalEncabezado icono={<FaFileInvoiceDollar />} titulo={`Pagar compra #${compra.id}`} subtitulo={compra.proveedor?.nombre} onClose={onClose} />
+      <form id="pagar-compra-form" onSubmit={pagar} className="px-6 py-5 space-y-4">
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/70 dark:border-amber-500/20 px-4 py-3 flex items-center justify-between">
+          <span className="text-sm text-amber-800 dark:text-amber-300">Se debe</span>
+          <strong className="text-lg tabular-nums text-amber-900 dark:text-amber-200">{formatearMoneda(compra.saldo, moneda)}</strong>
+        </div>
+        <Campo etiqueta="Monto a pagar" ayuda={monedaPago !== moneda ? `Equivale a ${formatearMoneda(compra.saldo, moneda)} al cambio actual.` : undefined}>
+          <div className="flex gap-2">
+            <input className={`${campo} flex-1 text-right tabular-nums`} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto a pagar" />
+            <select className={`${campo} w-24!`} value={monedaPago} onChange={(e) => cambiarMoneda(e.target.value as Moneda)} aria-label="Moneda">
+              {monedas.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Campo>
+        <Campo etiqueta="Método de pago">
+          <select className={campo} value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)}>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="PAGO_MOVIL">Pago móvil</option>
+            <option value="EFECTIVO">Efectivo</option>
           </select>
-        </div>
-        <select className={`${campo} w-full`} value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)}>
-          <option value="TRANSFERENCIA">Transferencia</option>
-          <option value="PAGO_MOVIL">Pago móvil</option>
-          <option value="EFECTIVO">Efectivo</option>
-        </select>
-        {config?.moduloCaja && metodo === "EFECTIVO" && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" checked={desdeCaja} onChange={(e) => setDesdeCaja(e.target.checked)} className="accent-blue-600 w-4 h-4" />
-            Sale de la caja abierta
-          </label>
-        )}
-        <input className={`${campo} w-full`} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} placeholder="Nota (opcional)" />
-        <div className="flex justify-end gap-3 pt-1">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>Cancelar</Button>
-          <Button type="submit" variant="whatsapp" isLoading={guardando}>Registrar pago</Button>
-        </div>
+        </Campo>
+        {config?.moduloCaja && metodo === "EFECTIVO" && <Opcion activo={desdeCaja} onChange={setDesdeCaja} titulo="Sale de la caja abierta" detalle="Queda como egreso de la caja." />}
+        <Campo etiqueta="Nota" opcional>
+          <input className={campo} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
+        </Campo>
       </form>
+      <ModalPie>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={guardando}>
+          Cancelar
+        </Button>
+        <Button type="submit" form="pagar-compra-form" variant="primary" isLoading={guardando}>
+          Registrar pago
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }
@@ -96,6 +103,7 @@ export default function PantallaCuentasPorPagar() {
   const [data, setData] = useState<CuentasPorPagar | null>(null);
   const [cargando, setCargando] = useState(true);
   const [aPagar, setAPagar] = useState<Compra | null>(null);
+  const [abierta, setAbierta] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -184,8 +192,13 @@ export default function PantallaCuentasPorPagar() {
                   </tr>
                 )}
                 {data?.compras.map((c) => (
-                  <tr key={c.id} className="border-t border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300">
-                    <td className="px-5 py-3 font-bold text-blue-700 dark:text-blue-400">#{c.id}</td>
+                  <Fragment key={c.id}>
+                  <tr className="border-t border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                    <td className="px-5 py-3 font-bold text-blue-700 dark:text-blue-400">
+                      <button type="button" onClick={() => setAbierta(abierta === c.id ? null : c.id)} className="inline-flex items-center gap-2 cursor-pointer" aria-expanded={abierta === c.id} title="Ver pagos hechos">
+                        <FaChevronRight size={10} className={`text-gray-400 transition-transform ${abierta === c.id ? "rotate-90" : ""}`} />#{c.id}
+                      </button>
+                    </td>
                     <td className="px-5 py-3">{c.proveedor?.nombre}</td>
                     <td className="px-5 py-3 whitespace-nowrap">{dayjs(c.fecha).format("DD/MM/YYYY")}</td>
                     <td className="px-5 py-3 whitespace-nowrap">
@@ -201,11 +214,38 @@ export default function PantallaCuentasPorPagar() {
                     <td className="px-5 py-3 text-right tabular-nums">{fmt(c.total)}</td>
                     <td className="px-5 py-3 text-right tabular-nums font-bold text-gray-900 dark:text-gray-100">{fmt(c.saldo)}</td>
                     <td className="px-5 py-3 text-center">
-                      <Button variant="whatsapp" size="sm" onClick={() => setAPagar(c)}>
+                      <Button variant="primary" size="sm" onClick={() => setAPagar(c)}>
                         Pagar
                       </Button>
                     </td>
                   </tr>
+                  {abierta === c.id && (
+                    <tr className="bg-gray-50/70 dark:bg-gray-950/30">
+                      <td colSpan={7} className="px-5 py-3">
+                        {(c.pagos ?? []).length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Aún no se ha pagado nada de esta compra.</p>
+                        ) : (
+                          <ul className="text-sm space-y-1.5">
+                            {(c.pagos ?? []).map((p) => (
+                              <li key={p.id} className="flex flex-wrap justify-between gap-3 text-gray-700 dark:text-gray-300">
+                                <span>
+                                  {dayjs(p.fecha).format("DD/MM/YYYY")} · {p.metodoPago === "EFECTIVO" ? "Efectivo" : p.metodoPago === "TRANSFERENCIA" ? "Transferencia" : "Pago móvil"}
+                                  {p.nota && <span className="text-gray-400"> · {p.nota}</span>}
+                                </span>
+                                <span className="tabular-nums font-medium">
+                                  {formatearMoneda(p.montoMoneda, p.moneda)}
+                                  {p.moneda !== moneda && (
+                                    <span className="text-gray-500 dark:text-gray-400 font-normal"> ≈ {fmt(p.monto)} (tasa {p.tasa})</span>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

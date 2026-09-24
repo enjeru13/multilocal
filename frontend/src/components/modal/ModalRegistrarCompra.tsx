@@ -8,6 +8,7 @@ import { comprasService } from "../../services/comprasService";
 import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { Campo, Seccion, Segmentado, ModalEncabezado, ModalPie, Opcion, campo } from "../ui/Formulario";
 
 type Linea = { servicioId: number; cantidad: number; costoUnit: number };
 
@@ -98,175 +99,112 @@ export default function ModalRegistrarCompra({
     }
   };
 
+  const restante = pago === "ABONO" ? Math.max(0, total - (parseFloat(abono.replace(",", ".")) || 0)) : pago === "CREDITO" ? total : 0;
+
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[85vh] flex flex-col overflow-hidden">
-      <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
-        <h2 className="text-lg font-semibold flex items-center gap-3">
-          <FaBoxOpen className="text-xl" />
-          Registrar compra — {proveedor.nombre}
-        </h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none">
-          &times;
-        </button>
-      </div>
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] flex flex-col overflow-hidden">
+      <ModalEncabezado icono={<FaBoxOpen />} titulo="Registrar compra" subtitulo={`Proveedor: ${proveedor.nombre}`} onClose={onClose} />
 
-      <div className="p-6 flex-1 overflow-y-auto space-y-5">
-        <div className="grid grid-cols-[1fr_90px_100px_auto] gap-2 items-end">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Producto
-            </label>
-            <select
-              value={servicioSel}
-              onChange={(e) => setServicioSel(e.target.value ? Number(e.target.value) : "")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-            >
-              <option value="">-- Seleccionar --</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombreServicio} {p.sku ? `(${p.sku})` : ""}
-                </option>
-              ))}
-            </select>
+      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+        <Seccion titulo="Productos comprados">
+          <div className="grid grid-cols-[1fr_84px_100px_auto] gap-2 items-end">
+            <Campo etiqueta="Producto">
+              <select value={servicioSel} onChange={(e) => setServicioSel(e.target.value ? Number(e.target.value) : "")} className={campo}>
+                <option value="">Elegir…</option>
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombreServicio} {p.sku ? `(${p.sku})` : ""}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo etiqueta="Cantidad">
+              <input type="number" value={cantidadSel} onChange={(e) => setCantidadSel(e.target.value ? Number(e.target.value) : "")} className={`${campo} text-right tabular-nums`} />
+            </Campo>
+            <Campo etiqueta="Costo unit.">
+              <input type="number" step="any" value={costoSel} onChange={(e) => setCostoSel(e.target.value ? Number(e.target.value) : "")} className={`${campo} text-right tabular-nums`} />
+            </Campo>
+            <Button type="button" onClick={agregarLinea} variant="iconSuccess" size="icon" title="Agregar a la compra">
+              <FaPlus size={12} />
+            </Button>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Cantidad
-            </label>
-            <input
-              type="number"
-              value={cantidadSel}
-              onChange={(e) => setCantidadSel(e.target.value ? Number(e.target.value) : "")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Costo unit.
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={costoSel}
-              onChange={(e) => setCostoSel(e.target.value ? Number(e.target.value) : "")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-            />
-          </div>
-          <Button type="button" onClick={agregarLinea} variant="iconSuccess" size="icon">
-            <FaPlus size={12} />
-          </Button>
-        </div>
 
-        {lineas.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-            No has agregado productos.
-          </p>
-        ) : (
-          <div className="border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
-            {lineas.map((l, idx) => (
-              <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span className="text-gray-800 dark:text-gray-200">
-                  {nombreDe(l.servicioId)} × {l.cantidad} @ {formatearMoneda(l.costoUnit, monedaPrincipal)}
-                </span>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    {formatearMoneda(l.cantidad * l.costoUnit, monedaPrincipal)}
+          {lineas.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-5 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">Agrega los productos que llegaron.</p>
+          ) : (
+            <ul className="border border-gray-200 dark:border-gray-800 rounded-xl divide-y divide-gray-100 dark:divide-gray-800">
+              {lineas.map((l, idx) => (
+                <li key={idx} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm">
+                  <span className="min-w-0">
+                    <span className="block font-medium text-gray-900 dark:text-gray-100 truncate">{nombreDe(l.servicioId)}</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                      {l.cantidad} × {formatearMoneda(l.costoUnit, monedaPrincipal)}
+                    </span>
                   </span>
-                  <button
-                    onClick={() => quitarLinea(idx)}
-                    className="text-red-500 hover:text-red-700"
-                    title="Quitar"
-                  >
-                    <FaTrashAlt size={12} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  <span className="flex items-center gap-3 shrink-0">
+                    <span className="font-semibold tabular-nums text-gray-800 dark:text-gray-200">{formatearMoneda(l.cantidad * l.costoUnit, monedaPrincipal)}</span>
+                    <button onClick={() => quitarLinea(idx)} className="text-gray-400 hover:text-red-600 cursor-pointer" title="Quitar" aria-label="Quitar">
+                      <FaTrashAlt size={12} />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Seccion>
 
-        <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-800">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pago al proveedor</p>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {(
-              [
-                ["TODO", "Pagada"],
-                ["ABONO", "Abono"],
-                ["CREDITO", "A crédito"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setPago(id)}
-                className={`px-3 py-1.5 rounded-md border font-medium cursor-pointer ${
-                  pago === id
-                    ? "bg-green-600 border-green-600 text-white"
-                    : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <Seccion titulo="Pago al proveedor">
+          <Segmentado
+            ariaLabel="Forma de pago"
+            valor={pago}
+            onChange={setPago}
+            opciones={[
+              { id: "TODO", label: "Pagada" },
+              { id: "ABONO", label: "Abono" },
+              { id: "CREDITO", label: "A crédito" },
+            ]}
+          />
           {pago === "ABONO" && (
-            <input
-              type="number"
-              step="any"
-              value={abono}
-              onChange={(e) => setAbono(e.target.value)}
-              placeholder={`Monto abonado (${monedaPrincipal})`}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-            />
+            <Campo etiqueta={`Monto abonado (${monedaPrincipal})`}>
+              <input type="number" step="any" value={abono} onChange={(e) => setAbono(e.target.value)} className={`${campo} text-right tabular-nums`} placeholder="0.00" />
+            </Campo>
           )}
           {pago !== "CREDITO" && (
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <select
-                value={metodo}
-                onChange={(e) => setMetodo(e.target.value as MetodoPago)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-              >
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TRANSFERENCIA">Transferencia</option>
-                <option value="PAGO_MOVIL">Pago móvil</option>
-              </select>
-              {config?.moduloCaja && metodo === "EFECTIVO" && (
-                <label className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                  <input type="checkbox" checked={desdeCaja} onChange={(e) => setDesdeCaja(e.target.checked)} className="accent-green-600 w-4 h-4" />
-                  Sale de la caja
-                </label>
-              )}
+            <div className="space-y-2">
+              <Campo etiqueta="Método de pago">
+                <select value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)} className={campo}>
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TRANSFERENCIA">Transferencia</option>
+                  <option value="PAGO_MOVIL">Pago móvil</option>
+                </select>
+              </Campo>
+              {config?.moduloCaja && metodo === "EFECTIVO" && <Opcion activo={desdeCaja} onChange={setDesdeCaja} titulo="Sale de la caja" detalle="Se registra como egreso en la caja abierta." />}
             </div>
           )}
           {pago !== "TODO" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Vence el (opcional)</label>
-              <input
-                type="date"
-                value={vence}
-                onChange={(e) => setVence(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-              />
-            </div>
+            <Campo etiqueta="Vence el" opcional>
+              <input type="date" value={vence} onChange={(e) => setVence(e.target.value)} className={campo} />
+            </Campo>
           )}
-        </div>
+        </Seccion>
 
-        <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-800">
-          <span className="font-semibold text-gray-700 dark:text-gray-300">Total compra</span>
-          <span className="text-lg font-bold text-green-700 dark:text-green-400">
-            {formatearMoneda(total, monedaPrincipal)}
-          </span>
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total de la compra</p>
+            {restante > 0 && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Quedará por pagar {formatearMoneda(restante, monedaPrincipal)}</p>}
+          </div>
+          <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(total, monedaPrincipal)}</span>
         </div>
       </div>
 
-      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+      <ModalPie>
         <Button type="button" onClick={onClose} variant="secondary" disabled={cargando}>
           Cancelar
         </Button>
-        <Button onClick={guardar} variant="whatsapp" isLoading={cargando}>
+        <Button onClick={guardar} variant="primary" isLoading={cargando}>
           Registrar y sumar stock
         </Button>
-      </div>
+      </ModalPie>
     </Modal>
   );
 }

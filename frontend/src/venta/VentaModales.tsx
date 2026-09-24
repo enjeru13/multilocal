@@ -6,6 +6,7 @@ import ModalPago from "../components/modal/ModalPago";
 import ListaClientesModal from "../components/modal/ListaClientesModal";
 import FormularioCliente from "../components/formulario/FormularioCliente";
 import Modal from "../components/ui/Modal";
+import { ModalEncabezado, ModalPie } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 import { formatearMoneda } from "../utils/monedaHelpers";
 import type { VentaApi } from "./useVenta";
@@ -64,48 +65,51 @@ export default function VentaModales({
       )}
 
       {verEspera && (
-        <Modal open onClose={cerrarEspera} maxWidth="max-w-lg" className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-4">
-            <FaPauseCircle className="text-amber-500" /> Ventas {nombreEspera}
-          </h2>
-          {venta.enEspera.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No hay ventas guardadas.</p>
-          ) : (
-            <ul className="space-y-2 max-h-[55vh] overflow-y-auto">
-              {venta.enEspera.map((e, i) => {
-                const total = e.lineas.reduce((s, l) => {
-                  const p = l.precio ?? venta.catalogo.find((x) => x.id === l.servicioId)?.precioBase ?? 0;
-                  return s + p * l.cantidad;
-                }, 0);
-                return (
-                  <li key={e.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-                    <span className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{e.etiqueta}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {e.lineas.length} artículo(s) · {formatearMoneda(total, venta.moneda)} · {dayjs(e.fecha).format("HH:mm")}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={() => {
-                        venta.recuperar(e.id);
-                        cerrarEspera();
-                      }}
-                    >
-                      Recuperar
-                    </Button>
-                    <Button size="icon" variant="iconDanger" title="Descartar" onClick={() => venta.descartarEspera(e.id)}>
-                      <FaTrashAlt size={12} />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        <Modal open onClose={cerrarEspera} maxWidth="max-w-lg" className="max-h-[85vh] flex flex-col overflow-hidden">
+          <ModalEncabezado icono={<FaPauseCircle />} titulo={`Ventas ${nombreEspera}`} subtitulo={`${venta.enEspera.length} guardada(s)`} onClose={cerrarEspera} />
+          <div className="px-6 py-4 flex-1 overflow-y-auto">
+            {venta.enEspera.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">No hay ventas guardadas.</p>
+            ) : (
+              <ul className="space-y-2">
+                {venta.enEspera.map((e, i) => {
+                  const total = e.lineas.reduce((s, l) => {
+                    const p = l.precio ?? venta.catalogo.find((x) => x.id === l.servicioId)?.precioBase ?? 0;
+                    return s + p * l.cantidad;
+                  }, 0);
+                  return (
+                    <li key={e.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800">
+                      <span className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{e.etiqueta}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {e.lineas.length} artículo(s) · {formatearMoneda(total, venta.moneda)} · {dayjs(e.fecha).format("HH:mm")}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          venta.recuperar(e.id);
+                          cerrarEspera();
+                        }}
+                      >
+                        Recuperar
+                      </Button>
+                      <Button size="icon" variant="iconDanger" title="Descartar" onClick={() => venta.descartarEspera(e.id)}>
+                        <FaTrashAlt size={12} />
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          <ModalPie>
+            <Button variant="secondary" onClick={cerrarEspera}>
+              Cerrar
+            </Button>
+          </ModalPie>
         </Modal>
       )}
 

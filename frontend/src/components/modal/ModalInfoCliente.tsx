@@ -1,8 +1,9 @@
-import { FaUser } from "react-icons/fa";
-import { FiX } from "react-icons/fi";
+import { FaUser, FaBuilding, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import type { ReactNode } from "react";
 import type { Cliente } from "@lavanderia/shared/types/types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { ModalEncabezado, ModalPie } from "../ui/Formulario";
 import { useEtiquetas } from "../../context/configuracionCore";
 
 type Props = {
@@ -10,96 +11,52 @@ type Props = {
   onClose: () => void;
 };
 
+function Dato({ icono, etiqueta, children }: { icono: ReactNode; etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 py-3">
+      <span className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs shrink-0">{icono}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{etiqueta}</p>
+        <div className="text-sm text-gray-900 dark:text-gray-100 break-words">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function ModalInfoCliente({ cliente, onClose }: Props) {
   const et = useEtiquetas();
+  const nombre = [cliente.nombre, cliente.apellido].filter(Boolean).join(" ") || "Sin nombre";
+  const vacio = <span className="text-gray-400">—</span>;
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      maxWidth="max-w-md"
-      className="max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-7 text-base font-medium"
-    >
-        {/* HEADER */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <FaUser className="text-2xl sm:text-3xl" />
-            Detalle: {et.clienteMin}
-          </h2>
-          {/* Botón X se mantiene nativo para estilo de icono limpio */}
-          <button
-            onClick={onClose}
-            title="Cerrar"
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl font-bold transition-transform transform hover:rotate-90 cursor-pointer"
-          >
-            <FiX />
-          </button>
-        </div>
-
-        {/* CONTENT */}
-        <div className="space-y-5 text-gray-800 dark:text-gray-200 transition-colors">
-          <div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-              Nombre completo
-            </p>
-            <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 font-bold text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-              {cliente.nombre} {cliente.apellido}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Cédula</p>
-            <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-              {cliente.identificacion}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Teléfono</p>
-            <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-              {cliente.telefono}
-            </div>
-          </div>
-
-          {cliente.telefono_secundario && (
-            <div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                Teléfono secundario
-              </p>
-              <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-                {cliente.telefono_secundario}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-              Correo electrónico
-            </p>
-            <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-              {cliente.email ?? "—"}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-              Dirección
-            </p>
-            <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 shadow-sm transition-all">
-              {cliente.direccion}
-            </div>
-          </div>
-        </div>
-
-        {/* FOOTER */}
-        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800 transition-colors">
-          <Button
-            onClick={onClose}
-            variant="primary"
-          // Puedes agregar size="lg" si quieres el botón más grande
-          >
-            Cerrar
-          </Button>
-        </div>
+    <Modal open onClose={onClose} maxWidth="max-w-md" className="max-h-[92vh] flex flex-col overflow-hidden">
+      <ModalEncabezado
+        icono={cliente.tipo === "EMPRESA" ? <FaBuilding /> : <FaUser />}
+        titulo={nombre}
+        subtitulo={`${et.cliente} · ${cliente.identificacion || "sin documento"}`}
+        onClose={onClose}
+      />
+      <div className="px-6 py-2 flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+        <Dato icono={<FaPhoneAlt />} etiqueta="Teléfono">
+          {cliente.telefono || vacio}
+        </Dato>
+        {cliente.telefono_secundario && (
+          <Dato icono={<FaPhoneAlt />} etiqueta="Teléfono secundario">
+            {cliente.telefono_secundario}
+          </Dato>
+        )}
+        <Dato icono={<FaEnvelope />} etiqueta="Correo">
+          {cliente.email || vacio}
+        </Dato>
+        <Dato icono={<FaMapMarkerAlt />} etiqueta="Dirección">
+          {cliente.direccion || vacio}
+        </Dato>
+      </div>
+      <ModalPie>
+        <Button onClick={onClose} variant="secondary">
+          Cerrar
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

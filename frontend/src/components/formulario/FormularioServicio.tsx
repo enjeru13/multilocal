@@ -10,6 +10,7 @@ import type {
 import { AxiosError } from "axios";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { Campo, Seccion, ModalEncabezado, ModalPie, Opcion, campo, campoError } from "../ui/Formulario";
 import { useConfiguracion } from "../../context/configuracionCore";
 import { useEtiquetas } from "../../context/configuracionCore";
 
@@ -161,104 +162,84 @@ export default function FormularioServicio({
     }
   };
 
+  const margen = costo !== null && precio !== null && precio > 0 ? ((precio - costo) / precio) * 100 : null;
+  const conError = (k: keyof typeof errores) => (errores[k] ? campoError : "");
+
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-md" className="max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold flex items-center gap-3">
-            <MdOutlineLocalLaundryService className="text-2xl" />
-            {servicio ? `Editar ${et.servicio}` : `Registrar ${et.servicio}`}
-          </h2>
-          <button
-            onClick={onClose}
-            title="Cerrar"
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none cursor-pointer"
-          >
-            &times;
-          </button>
-        </div>
+    <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] flex flex-col overflow-hidden">
+      <ModalEncabezado
+        icono={<MdOutlineLocalLaundryService />}
+        titulo={servicio ? `Editar ${et.servicioMin}` : `Nuevo ${et.servicioMin}`}
+        subtitulo={servicio ? servicio.nombreServicio : "Nombre, precio y categoría bastan para empezar"}
+        onClose={onClose}
+      />
 
-        <div className="px-6 py-6 flex-1 overflow-y-auto space-y-6 text-base text-gray-800 dark:text-gray-200">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Nombre del {et.servicioMin}:
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm"
-              placeholder="Ej. Lavado y Secado por Kg"
-              disabled={cargando}
-            />
-            {errores.nombre && (
-              <p className="text-red-600 dark:text-red-400 text-xs font-medium mt-1">
-                {errores.nombre}
-              </p>
-            )}
-          </div>
+      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-6">
+        <Seccion titulo="Datos básicos">
+          <Campo etiqueta={`Nombre del ${et.servicioMin}`} error={errores.nombre}>
+            <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className={`${campo} ${conError("nombre")}`} placeholder="Ej. Lavado y secado por kilo" disabled={cargando} autoFocus />
+          </Campo>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Categoría:
-            </label>
-            {cargandoCategorias ? (
-              <p className="text-gray-500 dark:text-gray-400 italic">Cargando categorías...</p>
-            ) : categorias.length === 0 ? (
-              <p className="text-red-600 dark:text-red-400 text-sm font-medium">
-                No hay categorías disponibles. Por favor, crea una en "Gestionar
-                Categorías".
-              </p>
-            ) : (
-              <select
-                value={categoriaSeleccionadaId}
-                onChange={(e) => setCategoriaSeleccionadaId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm"
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Campo etiqueta="Categoría" error={errores.categoria}>
+              {cargandoCategorias ? (
+                <p className="h-10 flex items-center text-sm text-gray-500">Cargando categorías…</p>
+              ) : categorias.length === 0 ? (
+                <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-3 py-2">
+                  Primero crea una categoría con «Gestionar Categorías».
+                </p>
+              ) : (
+                <select value={categoriaSeleccionadaId} onChange={(e) => setCategoriaSeleccionadaId(e.target.value)} className={`${campo} ${conError("categoria")}`} disabled={cargando}>
+                  <option value="">Elige una categoría</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Campo>
+            <Campo etiqueta="Precio de venta" error={errores.precio}>
+              <input
+                type="number"
+                step="any"
+                min={0}
+                value={precio ?? ""}
+                onChange={(e) => {
+                  const parsed = parseFloat(e.target.value);
+                  setPrecio(isNaN(parsed) ? null : parsed);
+                }}
+                className={`${campo} text-right tabular-nums ${conError("precio")}`}
+                placeholder="0.00"
                 disabled={cargando}
-              >
-                <option value="">Selecciona una categoría</option>
-                {categorias.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-            {errores.categoria && (
-              <p className="text-red-600 dark:text-red-400 text-xs font-medium mt-1">
-                {errores.categoria}
-              </p>
-            )}
+              />
+            </Campo>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Precio base:
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={precio ?? ""}
-              onChange={(e) => {
-                const parsed = parseFloat(e.target.value);
-                setPrecio(isNaN(parsed) ? null : parsed);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm"
-              placeholder="Ej. 12.50"
-              disabled={cargando}
-            />
-            {errores.precio && (
-              <p className="text-red-600 dark:text-red-400 text-xs font-medium mt-1">
-                {errores.precio}
-              </p>
+          <Campo etiqueta="Descripción" opcional>
+            <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className={`${campo} h-auto! py-2 resize-y`} rows={2} placeholder="Detalles que quieras recordar" disabled={cargando} />
+          </Campo>
+        </Seccion>
+
+        <Seccion titulo="Cómo se vende">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-2 divide-y divide-gray-100 dark:divide-gray-800">
+            <Opcion activo={permiteDecimales} onChange={setPermiteDecimales} titulo="Se vende por peso o medida" detalle="Permite cantidades con decimales, como 2,5 kg." disabled={cargando} />
+            {config?.impuestoActivo && (
+              <Opcion activo={exentoImpuesto} onChange={setExentoImpuesto} titulo={`Exento de ${config.impuestoNombre || "impuesto"}`} detalle="No se le cobra impuesto en las ventas." disabled={cargando} />
             )}
           </div>
+        </Seccion>
 
-          {inventarioActivo && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Costo (opcional):
-              </label>
-              <div className="flex items-center gap-3">
+        {inventarioActivo && (
+          <Seccion titulo="Inventario y costos">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Campo etiqueta="Código de barras" opcional>
+                <input type="text" value={codigoBarras} onChange={(e) => setCodigoBarras(e.target.value)} className={campo} placeholder="Escanéalo o escríbelo" disabled={cargando} />
+              </Campo>
+              <Campo etiqueta="SKU / referencia" opcional>
+                <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} className={campo} placeholder="Ej. FIL-001" disabled={cargando} />
+              </Campo>
+              <Campo etiqueta="Costo" opcional ayuda="Se guarda con cada venta para calcular tu ganancia.">
                 <input
                   type="number"
                   step="any"
@@ -268,125 +249,27 @@ export default function FormularioServicio({
                     const parsed = parseFloat(e.target.value);
                     setCosto(isNaN(parsed) ? null : parsed);
                   }}
-                  className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm"
-                  placeholder="Ej. 8.00"
+                  className={`${campo} text-right tabular-nums`}
+                  placeholder="0.00"
                   disabled={cargando}
                 />
-                {costo !== null && precio !== null && precio > 0 && (
-                  <span
-                    className={`text-sm font-semibold ${
-                      precio >= costo ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    Margen {(((precio - costo) / precio) * 100).toFixed(1)}% · ganas {(precio - costo).toFixed(2)}
-                  </span>
+              </Campo>
+              <div className="flex items-end pb-1">
+                {margen !== null && costo !== null && precio !== null && (
+                  <p className={`text-sm font-semibold ${precio >= costo ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                    Margen {margen.toFixed(1)}%
+                    <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">ganas {(precio - costo).toFixed(2)} por unidad</span>
+                  </p>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1">Se guarda con cada venta para calcular tu ganancia. Al registrar una compra se actualiza solo.</p>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Descripción (opcional):
-            </label>
-            <textarea
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 resize-y min-h-[80px] shadow-sm"
-              rows={3}
-              placeholder="Detalles que quieras recordar"
-              disabled={cargando}
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={permiteDecimales}
-                onChange={(e) => setPermiteDecimales(e.target.checked)}
-                className="accent-blue-600 dark:accent-blue-500 w-5 h-5 cursor-pointer"
-                disabled={cargando}
-              />
-              <span>¿Permite cantidades decimales?</span>
-            </label>
-            {config?.impuestoActivo && (
-              <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={exentoImpuesto}
-                  onChange={(e) => setExentoImpuesto(e.target.checked)}
-                  className="accent-blue-600 dark:accent-blue-500 w-5 h-5 cursor-pointer"
-                  disabled={cargando}
-                />
-                <span>Exento de {config.impuestoNombre || "impuesto"}</span>
-              </label>
-            )}
-          </div>
-
-          {inventarioActivo && (
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                  Código de barras (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={codigoBarras}
-                  onChange={(e) => setCodigoBarras(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-                  placeholder="Escanéalo o escríbelo"
-                  disabled={cargando}
-                />
-              </div>
-              <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={controlaStock}
-                  onChange={(e) => setControlaStock(e.target.checked)}
-                  className="accent-blue-600 dark:accent-blue-500 w-5 h-5 cursor-pointer"
-                  disabled={cargando}
-                />
-                <span>Controlar stock de este ítem</span>
-              </label>
-
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-2">
+              <Opcion activo={controlaStock} onChange={setControlaStock} titulo="Controlar existencias" detalle="Descuenta en cada venta y avisa cuando queda poco." disabled={cargando} />
               {controlaStock && (
-                <div className="grid grid-cols-2 gap-4 pl-8">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                      SKU / código (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={sku}
-                      onChange={(e) => setSku(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-                      placeholder="Ej. FIL-001"
-                      disabled={cargando}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                      Stock mínimo (alerta)
-                    </label>
-                    <input
-                      type="number"
-                      value={stockMinimo ?? ""}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value);
-                        setStockMinimo(isNaN(v) ? null : v);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
-                      placeholder="Ej. 5"
-                      disabled={cargando}
-                    />
-                  </div>
-                  {!servicio && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                        Stock inicial
-                      </label>
+                <div className="grid sm:grid-cols-2 gap-4 py-3 border-t border-gray-100 dark:border-gray-800 mt-1">
+                  {!servicio ? (
+                    <Campo etiqueta="Existencias iniciales">
                       <input
                         type="number"
                         value={stockActual ?? ""}
@@ -394,36 +277,44 @@ export default function FormularioServicio({
                           const v = parseFloat(e.target.value);
                           setStockActual(isNaN(v) ? 0 : v);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                        className={`${campo} text-right tabular-nums`}
                         placeholder="0"
                         disabled={cargando}
                       />
-                    </div>
+                    </Campo>
+                  ) : (
+                    <Campo etiqueta="Existencias actuales" ayuda="Para sumar, registra una compra en Proveedores.">
+                      <p className="h-10 flex items-center text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">{servicio.stockActual}</p>
+                    </Campo>
                   )}
-                  {servicio && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                        Stock actual
-                      </p>
-                      <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        {servicio.stockActual} — usa "Registrar compra" en Proveedores para sumar stock.
-                      </p>
-                    </div>
-                  )}
+                  <Campo etiqueta="Avisar cuando queden" opcional>
+                    <input
+                      type="number"
+                      value={stockMinimo ?? ""}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setStockMinimo(isNaN(v) ? null : v);
+                      }}
+                      className={`${campo} text-right tabular-nums`}
+                      placeholder="Ej. 5"
+                      disabled={cargando}
+                    />
+                  </Campo>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </Seccion>
+        )}
+      </div>
 
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3 text-sm font-medium">
-          <Button type="button" onClick={onClose} variant="secondary" disabled={cargando}>
-            Cancelar
-          </Button>
-          <Button onClick={guardar} variant="primary" isLoading={cargando}>
-            Guardar {et.servicio}
-          </Button>
-        </div>
+      <ModalPie>
+        <Button type="button" onClick={onClose} variant="secondary" disabled={cargando}>
+          Cancelar
+        </Button>
+        <Button onClick={guardar} variant="primary" isLoading={cargando}>
+          {servicio ? "Guardar cambios" : `Registrar ${et.servicioMin}`}
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

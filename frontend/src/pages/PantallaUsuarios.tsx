@@ -1,15 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
-import { FaPlus, FaPen, FaUserCheck, FaUserSlash } from "react-icons/fa";
+import { FaPlus, FaPen, FaUserCheck, FaUserSlash, FaUserCog } from "react-icons/fa";
 import { usuariosService, type Usuario } from "../services/usuariosService";
 import { useAuth } from "../hooks/useAuth";
 import type { Role } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
-
-const inputCls =
-  "w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100";
+import { Campo, ModalEncabezado, ModalPie, campo } from "../components/ui/Formulario";
 
 const ROLES: { valor: Role; etiqueta: string; ayuda: string }[] = [
   { valor: "ADMIN", etiqueta: "Administrador", ayuda: "Acceso total, incluida configuración y usuarios." },
@@ -164,45 +162,50 @@ export default function PantallaUsuarios() {
       </div>
 
       {editando && (
-        <Modal open onClose={() => setEditando(null)} maxWidth="max-w-md" className="p-6 space-y-4">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            {editando === "nuevo" ? "Nuevo usuario" : "Editar usuario"}
-          </h3>
-          <input className={inputCls} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" autoFocus />
-          <input
-            className={`${inputCls} ${editando !== "nuevo" ? "opacity-60" : ""}`}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Correo"
-            disabled={editando !== "nuevo"}
+        <Modal open onClose={() => setEditando(null)} maxWidth="max-w-md">
+          <ModalEncabezado
+            icono={<FaUserCog />}
+            titulo={editando === "nuevo" ? "Nuevo usuario" : "Editar usuario"}
+            subtitulo={editando === "nuevo" ? "Podrá entrar con su correo y contraseña" : editando.email}
+            onClose={() => setEditando(null)}
           />
-          <input
-            className={inputCls}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={editando === "nuevo" ? "Contraseña (mín. 6)" : "Nueva contraseña (vacío = no cambiar)"}
-          />
-          <div>
-            <select className={inputCls} value={rol} onChange={(e) => setRol(e.target.value as Role)}>
-              {ROLES.map((r) => (
-                <option key={r.valor} value={r.valor}>
-                  {r.etiqueta}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {ROLES.find((r) => r.valor === rol)?.ayuda}
-            </p>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setEditando(null)}>
+          <form
+            id="usuario-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              guardar();
+            }}
+            className="px-6 py-5 space-y-4"
+          >
+            <Campo etiqueta="Nombre">
+              <input className={campo} value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus />
+            </Campo>
+            {editando === "nuevo" && (
+              <Campo etiqueta="Correo">
+                <input className={campo} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
+              </Campo>
+            )}
+            <Campo etiqueta={editando === "nuevo" ? "Contraseña" : "Nueva contraseña"} ayuda={editando === "nuevo" ? "Mínimo 6 caracteres." : "Déjala vacía para no cambiarla."}>
+              <input className={campo} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+            </Campo>
+            <Campo etiqueta="Rol" ayuda={ROLES.find((r) => r.valor === rol)?.ayuda}>
+              <select className={campo} value={rol} onChange={(e) => setRol(e.target.value as Role)}>
+                {ROLES.map((r) => (
+                  <option key={r.valor} value={r.valor}>
+                    {r.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          </form>
+          <ModalPie>
+            <Button variant="secondary" onClick={() => setEditando(null)} disabled={guardando}>
               Cancelar
             </Button>
-            <Button variant="primary" onClick={guardar} isLoading={guardando}>
+            <Button type="submit" form="usuario-form" variant="primary" isLoading={guardando}>
               Guardar
             </Button>
-          </div>
+          </ModalPie>
         </Modal>
       )}
     </div>

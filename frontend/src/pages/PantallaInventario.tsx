@@ -13,6 +13,7 @@ import { inventarioService, type MovimientoInventario } from "../services/invent
 import { useAuth } from "../hooks/useAuth";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+import { Campo, ModalEncabezado, ModalPie, Segmentado, campo } from "../components/ui/Formulario";
 
 const MOTIVO: Record<MovimientoInventario["motivo"], string> = {
   COMPRA: "Compra",
@@ -232,95 +233,86 @@ export default function PantallaInventario() {
       )}
 
       {ajustando && (
-        <Modal open onClose={() => setAjustando(null)} maxWidth="max-w-sm" className="p-6 space-y-4">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Ajustar stock</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {ajustando.nombreServicio} — stock actual: <strong>{ajustando.stockActual}</strong>
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {(["ENTRADA", "SALIDA"] as const).map((tp) => (
-              <button
-                key={tp}
-                type="button"
-                onClick={() => setAjTipo(tp)}
-                className={`py-2 rounded-lg border text-sm font-semibold ${
-                  ajTipo === tp
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
-                }`}
-              >
-                {tp === "ENTRADA" ? "Sumar" : "Restar"}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={ajCantidad}
-            onChange={(e) => setAjCantidad(e.target.value)}
-            placeholder="Cantidad"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100"
-            autoFocus
-          />
-          <input
-            type="text"
-            value={ajNota}
-            onChange={(e) => setAjNota(e.target.value)}
-            placeholder="Motivo (ej. conteo físico, merma, daño)"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100"
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setAjustando(null)}>
+        <Modal open onClose={() => setAjustando(null)} maxWidth="max-w-sm">
+          <ModalEncabezado icono={<FaSlidersH />} titulo="Ajustar existencias" subtitulo={ajustando.nombreServicio} onClose={() => setAjustando(null)} />
+          <form
+            id="ajuste-stock-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              guardarAjuste();
+            }}
+            className="px-6 py-5 space-y-4"
+          >
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Existencias actuales</span>
+              <strong className="text-lg tabular-nums text-gray-900 dark:text-gray-100">{ajustando.stockActual}</strong>
+            </div>
+            <Segmentado
+              ariaLabel="Tipo de ajuste"
+              valor={ajTipo}
+              onChange={setAjTipo}
+              opciones={[
+                { id: "ENTRADA", label: "Sumar" },
+                { id: "SALIDA", label: "Restar" },
+              ]}
+            />
+            <Campo etiqueta="Cantidad">
+              <input type="text" inputMode="decimal" value={ajCantidad} onChange={(e) => setAjCantidad(e.target.value)} className={`${campo} text-right tabular-nums`} placeholder="0" autoFocus />
+            </Campo>
+            <Campo etiqueta="Motivo" opcional>
+              <input type="text" value={ajNota} onChange={(e) => setAjNota(e.target.value)} className={campo} placeholder="Conteo físico, merma, daño…" />
+            </Campo>
+          </form>
+          <ModalPie>
+            <Button variant="secondary" onClick={() => setAjustando(null)} disabled={guardandoAjuste}>
               Cancelar
             </Button>
-            <Button variant="primary" onClick={guardarAjuste} isLoading={guardandoAjuste}>
+            <Button type="submit" form="ajuste-stock-form" variant="primary" isLoading={guardandoAjuste}>
               Guardar
             </Button>
-          </div>
+          </ModalPie>
         </Modal>
       )}
 
       {historialDe && (
-        <Modal open onClose={() => setHistorialDe(null)} maxWidth="max-w-2xl" className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            Historial — {historialDe.nombreServicio}
-          </h3>
-          {movimientos.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">Sin movimientos registrados.</p>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
-                <tr>
-                  <th className="py-2">Fecha</th>
-                  <th className="py-2">Motivo</th>
-                  <th className="py-2 text-right">Cant.</th>
-                  <th className="py-2 text-right">Stock</th>
-                  <th className="py-2 pl-4">Detalle</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movimientos.map((m) => (
-                  <tr key={m.id} className="border-t border-gray-100 dark:border-gray-800">
-                    <td className="py-2 text-gray-600 dark:text-gray-400">{dayjs(m.fecha).format("DD/MM/YY HH:mm")}</td>
-                    <td className="py-2 text-gray-800 dark:text-gray-200">{MOTIVO[m.motivo]}</td>
-                    <td className={`py-2 text-right font-semibold ${m.tipo === "ENTRADA" ? "text-emerald-600" : "text-red-500"}`}>
-                      {m.tipo === "ENTRADA" ? "+" : "-"}
-                      {m.cantidad}
-                    </td>
-                    <td className="py-2 text-right text-gray-800 dark:text-gray-200">{m.stockResultante}</td>
-                    <td className="py-2 pl-4 text-gray-500 dark:text-gray-400">
-                      {[m.nota, m.usuario].filter(Boolean).join(" · ")}
-                    </td>
+        <Modal open onClose={() => setHistorialDe(null)} maxWidth="max-w-2xl" className="max-h-[88vh] flex flex-col overflow-hidden">
+          <ModalEncabezado icono={<FaHistory />} titulo="Historial de existencias" subtitulo={historialDe.nombreServicio} onClose={() => setHistorialDe(null)} />
+          <div className="px-6 py-4 flex-1 overflow-y-auto">
+            {movimientos.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">Sin movimientos registrados.</p>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead className="text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-wider font-semibold border-b border-gray-200 dark:border-gray-800">
+                  <tr>
+                    <th className="py-2 text-left">Fecha</th>
+                    <th className="py-2 text-left">Motivo</th>
+                    <th className="py-2 text-right">Cant.</th>
+                    <th className="py-2 text-right">Quedan</th>
+                    <th className="py-2 pl-4 text-left">Detalle</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <div className="flex justify-end">
+                </thead>
+                <tbody>
+                  {movimientos.map((m) => (
+                    <tr key={m.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <td className="py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">{dayjs(m.fecha).format("DD/MM/YY HH:mm")}</td>
+                      <td className="py-2 text-gray-800 dark:text-gray-200">{MOTIVO[m.motivo]}</td>
+                      <td className={`py-2 text-right font-semibold tabular-nums ${m.tipo === "ENTRADA" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                        {m.tipo === "ENTRADA" ? "+" : "-"}
+                        {m.cantidad}
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-gray-800 dark:text-gray-200">{m.stockResultante}</td>
+                      <td className="py-2 pl-4 text-gray-500 dark:text-gray-400">{[m.nota, m.usuario].filter(Boolean).join(" · ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <ModalPie>
             <Button variant="secondary" onClick={() => setHistorialDe(null)}>
               Cerrar
             </Button>
-          </div>
+          </ModalPie>
         </Modal>
       )}
     </div>

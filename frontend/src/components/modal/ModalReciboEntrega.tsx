@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
 import { FaPrint } from "react-icons/fa";
 import { toast } from "react-toastify";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { ModalEncabezado, ModalPie } from "../ui/Formulario";
 import ReciboEntrega from "../ReciboEntrega";
 import type { ReciboData } from "@lavanderia/shared/types/types";
 
@@ -51,27 +51,11 @@ export default function ModalReciboEntrega({
   };
 
   return (
-    <Modal
-      open={visible}
-      onClose={onClose}
-      maxWidth="max-w-md"
-      className="!bg-white flex flex-col h-[90vh]"
-    >
-        <div className="shrink-0 flex justify-between items-center p-6 pb-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <FaPrint size={28} className="text-blue-600" /> Vista previa de
-            recibo
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-3xl transition-transform transform hover:rotate-90 p-2 rounded-full hover:bg-gray-100"
-            title="Cerrar"
-          >
-            <FiX size={28} />
-          </button>
-        </div>
+    <Modal open={visible} onClose={onClose} maxWidth="max-w-md" className="flex flex-col h-[90vh] overflow-hidden">
+      <ModalEncabezado icono={<FaPrint />} titulo="Vista previa del recibo" subtitulo="Así saldrá en la impresora" onClose={onClose} />
 
-        <div className="overflow-y-auto grow p-6">
+      <div className="overflow-y-auto grow bg-gray-100 dark:bg-gray-950 p-5">
+        <div className="bg-white text-gray-900 rounded-lg shadow-md p-4 mx-auto">
           <ReciboEntrega
             clienteInfo={datosRecibo.clienteInfo}
             items={datosRecibo.items}
@@ -85,20 +69,16 @@ export default function ModalReciboEntrega({
             totalCantidadPiezas={datosRecibo.totalCantidadPiezas}
           />
         </div>
+      </div>
 
-        <div className="shrink-0 pt-6 px-6 pb-6 flex justify-end border-t border-gray-200">
-          <Button
-            onClick={imprimirConServidor}
-            variant="whatsapp"
-            size="lg"
-            leftIcon={<FaPrint size={20} />}
-            className="w-full sm:w-auto"
-            isLoading={imprimiendo}
-            disabled={imprimiendo}
-          >
-            Imprimir
-          </Button>
-        </div>
+      <ModalPie>
+        <Button onClick={onClose} variant="secondary">
+          Cerrar
+        </Button>
+        <Button onClick={imprimirConServidor} variant="primary" leftIcon={<FaPrint />} isLoading={imprimiendo} disabled={imprimiendo}>
+          Imprimir
+        </Button>
+      </ModalPie>
     </Modal>
   );
 }

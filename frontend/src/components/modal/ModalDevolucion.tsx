@@ -8,6 +8,7 @@ import { ordenesService } from "../../services/ordenesService";
 import { convertirDesdePrincipal, formatearMoneda, type TasasConversion } from "../../utils/monedaHelpers";
 import { useEtiquetas } from "../../context/configuracionCore";
 import Modal from "../ui/Modal";
+import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../ui/Formulario";
 import Button from "../ui/Button";
 
 interface Props {
@@ -18,8 +19,7 @@ interface Props {
   onDevuelto: (orden: Orden) => void;
 }
 
-const input =
-  "px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 text-sm";
+const input = campo;
 
 export default function ModalDevolucion({ orden, monedaPrincipal, tasas, onClose, onDevuelto }: Props) {
   const et = useEtiquetas();
@@ -81,118 +81,118 @@ export default function ModalDevolucion({ orden, monedaPrincipal, tasas, onClose
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-2xl" className="p-6 space-y-5 overflow-auto max-h-[90vh]">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-        <FaUndoAlt /> Devolver artículos · #{orden.id}
-      </h2>
+    <Modal open onClose={onClose} maxWidth="max-w-2xl" className="max-h-[92vh] flex flex-col overflow-hidden">
+      <ModalEncabezado icono={<FaUndoAlt />} titulo="Devolver artículos" subtitulo={`${et.orden} #${orden.id} · elige qué vuelve y cuánto`} onClose={onClose} />
 
-      <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
-            <tr>
-              <th className="px-3 py-2 text-left">{et.servicio}</th>
-              <th className="px-3 py-2 text-right">Vendido</th>
-              <th className="px-3 py-2 text-right">Ya devuelto</th>
-              <th className="px-3 py-2 text-right w-28">Devolver</th>
-            </tr>
-          </thead>
-          <tbody>
-            {detalles.map((d) => {
-              const max = disponible(d);
-              return (
-                <tr key={d.id} className="border-t border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200">
-                  <td className="px-3 py-2">{d.servicio?.nombreServicio ?? `${et.servicio} #${d.servicioId}`}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{d.cantidad}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-500">{d.cantidadDevuelta || "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    {max > 0 ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <input
-                          type="number"
-                          min={0}
-                          max={max}
-                          step={d.servicio?.permiteDecimales ? "any" : 1}
-                          value={cantidades[d.id] ?? ""}
-                          onChange={(e) => setCantidades((c) => ({ ...c, [d.id]: e.target.value }))}
-                          placeholder="0"
-                          aria-label={`Cantidad a devolver de ${d.servicio?.nombreServicio ?? d.servicioId}`}
-                          className={`${input} w-20 text-right`}
-                        />
-                        <button
-                          type="button"
-                          title="Devolver todo lo restante"
-                          onClick={() => setCantidades((c) => ({ ...c, [d.id]: String(max) }))}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                        >
-                          todo
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">completo</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Motivo (opcional)</label>
-        <input className={`${input} w-full`} value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} placeholder="Ej. defectuoso, se equivocó de talla…" />
-      </div>
-
-      <div className="rounded-lg bg-gray-100 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4 space-y-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Valor devuelto (con impuesto y descuento)</span>
-          <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(calculo.totalDevuelto, monedaPrincipal)}</strong>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Nuevo total de la {et.ordenMin}</span>
-          <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(calculo.nuevoTotal, monedaPrincipal)}</strong>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Ya pagado</span>
-          <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(orden.abonado, monedaPrincipal)}</strong>
+      <div className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="px-3 py-2 text-left">{et.servicio}</th>
+                <th className="px-3 py-2 text-right">Vendido</th>
+                <th className="px-3 py-2 text-right">Ya devuelto</th>
+                <th className="px-3 py-2 text-right w-36">Devolver</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detalles.map((d) => {
+                const max = disponible(d);
+                return (
+                  <tr key={d.id} className="border-t border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-2">{d.servicio?.nombreServicio ?? `${et.servicio} #${d.servicioId}`}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{d.cantidad}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">{d.cantidadDevuelta || "—"}</td>
+                    <td className="px-3 py-2 text-right">
+                      {max > 0 ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={max}
+                            step={d.servicio?.permiteDecimales ? "any" : 1}
+                            value={cantidades[d.id] ?? ""}
+                            onChange={(e) => setCantidades((c) => ({ ...c, [d.id]: e.target.value }))}
+                            placeholder="0"
+                            aria-label={`Cantidad a devolver de ${d.servicio?.nombreServicio ?? d.servicioId}`}
+                            className={`${input} w-20! h-9! text-right tabular-nums`}
+                          />
+                          <button type="button" title="Devolver todo lo restante" onClick={() => setCantidades((c) => ({ ...c, [d.id]: String(max) }))} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                            todo
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">completo</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 pt-1">
-          <input type="checkbox" checked={reembolsar} onChange={(e) => setReembolsar(e.target.checked)} className="accent-blue-600 w-4 h-4" />
-          Devolver el dinero al {et.clienteMin} si pagó de más
-        </label>
+        <Campo etiqueta="Motivo" opcional>
+          <input className={input} value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} placeholder="Ej. defectuoso, se equivocó de talla…" />
+        </Campo>
 
-        {reembolsar && calculo.excedente > 0 && (
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-amber-700 dark:text-amber-400 font-semibold">
-              A reembolsar: {formatearMoneda(calculo.excedente, monedaPrincipal)}
-            </span>
-            <select value={monedaReembolso} onChange={(e) => setMonedaReembolso(e.target.value as Moneda)} className={input}>
-              {(["USD", "VES", "COP"] as Moneda[]).map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            <select value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)} className={input}>
-              <option value="EFECTIVO">Efectivo</option>
-              <option value="TRANSFERENCIA">Transferencia</option>
-              <option value="PAGO_MOVIL">Pago móvil</option>
-            </select>
-            {monedaReembolso !== monedaPrincipal && !faltaTasa && (
-              <span className="text-gray-500 dark:text-gray-400">= {formatearMoneda(reembolsoEnMoneda, monedaReembolso)}</span>
-            )}
-            {faltaTasa && <span className="text-red-600">No hay tasa configurada para {monedaReembolso}.</span>}
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 p-4 space-y-2.5">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Valor devuelto (con impuesto y descuento)</span>
+            <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(calculo.totalDevuelto, monedaPrincipal)}</strong>
           </div>
-        )}
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Nuevo total de la {et.ordenMin}</span>
+            <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(calculo.nuevoTotal, monedaPrincipal)}</strong>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Ya pagado</span>
+            <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(orden.abonado, monedaPrincipal)}</strong>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 space-y-3">
+          <Opcion activo={reembolsar} onChange={setReembolsar} titulo={`Devolver el dinero al ${et.clienteMin}`} detalle="Solo si pagó más de lo que ahora vale la compra." />
+          {reembolsar && calculo.excedente > 0 && (
+            <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-3">
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">A reembolsar: {formatearMoneda(calculo.excedente, monedaPrincipal)}</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Campo etiqueta="Moneda">
+                  <select value={monedaReembolso} onChange={(e) => setMonedaReembolso(e.target.value as Moneda)} className={input}>
+                    {(["USD", "VES", "COP"] as Moneda[]).map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo etiqueta="Método">
+                  <select value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)} className={input}>
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                    <option value="PAGO_MOVIL">Pago móvil</option>
+                  </select>
+                </Campo>
+              </div>
+              {monedaReembolso !== monedaPrincipal && !faltaTasa && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Entregas <strong className="tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(reembolsoEnMoneda, monedaReembolso)}</strong>
+                </p>
+              )}
+              {faltaTasa && <p className="text-sm font-medium text-red-600 dark:text-red-400">No hay tasa configurada para {monedaReembolso}.</p>}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex justify-end gap-3">
+      <ModalPie>
         <Button variant="secondary" onClick={onClose} disabled={guardando}>
           Cancelar
         </Button>
-        <Button variant="edit" onClick={confirmar} isLoading={guardando} disabled={seleccion.length === 0 || invalida || faltaTasa}>
+        <Button variant="primary" onClick={confirmar} isLoading={guardando} disabled={seleccion.length === 0 || invalida || faltaTasa}>
           Registrar devolución
         </Button>
-      </div>
+      </ModalPie>
     </Modal>
   );
 }

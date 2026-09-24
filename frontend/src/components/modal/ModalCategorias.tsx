@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { FaTags, FaPlus, FaTimes, FaPen, FaTrashAlt } from "react-icons/fa";
+import { FaTags, FaPlus, FaPen, FaTrashAlt } from "react-icons/fa";
 import { categoriasService } from "../../services/categoriasService";
 import { Categoria } from "@lavanderia/shared/types/types";
 import { AxiosError } from "axios";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import { ModalEncabezado, ModalPie, campo } from "../ui/Formulario";
 import ConfirmacionModal from "./ConfirmacionModal";
 import { useEtiquetas } from "../../context/configuracionCore";
 
@@ -150,118 +151,59 @@ export default function CategoriasModal({ onClose }: Props) {
   };
 
   return (
-    <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[80vh] flex flex-col overflow-hidden">
+    <Modal open onClose={onClose} maxWidth="max-w-lg" className="h-[80vh] max-h-[620px] flex flex-col overflow-hidden">
+      <ModalEncabezado icono={<FaTags />} titulo="Categorías" subtitulo={cargando ? undefined : `${categorias.length} en total`} onClose={onClose} />
 
-        {/* HEADER */}
-        <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold flex items-center gap-3">
-            <FaTags className="text-2xl" />
-            Gestionar Categorías
-          </h2>
-          <button
-            onClick={onClose}
-            title="Cerrar"
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none cursor-pointer"
-          >
-            <FaTimes />
-          </button>
-        </div>
-
-        {/* CONTENT */}
-        <div className="px-6 py-6 flex-1 flex flex-col space-y-5 text-base text-gray-800 dark:text-gray-200 min-h-0">
-
-          {/* FORMULARIO */}
-          <form onSubmit={handleSubmit} className="flex gap-3 items-center">
-            <input
-              type="text"
-              placeholder={
-                modoEdicion
-                  ? "Editar nombre de categoría"
-                  : "Nombre de nueva categoría"
-              }
-              value={formState.nombre}
-              onChange={(e) =>
-                setFormState({ ...formState, nombre: e.target.value })
-              }
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200 shadow-sm"
-            />
-
-            {/* Botón Principal (Guardar/Añadir) */}
-            <Button
-              type="submit"
-              variant="primary"
-              leftIcon={modoEdicion ? <FaPen /> : <FaPlus />}
-              isLoading={estaGuardando}
-              disabled={estaGuardando}
-            >
-              {modoEdicion ? "Guardar" : "Añadir"}
-            </Button>
-
-            {/* Botón Cancelar Edición */}
-            {modoEdicion && (
-              <Button
-                type="button"
-                onClick={cancelarEdicion}
-                variant="secondary"
-              >
-                Cancelar
-              </Button>
-            )}
-          </form>
-
-          {/* LISTA DE CATEGORÍAS */}
-          {cargando ? (
-            <p className="text-center text-purple-600 dark:text-purple-400 font-semibold py-8">
-              Cargando categorías...
-            </p>
-          ) : errorCarga ? (
-            <p className="text-center text-red-600 dark:text-red-400 font-semibold py-8">
-              {errorCarga}
-            </p>
-          ) : categorias.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 italic text-center py-8">
-              No hay categorías registradas.
-            </p>
-          ) : (
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar transition-all">
-              {categorias.map((categoria) => (
-                <div
-                  key={categoria.id}
-                  className="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 shadow-sm transition-colors"
-                >
-                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-lg">
-                    {categoria.nombre}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => iniciarEdicion(categoria)}
-                      title="Editar categoría"
-                      variant="iconInfo"
-                      size="icon"
-                    >
-                      <FaPen />
-                    </Button>
-                    <Button
-                      onClick={() => confirmarEliminar(categoria.id)}
-                      title="Eliminar categoría"
-                      variant="iconDanger"
-                      size="icon"
-                    >
-                      <FaTrashAlt />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* FOOTER */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 flex justify-end">
-          <Button onClick={onClose} variant="secondary">
-            Cerrar
+      <form onSubmit={handleSubmit} className="px-6 pt-4 pb-3 flex gap-2.5 items-center">
+        <input
+          type="text"
+          placeholder={modoEdicion ? "Nuevo nombre de la categoría" : "Nombre de la nueva categoría"}
+          value={formState.nombre}
+          onChange={(e) => setFormState({ ...formState, nombre: e.target.value })}
+          className={`${campo} flex-1`}
+          autoFocus
+        />
+        <Button type="submit" variant="primary" leftIcon={modoEdicion ? <FaPen /> : <FaPlus />} isLoading={estaGuardando} disabled={estaGuardando}>
+          {modoEdicion ? "Guardar" : "Añadir"}
+        </Button>
+        {modoEdicion && (
+          <Button type="button" onClick={cancelarEdicion} variant="secondary">
+            Cancelar
           </Button>
-        </div>
+        )}
+      </form>
+
+      <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
+        {cargando ? (
+          <p className="text-center text-sm text-gray-500 py-10">Cargando categorías…</p>
+        ) : errorCarga ? (
+          <p className="text-center text-sm text-red-600 dark:text-red-400 py-10">{errorCarga}</p>
+        ) : categorias.length === 0 ? (
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-10">Aún no hay categorías. Crea la primera arriba.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800 rounded-xl border border-gray-200 dark:border-gray-800">
+            {categorias.map((categoria) => (
+              <li key={categoria.id} className={`flex items-center justify-between gap-3 px-4 py-2.5 ${formState.id === categoria.id ? "bg-blue-50/60 dark:bg-blue-500/10" : ""}`}>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{categoria.nombre}</span>
+                <span className="flex gap-1.5 shrink-0">
+                  <Button onClick={() => iniciarEdicion(categoria)} title="Editar categoría" variant="iconInfo" size="icon">
+                    <FaPen />
+                  </Button>
+                  <Button onClick={() => confirmarEliminar(categoria.id)} title="Eliminar categoría" variant="iconDanger" size="icon">
+                    <FaTrashAlt />
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <ModalPie>
+        <Button onClick={onClose} variant="secondary">
+          Cerrar
+        </Button>
+      </ModalPie>
 
       {/* CONFIRMACIÓN ELIMINAR */}
       {mostrarConfirmacionEliminar && (
