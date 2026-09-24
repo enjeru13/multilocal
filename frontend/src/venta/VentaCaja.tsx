@@ -155,27 +155,27 @@ export default function VentaCaja() {
   return createPortal(
     <div className="fixed inset-0 z-40 flex flex-col bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {/* Barra superior */}
-      <header className="h-14 shrink-0 flex items-center gap-4 px-5 bg-slate-900 text-slate-100">
+      <header className="h-14 shrink-0 flex items-center gap-4 px-5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-800">
         <span className="flex items-center gap-2 font-bold tracking-tight">
-          <FaCashRegister className="text-blue-400" /> {venta.config?.nombreNegocio || "Caja"}
+          <FaCashRegister className="text-blue-600 dark:text-blue-400" /> {venta.config?.nombreNegocio || "Caja"}
         </span>
         {venta.config?.moduloCaja &&
           (venta.cajaCerrada ? (
-            <Link to="/caja" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-semibold">
+            <Link to="/caja" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold">
               <FaExclamationTriangle /> Caja cerrada — ábrela para cobrar
             </Link>
           ) : (
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold">Caja abierta</span>
+            <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">Caja abierta</span>
           ))}
-        <span className="ml-auto text-sm text-slate-400 hidden md:inline">{user?.name || user?.email}</span>
-        <span className="text-sm tabular-nums text-slate-300">{hora}</span>
+        <span className="ml-auto text-sm text-gray-500 dark:text-gray-400 hidden md:inline">{user?.name || user?.email}</span>
+        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-300">{hora}</span>
         <button
           type="button"
           onClick={() => navigate("/resumen")}
-          className="flex items-center gap-2 text-sm text-slate-300 hover:text-white cursor-pointer"
+          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
           title="Salir de la caja"
         >
-          <FaSignOutAlt /> Salir <Kbd combo="Alt+H" className="text-slate-400" />
+          <FaSignOutAlt /> Salir <Kbd combo="Alt+H" className="text-gray-400" />
         </button>
       </header>
 
