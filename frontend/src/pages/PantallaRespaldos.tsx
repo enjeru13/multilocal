@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
-import { FaDatabase, FaDownload, FaUndo, FaUpload, FaPlus } from "react-icons/fa";
-import { respaldosService, type Respaldo } from "../services/respaldosService";
+import { FaDatabase, FaDownload, FaUndo, FaUpload, FaPlus, FaFileImport, FaExclamationTriangle } from "react-icons/fa";
+import { respaldosService, type Respaldo, type ResumenLegado } from "../services/respaldosService";
 import Button from "../components/ui/Button";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
+import Modal from "../components/ui/Modal";
+import { ModalEncabezado, ModalPie } from "../components/ui/Formulario";
 
 const ETIQUETA: Record<Respaldo["tipo"], string> = {
   auto: "Automático",
@@ -27,6 +29,35 @@ export default function PantallaRespaldos() {
   const [trabajando, setTrabajando] = useState(false);
   const [aRestaurar, setARestaurar] = useState<string | File | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
+  const inputLegado = useRef<HTMLInputElement>(null);
+  const [legado, setLegado] = useState<{ archivo: File; resumen: ResumenLegado } | null>(null);
+
+  // Primero se revisa el archivo (sin cambiar nada) y se muestra lo que trae.
+  const revisarLegado = async (archivo: File) => {
+    setTrabajando(true);
+    try {
+      const res = await respaldosService.revisarLegado(archivo);
+      setLegado({ archivo, resumen: res.data.resumen });
+    } catch (err) {
+      toast.error(msgError(err, "No se pudo leer el archivo."));
+    } finally {
+      setTrabajando(false);
+    }
+  };
+
+  const importarLegado = async () => {
+    if (!legado) return;
+    setTrabajando(true);
+    try {
+      await respaldosService.importarLegado(legado.archivo);
+      toast.success("Datos importados. Entra con el usuario del sistema anterior.");
+      localStorage.clear();
+      setTimeout(() => (window.location.href = "/login"), 1400);
+    } catch (err) {
+      toast.error(msgError(err, "No se pudo importar."));
+      setTrabajando(false);
+    }
+  };
 
   const cargar = useCallback(async () => {
     try {
@@ -89,6 +120,20 @@ export default function PantallaRespaldos() {
         <Button onClick={() => inputArchivo.current?.click()} variant="secondary" leftIcon={<FaUpload size={12} />}>
           Restaurar desde un archivo…
         </Button>
+        <Button onClick={() => inputLegado.current?.click()} variant="secondary" leftIcon={<FaFileImport size={12} />} isLoading={trabajando && !legado}>
+          Importar del sistema anterior…
+        </Button>
+        <input
+          ref={inputLegado}
+          type="file"
+          accept=".db"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) revisarLegado(f);
+            e.target.value = "";
+          }}
+        />
         <input
           ref={inputArchivo}
           type="file"
@@ -142,6 +187,46 @@ export default function PantallaRespaldos() {
           </tbody>
         </table>
       </div>
+
+      {legado && (
+        <Modal open onClose={() => !trabajando && setLegado(null)} maxWidth="max-w-lg">
+          <ModalEncabezado icono={<FaFileImport />} titulo="Importar del sistema anterior" subtitulo={legado.resumen.negocio ?? legado.archivo.name} onClose={() => !trabajando && setLegado(null)} />
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">El archivo trae:</p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+              {(
+                [
+                  ["Clientes", legado.resumen.clientes],
+                  ["Servicios", legado.resumen.servicios],
+                  ["Órdenes", legado.resumen.ordenes],
+                  ["Pagos", legado.resumen.pagos],
+                  ["Categorías", legado.resumen.categorias],
+                  ["Usuarios", legado.resumen.usuarios],
+                ] as const
+              ).map(([k, v]) => (
+                <div key={k} className="flex justify-between border-b border-gray-100 dark:border-gray-800 py-1">
+                  <dt className="text-gray-500 dark:text-gray-400">{k}</dt>
+                  <dd className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{v.toLocaleString("es")}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex gap-3 text-sm text-amber-900 dark:text-amber-200">
+              <FaExclamationTriangle className="mt-0.5 shrink-0" />
+              <p>
+                Esto <strong>reemplaza toda la información actual</strong> (usuarios incluidos). Antes se guarda una copia de lo que hay ahora, y al terminar tendrás que entrar con el usuario y la contraseña del sistema anterior.
+              </p>
+            </div>
+          </div>
+          <ModalPie>
+            <Button variant="secondary" onClick={() => setLegado(null)} disabled={trabajando}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={importarLegado} isLoading={trabajando}>
+              Importar y reemplazar
+            </Button>
+          </ModalPie>
+        </Modal>
+      )}
 
       {aRestaurar && (
         <ConfirmacionModal

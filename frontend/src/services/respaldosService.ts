@@ -7,6 +7,20 @@ export interface Respaldo {
   fecha: string;
 }
 
+export interface ResumenLegado {
+  categorias: number;
+  clientes: number;
+  servicios: number;
+  ordenes: number;
+  detalles: number;
+  pagos: number;
+  vueltos: number;
+  usuarios: number;
+  negocio: string | null;
+}
+
+const binario = { headers: { "Content-Type": "application/octet-stream" }, maxBodyLength: Infinity } as const;
+
 export const respaldosService = {
   listar: (): Promise<{ data: Respaldo[] }> => apiClient.get("/respaldos"),
   crear: () => apiClient.post<{ nombre: string }>("/respaldos/crear"),
@@ -23,6 +37,12 @@ export const respaldosService = {
   },
   restaurar: (nombre: string) =>
     apiClient.post(`/respaldos/restaurar/${encodeURIComponent(nombre)}`),
+  /** Cuenta lo que trae un respaldo del sistema anterior, sin importar nada. */
+  revisarLegado: (archivo: File): Promise<{ data: { resumen: ResumenLegado } }> =>
+    apiClient.post("/respaldos/importar-legado?simular=1", archivo, binario),
+  /** Reemplaza todos los datos actuales por los del sistema anterior. */
+  importarLegado: (archivo: File): Promise<{ data: { resumen: ResumenLegado; respaldoPrevio: string } }> =>
+    apiClient.post("/respaldos/importar-legado", archivo, binario),
   restaurarArchivo: (archivo: File) =>
     apiClient.post("/respaldos/restaurar-archivo", archivo, {
       headers: { "Content-Type": "application/octet-stream" },

@@ -10,6 +10,7 @@ allowBuilds:
   '@prisma/engines': true
   '@tailwindcss/oxide': true
   electron: true
+  electron-winstaller: false
   esbuild: true
   prisma: true
 

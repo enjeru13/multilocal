@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import prisma from "../lib/prisma";
+import { ArchivoNoValido, importarLegado, revisarLegado } from "../lib/importarLegado";
 import {
   getBackupDir,
   listarRespaldos,
@@ -64,6 +66,31 @@ export async function restaurarArchivo(req: Request, res: Response) {
     return res.json({ message: "Respaldo restaurado.", respaldoPrevio });
   } catch (error: any) {
     return res.status(400).json({ message: error?.message ?? "No se pudo restaurar" });
+  } finally {
+    fs.rmSync(temporal, { force: true });
+  }
+}
+
+// POST /api/respaldos/importar-legado[?simular=1] — datos del sistema anterior (cuerpo = archivo .db).
+// Con `simular` solo cuenta lo que trae; sin él reemplaza todo lo actual, tras un respaldo previo.
+export async function importarDesdeLegado(req: Request, res: Response) {
+  const cuerpo = req.body as Buffer;
+  if (!Buffer.isBuffer(cuerpo) || cuerpo.length === 0) {
+    return res.status(400).json({ message: "No se recibió ningún archivo." });
+  }
+  const temporal = path.join(os.tmpdir(), `legado-${Date.now()}.db`);
+  try {
+    fs.writeFileSync(temporal, cuerpo);
+    const resumen = revisarLegado(temporal);
+    if (req.query.simular) return res.json({ simulacion: true, resumen });
+
+    const respaldoPrevio = await crearRespaldo("previo");
+    await importarLegado(temporal, prisma);
+    return res.json({ message: "Datos importados.", resumen, respaldoPrevio });
+  } catch (error: any) {
+    if (error instanceof ArchivoNoValido) return res.status(400).json({ message: error.message });
+    console.error("Error al importar datos del sistema anterior:", error);
+    return res.status(500).json({ message: "No se pudo importar. Tus datos actuales no se modificaron." });
   } finally {
     fs.rmSync(temporal, { force: true });
   }

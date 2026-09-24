@@ -5,6 +5,7 @@ import {
   descargar,
   restaurarGuardado,
   restaurarArchivo,
+  importarDesdeLegado,
 } from "../controllers/respaldoController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
@@ -21,6 +22,13 @@ router.post(
   ...soloAdmin,
   express.raw({ type: "application/octet-stream", limit: "500mb" }),
   restaurarArchivo
+);
+
+router.post(
+  "/importar-legado",
+  ...soloAdmin,
+  express.raw({ type: "application/octet-stream", limit: "500mb" }),
+  importarDesdeLegado
 );
 
 export default router;

@@ -30,3 +30,8 @@ Thumbs.db
 # Editor
 .vscode/*
 !.vscode/extensions.json
+
+# Electron: carpeta de recursos (el icono sí se versiona), datos preparados e instaladores
+!desktop/build/
+desktop/stage/
+desktop/release/

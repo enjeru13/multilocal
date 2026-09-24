@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
+import path from "path";
 import cors from "cors";
 import morgan from "morgan";
 
@@ -31,9 +32,13 @@ export function createApp() {
   if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
   app.use(express.json());
 
-  app.get("/", (req: Request, res: Response) => {
-    res.send("API local funcionando correctamente");
-  });
+  // App instalada: el mismo servidor entrega la interfaz (y así no hay orígenes distintos).
+  const carpetaWeb = process.env.FRONTEND_DIR;
+  if (!carpetaWeb) {
+    app.get("/", (req: Request, res: Response) => {
+      res.send("API local funcionando correctamente");
+    });
+  }
 
   app.use("/api/auth", authRoute);
   app.use("/api/categorias", categoriaRouter);
@@ -54,6 +59,15 @@ export function createApp() {
   app.use("/api/inventario", inventarioRouter);
   app.use("/api/reportes", reporteRouter);
   app.use("/api/gastos", gastoRouter);
+
+  if (carpetaWeb) {
+    app.use(express.static(carpetaWeb));
+    // Cualquier otra ruta que no sea de la API es de la interfaz (React Router).
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+      res.sendFile(path.join(carpetaWeb, "index.html"));
+    });
+  }
 
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Error global:", err);

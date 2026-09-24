@@ -90,7 +90,7 @@ export function validarRespaldo(ruta: string): { ok: true } | { ok: false; motiv
       if (!tablas.includes(t)) {
         return {
           ok: false,
-          motivo: `Este respaldo no tiene el formato actual (falta la tabla ${t}). Si es del sistema anterior, debe importarse con la herramienta de migración.`,
+          motivo: `Este respaldo no tiene el formato actual (falta la tabla ${t}). Si es del sistema anterior, usa «Importar del sistema anterior» en esta misma pantalla.`,
         };
       }
     }

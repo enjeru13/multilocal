@@ -1,14 +1,65 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "cross-env MOSTRADOR_DEV=1 electron ."
+    "dev": "cross-env MOSTRADOR_DEV=1 electron .",
+    "preparar": "node scripts/preparar.mjs",
+    "icono": "node scripts/icono.mjs",
+    "probar:stage": "cross-env MOSTRADOR_STAGE=1 electron .",
+    "dist:dir": "node scripts/preparar.mjs && electron-builder --dir",
+    "dist": "node scripts/preparar.mjs && electron-builder --win nsis"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "electron": "^38.4.0"
+    "electron": "^38.4.0",
+    "electron-builder": "^26.15.3"
+  },
+  "description": "Sistema de gestión para negocios",
+  "author": "Mostrador",
+  "build": {
+    "appId": "com.mostrador.app",
+    "productName": "Mostrador",
+    "copyright": "Mostrador",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "stage/frontend",
+        "to": "frontend"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mostrador",
+      "deleteAppDataOnUninstall": false
+    },
+    "afterPack": "scripts/despues-de-empaquetar.cjs"
   }
 }
