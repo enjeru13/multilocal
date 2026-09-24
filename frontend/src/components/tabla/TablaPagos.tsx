@@ -62,7 +62,7 @@ export default function TablaPagos({
   return (
     <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
       <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
-        <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
           <tr className="text-left">
             <th
               className="px-4 py-2 font-semibold cursor-pointer whitespace-nowrap"
@@ -138,7 +138,7 @@ export default function TablaPagos({
               return (
                 <tr
                   key={pago.id}
-                  className="border-t border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-150 text-gray-700 dark:text-gray-300 font-semibold"
+                  className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors duration-150 text-gray-700 dark:text-gray-300"
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {dayjs(pago.fechaPago).format("DD MMM YYYY")}

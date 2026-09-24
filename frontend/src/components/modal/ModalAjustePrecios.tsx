@@ -75,7 +75,7 @@ export default function ModalAjustePrecios({ categorias, monedaPrincipal, onClos
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-lg" className="p-6 space-y-5">
-      <h2 className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-3">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
         <FaPercent size={22} /> Ajustar precios
       </h2>
 

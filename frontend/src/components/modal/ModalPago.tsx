@@ -280,7 +280,7 @@ export default function ModalPago({
       className="max-h-[90vh] overflow-hidden flex flex-col"
     >
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-green-700 dark:text-green-500 flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <MdOutlinePayments className="text-2xl sm:text-3xl" />
             Registrar pago
           </h2>

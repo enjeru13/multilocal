@@ -6,7 +6,7 @@ import type {
 
 export type EstadoPagoDisplay = EstadoPagoRaw | EstadoPagoTexto;
 
-const baseBadge = "inline-block px-3 py-1 rounded-full text-sm font-bold";
+const baseBadge = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide";
 
 /**
  * @param

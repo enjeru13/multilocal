@@ -21,7 +21,7 @@ export default function EmptyState({
             <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-4 transition-colors">
                 <Icon size={48} className="text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {title}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">

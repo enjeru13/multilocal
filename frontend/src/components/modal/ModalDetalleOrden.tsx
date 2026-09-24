@@ -274,7 +274,7 @@ export default function ModalDetalleOrden({
     >
         {/* HEADER */}
         <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-2xl font-extrabold text-green-700 dark:text-green-500 flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <BiMessageSquareDetail className="text-3xl" />
             Detalle de la {et.ordenMin}
             <span className="text-gray-500 dark:text-gray-400 font-semibold">#{orden.id}</span>
@@ -343,7 +343,7 @@ export default function ModalDetalleOrden({
           </h3>
           <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
             <table className="min-w-full bg-white dark:bg-gray-950 text-sm">
-              <thead className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 font-semibold border-b border-gray-200 dark:border-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="px-4 py-3 text-left">{et.servicio}</th>
                   <th className="px-4 py-3 text-center">Cantidad</th>

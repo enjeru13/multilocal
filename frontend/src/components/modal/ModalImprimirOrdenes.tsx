@@ -53,7 +53,7 @@ export default function ModalImprimirOrdenes({
     >
         {/* Header */}
         <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 transition-colors">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <FaPrint className="text-blue-600 dark:text-blue-400" /> Vista Previa de Reporte
           </h2>
           <button

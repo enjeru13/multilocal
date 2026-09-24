@@ -104,7 +104,7 @@ export default function PantallaReportes() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <FaChartLine className="text-blue-600 dark:text-blue-400" /> Reportes
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
@@ -255,7 +255,7 @@ export default function PantallaReportes() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                    <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                       <tr>
                         <th className="py-2 text-left font-semibold">{et.servicio}</th>
                         <th className="py-2 text-right font-semibold">Cant.</th>

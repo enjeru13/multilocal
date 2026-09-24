@@ -69,7 +69,7 @@ function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[];
   return (
     <Modal open onClose={onClose} maxWidth="max-w-lg" className="p-6">
       <form onSubmit={guardar} className="space-y-4">
-        <h2 className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-3">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaMoneyCheckAlt /> Nuevo gasto
         </h2>
         <div>
@@ -179,7 +179,7 @@ export default function PantallaGastos() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <FaMoneyCheckAlt className="text-rose-500" /> Gastos
           </h1>
           <p className="text-gray-500 dark:text-gray-400">Lo que sale del negocio: alquiler, servicios, sueldos…</p>
@@ -202,7 +202,7 @@ export default function PantallaGastos() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section className={`${tarjeta} p-5`}>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total del periodo</p>
-            <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{fmt(data?.total ?? 0)}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{fmt(data?.total ?? 0)}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {data?.gastos.length ?? 0} {data?.gastos.length === 1 ? "gasto" : "gastos"}
             </p>
@@ -232,7 +232,7 @@ export default function PantallaGastos() {
 
         <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
                 <th className="px-5 py-3 text-left">Fecha</th>
                 <th className="px-5 py-3 text-left">Concepto</th>

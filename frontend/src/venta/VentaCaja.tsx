@@ -237,7 +237,7 @@ export default function VentaCaja() {
               </div>
             ) : (
               <table className="w-full text-base">
-                <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                   <tr>
                     <th className="px-4 py-2 text-left w-10">#</th>
                     <th className="px-4 py-2 text-left">{et.servicio}</th>

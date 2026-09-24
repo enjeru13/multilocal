@@ -65,7 +65,7 @@ export default function VentaModales({
 
       {verEspera && (
         <Modal open onClose={cerrarEspera} maxWidth="max-w-lg" className="p-6">
-          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-4">
             <FaPauseCircle className="text-amber-500" /> Ventas {nombreEspera}
           </h2>
           {venta.enEspera.length === 0 ? (

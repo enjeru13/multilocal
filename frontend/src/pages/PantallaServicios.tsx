@@ -218,7 +218,7 @@ export default function PantallaServicios() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{et.servicios}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{et.servicios}</h1>
 
         {/* 2. Botones actualizados */}
         <div className="flex gap-4 flex-wrap">

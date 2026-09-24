@@ -153,15 +153,15 @@ export default function CategoriasModal({ onClose }: Props) {
     <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[80vh] flex flex-col overflow-hidden">
 
         {/* HEADER */}
-        <div className="bg-purple-600 dark:bg-purple-800 text-white px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold flex items-center gap-3">
+        <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-lg font-semibold flex items-center gap-3">
             <FaTags className="text-2xl" />
             Gestionar Categorías
           </h2>
           <button
             onClick={onClose}
             title="Cerrar"
-            className="text-white/80 hover:text-white text-2xl leading-none cursor-pointer"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none cursor-pointer"
           >
             <FaTimes />
           </button>

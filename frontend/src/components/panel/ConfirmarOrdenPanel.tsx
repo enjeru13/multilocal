@@ -55,7 +55,7 @@ export default function ConfirmarOrdenPanel({
   return (
     <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
       <div className="text-center pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 mb-2">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center gap-2 mb-2">
           <FaDollarSign size={32} className="text-green-600 dark:text-green-500" />
           Total
         </h2>

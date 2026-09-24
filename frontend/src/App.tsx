@@ -4,8 +4,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
+import Toasts from "./components/ui/Toasts";
 import React from "react";
 import DashboardLayout from "./layout/DashboardLayout";
 import PantallaPrincipal from "./pages/PantallaPrincipal";
@@ -187,17 +187,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </AtajosProvider>
-        <ToastContainer
-          position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
+        <Toasts />
       </Router>
       </ConfiguracionProvider>
     </AuthProvider>

@@ -170,7 +170,7 @@ export default function EditarOrdenPage() {
     <div className="p-6 space-y-8 max-w-5xl mx-auto pb-20">
       <header className="flex flex-col mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
             Editar Orden <span className="text-blue-600 dark:text-blue-400">#{id}</span>
           </h1>
           <button

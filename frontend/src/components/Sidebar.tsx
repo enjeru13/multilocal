@@ -1,64 +1,97 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaKeyboard } from "react-icons/fa";
+import { FaAngleDoubleLeft, FaAngleDoubleRight } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
+import { useConfiguracion } from "../context/configuracionCore";
 import { useNavegacion } from "../experiencia/navegacion";
-import { useAtajosContext } from "../atajos/atajosCore";
 import Kbd from "../atajos/Kbd";
 
-/** Menú lateral: se arma según el rubro (orden, nombres, atajos) y los módulos activos. */
+const CLAVE = "mostrador.sidebar";
+
+/** Menú lateral: se arma según el rubro (orden, nombres, atajos) y los módulos activos; se puede plegar. */
 export default function Sidebar() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const { config } = useConfiguracion();
   const { secciones, experiencia } = useNavegacion();
-  const { abrirPaleta } = useAtajosContext();
+  const [plegado, setPlegado] = useState(() => {
+    try {
+      return localStorage.getItem(CLAVE) === "1";
+    } catch {
+      return false;
+    }
+  });
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
+
+  const alternar = () => {
+    setPlegado((p) => {
+      try {
+        localStorage.setItem(CLAVE, p ? "0" : "1");
+      } catch {
+        /* solo esta sesión */
+      }
+      return !p;
+    });
+  };
+
+  const negocio = config?.nombreNegocio?.trim() || "Mostrador";
 
   return (
-    <aside className="w-60 shrink-0 bg-slate-900 text-slate-100 h-screen flex flex-col sticky top-0">
-      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-        <span className="text-lg font-bold tracking-tight">Menú</span>
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full">
-          {experiencia.nombre}
+    <aside
+      className={`${plegado ? "w-[68px]" : "w-60"} shrink-0 h-screen sticky top-0 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-[width] duration-200`}
+    >
+      {/* Marca */}
+      <div className={`h-14 shrink-0 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 ${plegado ? "justify-center" : "px-4"}`}>
+        <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-extrabold shrink-0" aria-hidden>
+          {negocio.charAt(0).toUpperCase()}
         </span>
+        {!plegado && (
+          <span className="min-w-0 leading-tight">
+            <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{negocio}</span>
+            <span className="block text-[11px] text-gray-500 dark:text-gray-400">{experiencia.nombre}</span>
+          </span>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => abrirPaleta(true)}
-        className="mx-3 mt-4 flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-400 hover:text-slate-200 hover:border-slate-600 cursor-pointer"
-        title="Buscar pantalla o acción"
-      >
-        <span className="flex items-center gap-2">
-          <FaKeyboard /> Buscar…
-        </span>
-        <Kbd combo="Ctrl+K" />
-      </button>
-
-      <nav className="flex-1 overflow-y-auto px-3 py-5 flex flex-col gap-6">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-5">
         {secciones.map((grupo) => (
           <div key={grupo.titulo}>
-            <p className="px-3 text-[11px] uppercase font-semibold text-slate-500 mb-2 tracking-wider">{grupo.titulo}</p>
+            {!plegado ? (
+              <p className="px-3 mb-1.5 text-[11px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500">{grupo.titulo}</p>
+            ) : (
+              <div className="mx-3 mb-2 border-t border-gray-200 dark:border-gray-800" />
+            )}
             <ul className="flex flex-col gap-0.5">
               {grupo.items.map((link) => {
                 const activo = location.pathname === link.to;
                 return (
-                  <Link
-                    key={link.id}
-                    to={link.to}
-                    title={link.descripcion}
-                    className={`flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm transition-colors border-l-2 ${
-                      activo
-                        ? "bg-blue-500/10 border-blue-500 text-white font-semibold"
-                        : "border-transparent text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-                    }`}
-                  >
-                    <span className={`text-base ${activo ? "text-blue-400" : "text-slate-500"}`}>{link.icon}</span>
-                    <span className="flex-1 truncate">{link.label}</span>
-                    {link.atajo && <Kbd combo={link.atajo} className="text-slate-500 opacity-70" />}
-                  </Link>
+                  <li key={link.id}>
+                    <Link
+                      to={link.to}
+                      title={plegado ? `${link.label}${link.atajo ? ` (${link.atajo})` : ""}` : link.descripcion}
+                      aria-current={activo ? "page" : undefined}
+                      className={`group flex items-center gap-3 h-9 rounded-lg text-sm transition-colors ${plegado ? "justify-center px-0" : "px-3"} ${
+                        activo
+                          ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                      }`}
+                    >
+                      <span className={`text-[15px] shrink-0 ${activo ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300"}`}>
+                        {link.icon}
+                      </span>
+                      {!plegado && (
+                        <>
+                          <span className="flex-1 truncate">{link.label}</span>
+                          {link.atajo && (
+                            <span className="hidden group-hover:block">
+                              <Kbd combo={link.atajo} className="text-gray-400 dark:text-gray-500" />
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  </li>
                 );
               })}
             </ul>
@@ -66,9 +99,18 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <p className="px-6 py-3 border-t border-slate-800 text-[11px] text-slate-500">
-        Pulsa <Kbd combo="?" className="text-slate-400" /> para ver los atajos
-      </p>
+      <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 p-3">
+        <button
+          type="button"
+          onClick={alternar}
+          className={`w-full h-9 flex items-center gap-3 rounded-lg text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer ${plegado ? "justify-center" : "px-3"}`}
+          title={plegado ? "Expandir menú" : "Plegar menú"}
+          aria-label={plegado ? "Expandir menú" : "Plegar menú"}
+        >
+          {plegado ? <FaAngleDoubleRight /> : <FaAngleDoubleLeft />}
+          {!plegado && <span>Plegar menú</span>}
+        </button>
+      </div>
     </aside>
   );
 }

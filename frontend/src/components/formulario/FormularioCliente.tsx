@@ -285,14 +285,14 @@ function FormularioClienteCompleto({
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-lg" className="max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-indigo-600 dark:bg-indigo-800 text-white px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold flex items-center gap-3">
+        <div className="border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-lg font-semibold flex items-center gap-3">
             <FaUserEdit className="text-2xl" />
             {cliente ? `Editar ${et.cliente}` : `Registrar ${et.cliente}`}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white text-2xl leading-none cursor-pointer"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none cursor-pointer"
             title="Cerrar"
           >
             &times;

@@ -82,13 +82,13 @@ export default function ModalDevolucion({ orden, monedaPrincipal, tasas, onClose
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-2xl" className="p-6 space-y-5 overflow-auto max-h-[90vh]">
-      <h2 className="text-2xl font-extrabold text-amber-600 dark:text-amber-500 flex items-center gap-3">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
         <FaUndoAlt /> Devolver artículos · #{orden.id}
       </h2>
 
       <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>
               <th className="px-3 py-2 text-left">{et.servicio}</th>
               <th className="px-3 py-2 text-right">Vendido</th>

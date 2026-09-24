@@ -100,7 +100,7 @@ export default function PantallaUsuarios() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Usuarios</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Usuarios</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Quién puede entrar al sistema y qué puede hacer. Los usuarios no se borran, se desactivan.
           </p>
@@ -112,7 +112,7 @@ export default function PantallaUsuarios() {
 
       <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
-          <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>
               <th className="px-6 py-3 text-left">Nombre</th>
               <th className="px-6 py-3 text-left">Correo</th>

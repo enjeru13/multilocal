@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { FaSignInAlt, FaLock, FaEnvelope } from "react-icons/fa";
+import { FaLock, FaEnvelope } from "react-icons/fa";
 import { PiEyeBold, PiEyeClosed } from "react-icons/pi";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-toastify";
 import PanelMarca from "../components/PanelMarca";
+import SelectorTema from "../components/ui/SelectorTema";
 import { authService } from "../services/authService";
 
 const loginSchema = z.object({
@@ -92,16 +93,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 p-4 font-inter transition-colors duration-300">
-      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden w-full max-w-6xl md:min-h-[560px] md:h-[80vh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
+    <div className="min-h-screen flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-4 transition-colors duration-300">
+      <div className="absolute top-4 right-4">
+        <SelectorTema />
+      </div>
+      <div className="flex flex-col md:flex-row bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden w-full max-w-6xl md:min-h-[560px] md:h-[80vh] transition-all duration-300 transform scale-100 border border-gray-100 dark:border-gray-800">
         <PanelMarca nombre={marca.nombreNegocio} rubro={marca.rubro} />
 
         <div className="p-8 sm:p-12 w-full md:w-1/2 flex flex-col justify-center bg-white dark:bg-gray-900 transition-colors">
-          <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-800 dark:text-blue-400 mb-4 flex items-center justify-center gap-3">
-            <FaSignInAlt className="text-blue-600 dark:text-blue-500 text-2xl lg:text-4xl" />
-            <span className="drop-shadow-sm">Bienvenido</span>
-          </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-10 max-w-md mx-auto text-lg transition-colors">
+          <h2 className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">Bienvenido de nuevo</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-[15px]">
             Accede a tu cuenta para gestionar tu negocio.
           </p>
 
@@ -178,7 +179,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className={`w-full py-3.5 px-4 rounded-lg text-xl font-semibold transition-all duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg
+              className={`w-full h-11 px-4 rounded-lg text-[15px] font-medium transition-colors shadow-xs cursor-pointer
                 ${isSubmitting
                   ? "bg-blue-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white"

@@ -22,7 +22,7 @@ export default function ClientePanel({
   return (
     <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 space-y-6">
       <header className="pb-4 border-b border-gray-200 dark:border-gray-800 mb-6 transition-colors">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-3">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaUser size={28} className="text-indigo-500 dark:text-indigo-400" />
           {et.cliente}
           {opcional && (

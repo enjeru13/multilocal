@@ -24,6 +24,7 @@ import { parsearTasa } from "../utils/monedaHelpers";
 import type { Moneda, Rubro, Terminologia } from "@lavanderia/shared/types/types";
 import Button from "../components/ui/Button";
 import PanelMarca from "../components/PanelMarca";
+import SelectorTema from "../components/ui/SelectorTema";
 import VistaPreviaRubro from "../components/setup/VistaPreviaRubro";
 
 const ICONOS: Record<Rubro, IconType> = {
@@ -191,7 +192,10 @@ export default function PantallaSetup() {
   const conVistaPrevia = paso >= 1 && rubro;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-4">
+      <div className="absolute top-4 right-4">
+        <SelectorTema />
+      </div>
       <div className="w-full max-w-6xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col md:flex-row md:min-h-[600px]">
         <div className="hidden lg:flex lg:w-[34%]">
           <PanelMarca nombre={nombreNegocio || null} rubro={rubro} className="w-full" />

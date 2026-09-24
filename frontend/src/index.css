@@ -1,6 +1,35 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* El modo oscuro lo decide la clase .dark de <html> (claro / oscuro / según el sistema),
+   no solo la preferencia del sistema operativo. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-sans: "Inter Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Neutros: grises limpios con un leve tono frío. La app entera los usa (gray-*), así que
+     cambiar esta escala cambia el aspecto de todas las pantallas a la vez. */
+  --color-gray-50: #f8f9fb;
+  --color-gray-100: #f1f3f7;
+  --color-gray-200: #e4e7ee;
+  --color-gray-300: #d0d5df;
+  --color-gray-400: #98a1b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #4b5565;
+  --color-gray-700: #364152;
+  --color-gray-800: #202939;
+  --color-gray-900: #121a29;
+  --color-gray-950: #0b111c;
+
+  /* Sombras discretas: la separación la hacen los bordes, no las sombras. */
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 1px rgb(16 24 40 / 0.03);
+  --shadow-md: 0 4px 10px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.05);
+  --shadow-lg: 0 12px 24px -6px rgb(16 24 40 / 0.12), 0 4px 8px -4px rgb(16 24 40 / 0.06);
+  --shadow-xl: 0 20px 40px -10px rgb(16 24 40 / 0.18), 0 8px 16px -8px rgb(16 24 40 / 0.08);
+  --shadow-2xl: 0 28px 60px -12px rgb(16 24 40 / 0.28);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -10,21 +39,23 @@
 }
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
-  --primary: #1d4ed8;
+  color-scheme: light;
+  --background: var(--color-gray-50);
+  --foreground: var(--color-gray-900);
+  --primary: var(--color-blue-600);
   --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #1f2937;
+  --secondary: var(--color-gray-100);
+  --secondary-foreground: var(--color-gray-800);
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --primary: #3b82f6;
+  color-scheme: dark;
+  --background: var(--color-gray-950);
+  --foreground: var(--color-gray-50);
+  --primary: var(--color-blue-500);
   --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #cbd5e1;
+  --secondary: var(--color-gray-800);
+  --secondary-foreground: var(--color-gray-300);
 }
 
 /* Color de acento por rubro: reasigna la paleta "blue" a la del rubro (ver experiencia/experiencias.ts). */
@@ -69,11 +100,26 @@
 }
 
 @layer base {
-  body {
-    @apply bg-background text-foreground transition-all duration-300 ease-in-out;
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Fix for native select options in dark mode */
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv11", "ss03";
+  }
+
+  /* Cifras alineadas en columnas de importes. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-blue-500) 28%, transparent);
+  }
+
+  /* Opciones nativas de los <select> en cada tema. */
   select option {
     @apply bg-white text-gray-900;
   }
@@ -82,9 +128,47 @@
     @apply bg-gray-900 text-gray-100;
   }
 
-  /* Global focus ring refinement */
+  /* Campos: placeholder legible en ambos temas. */
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-400 dark:text-gray-500;
+  }
+
+  /* Foco visible y coherente con el color del rubro. */
   :focus-visible {
-    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-blue-500/70 ring-offset-2 ring-offset-background;
+  }
+
+  /* Barras de desplazamiento finas que combinan con el tema. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gray-300) transparent;
+  }
+  .dark * {
+    scrollbar-color: var(--color-gray-700) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-gray-300);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: var(--color-gray-700);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media print {
+    :root {
+      color-scheme: light;
+    }
   }
 }
 

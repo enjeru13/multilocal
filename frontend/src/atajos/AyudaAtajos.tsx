@@ -23,7 +23,7 @@ export default function AyudaAtajos() {
 
   return (
     <Modal open onClose={() => abrirAyuda(false)} maxWidth="max-w-2xl" className="p-6 max-h-[85vh] overflow-auto">
-      <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-1">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-1">
         <FaKeyboard className="text-blue-600" /> Atajos de teclado
       </h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">

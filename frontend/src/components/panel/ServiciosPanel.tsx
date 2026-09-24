@@ -84,7 +84,7 @@ export default function ServiciosPanel({
 
   return (
     <section className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 transition-all duration-300">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-3">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-3">
         <FaTshirt size={28} className="text-blue-600 dark:text-blue-400" /> Selección de {et.servicios}
       </h2>
 
@@ -184,7 +184,7 @@ export default function ServiciosPanel({
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-              <thead className="bg-gray-100 dark:bg-gray-900 transition-colors">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {et.servicio}

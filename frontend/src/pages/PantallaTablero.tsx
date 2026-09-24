@@ -153,7 +153,7 @@ export default function PantallaTablero() {
     <div className="p-6 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <FaColumns className="text-blue-600" /> Tablero
           </h1>
           <p className="text-gray-500 dark:text-gray-400">Arrastra las tarjetas o usa los botones para avanzar cada {et.ordenMin}.</p>

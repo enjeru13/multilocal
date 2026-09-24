@@ -111,7 +111,7 @@ export default function PantallaInventario() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Inventario</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Inventario</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("servicio")} con control de stock activado.
         </p>
@@ -151,7 +151,7 @@ export default function PantallaInventario() {
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
           <table className="min-w-full bg-white dark:bg-gray-900 text-sm">
-            <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
               <tr>
                 <th className="px-6 py-3 text-left">Nombre</th>
                 <th className="px-6 py-3 text-left">SKU</th>
@@ -289,7 +289,7 @@ export default function PantallaInventario() {
             <p className="text-sm text-gray-400 italic">Sin movimientos registrados.</p>
           ) : (
             <table className="min-w-full text-sm">
-              <thead className="text-gray-500 dark:text-gray-400 text-left">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="py-2">Fecha</th>
                   <th className="py-2">Motivo</th>

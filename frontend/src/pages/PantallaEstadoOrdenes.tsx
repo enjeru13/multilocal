@@ -309,7 +309,7 @@ export default function PantallaEstadoOrdenes() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-6">
         Estado de {et.ordenes}
       </h1>
 
@@ -398,9 +398,9 @@ export default function PantallaEstadoOrdenes() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 mb-4 bg-white dark:bg-gray-950">
+          <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 mb-4 bg-white dark:bg-gray-900">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr className="text-left">
                   <th
                     className="px-4 py-2 font-semibold cursor-pointer whitespace-nowrap"

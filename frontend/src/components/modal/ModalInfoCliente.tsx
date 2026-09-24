@@ -21,7 +21,7 @@ export default function ModalInfoCliente({ cliente, onClose }: Props) {
     >
         {/* HEADER */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800 transition-colors">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <FaUser className="text-2xl sm:text-3xl" />
             Detalle: {et.clienteMin}
           </h2>

@@ -59,7 +59,7 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
   return (
     <Modal open onClose={onClose} maxWidth="max-w-md" className="p-6">
       <form onSubmit={pagar} className="space-y-4">
-        <h2 className="text-2xl font-extrabold text-green-600 dark:text-green-500">Pagar compra #{compra.id}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Pagar compra #{compra.id}</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {compra.proveedor?.nombre} · se debe <strong className="text-gray-900 dark:text-gray-100">{formatearMoneda(compra.saldo, moneda)}</strong>
         </p>
@@ -118,7 +118,7 @@ export default function PantallaCuentasPorPagar() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <FaFileInvoiceDollar className="text-amber-500" /> Cuentas por pagar
         </h1>
         <p className="text-gray-500 dark:text-gray-400">Lo que se le debe a proveedores por compras a crédito.</p>
@@ -131,7 +131,7 @@ export default function PantallaCuentasPorPagar() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className={`${tarjeta} p-5`}>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total por pagar</p>
-              <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{fmt(data?.total ?? 0)}</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{fmt(data?.total ?? 0)}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{data?.compras.length ?? 0} compra(s) con saldo</p>
             </div>
             <div className={`${tarjeta} p-5 ${data && data.vencido > 0 ? "ring-1 ring-red-500/40" : ""}`}>
@@ -164,7 +164,7 @@ export default function PantallaCuentasPorPagar() {
 
           <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="px-5 py-3 text-left">Compra</th>
                   <th className="px-5 py-3 text-left">Proveedor</th>

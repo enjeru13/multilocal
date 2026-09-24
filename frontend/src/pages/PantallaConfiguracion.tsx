@@ -160,7 +160,7 @@ export default function PantallaConfiguracion() {
   return (
     <div className="max-w-4xl mx-auto p-8 space-y-10">
       <header className="pb-4 border-b border-gray-200 dark:border-gray-800 mb-6">
-        <h1 className="text-4xl font-extrabold flex items-center gap-3 text-gray-900 dark:text-gray-100">
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-3 text-gray-900 dark:text-gray-100">
           <MdSettings size={36} className="text-indigo-600 dark:text-indigo-400" />
           Configuración del sistema
         </h1>
@@ -170,7 +170,7 @@ export default function PantallaConfiguracion() {
       </header>
 
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
-        <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100 transition-colors">
+        <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaStore size={28} className="text-indigo-500 dark:text-indigo-400" />
           Información del negocio
         </h2>
@@ -258,7 +258,7 @@ export default function PantallaConfiguracion() {
 
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100">
+          <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100">
             <FaLayerGroup size={26} className="text-purple-500 dark:text-purple-400" />
             Rubro y módulos
           </h2>
@@ -379,7 +379,7 @@ export default function PantallaConfiguracion() {
       </section>
 
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
-        <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100 transition-colors">
+        <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaPercent size={26} className="text-amber-500 dark:text-amber-400" />
           Impuestos y descuentos
         </h2>
@@ -436,7 +436,7 @@ export default function PantallaConfiguracion() {
       </section>
 
       <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
-        <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-gray-100 transition-colors">
+        <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100 transition-colors">
           <FaCoins size={28} className="text-green-500 dark:text-green-400" />
           Tasas de conversión
         </h2>

@@ -80,7 +80,7 @@ export default function VentaFactura() {
     <div className="p-6 max-w-7xl mx-auto space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <FaFileInvoiceDollar className="text-blue-600" /> Facturación
           </h1>
           <p className="text-gray-500 dark:text-gray-400">Busca en el catálogo, ajusta precios y cobra.</p>
@@ -171,7 +171,7 @@ export default function VentaFactura() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-100 dark:bg-gray-800 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                     <tr>
                       <th className="px-4 py-2 text-left">{et.servicio}</th>
                       <th className="px-4 py-2 text-right w-28">Cant.</th>

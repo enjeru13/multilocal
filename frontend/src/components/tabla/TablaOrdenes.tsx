@@ -47,7 +47,7 @@ export default function TablaOrdenes({
     <>
       <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all">
         <table className="min-w-full bg-white dark:bg-gray-900 text-sm transition-colors">
-          <thead className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 transition-colors">
+          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
             <tr>
               <th className="px-4 py-2 text-left whitespace-nowrap">{et.orden}</th>
               <th className="px-4 py-2 text-left whitespace-nowrap">{et.cliente}</th>
@@ -80,7 +80,7 @@ export default function TablaOrdenes({
               ordenes.map((o) => (
                 <tr
                   key={o.id}
-                  className="border-t border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-150 text-gray-700 dark:text-gray-300"
+                  className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors duration-150 text-gray-700 dark:text-gray-300"
                 >
                   <td className="px-4 py-3 font-bold text-blue-700 dark:text-blue-400 whitespace-nowrap">
                     #{o.id}
