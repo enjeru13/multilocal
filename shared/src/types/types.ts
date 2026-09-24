@@ -671,3 +671,36 @@ export interface CuentasPorCobrar {
   antiguedad: { id: string; etiqueta: string; monto: number; cantidad: number }[];
   clientes: CuentaPorCobrarCliente[];
 }
+
+/** Una venta en el libro de ventas (importes en la moneda indicada por el libro, netos de devoluciones). */
+export interface FilaLibroVentas {
+  id: number;
+  fecha: string;
+  cliente: string;
+  identificacion: string | null;
+  /** Total de la venta con impuesto incluido. */
+  total: number;
+  /** Parte de la venta sin impuesto por ser exenta o por no cobrarse impuesto. */
+  exento: number;
+  /** Base imponible: lo gravado, sin el impuesto. */
+  baseImponible: number;
+  /** Alícuota aplicada (%), 0 si no hubo impuesto. */
+  alicuota: number;
+  iva: number;
+  /** La venta tuvo devoluciones: los importes ya las descuentan. */
+  conDevolucion: boolean;
+}
+
+export interface LibroVentas {
+  desde: string;
+  hasta: string;
+  moneda: Moneda;
+  /** Moneda principal del sistema, en la que están guardadas las ventas. */
+  principal: Moneda;
+  /** Unidades de `moneda` por 1 de la principal usadas para convertir (1 si es la misma). */
+  tasa: number;
+  contribuyente: { nombre: string; rif: string | null; direccion: string | null };
+  filas: FilaLibroVentas[];
+  totales: { total: number; exento: number; baseImponible: number; iva: number };
+  anuladas: number;
+}

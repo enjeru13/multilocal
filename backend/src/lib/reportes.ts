@@ -310,3 +310,58 @@ export function agruparPorCobrar(
     clientes,
   };
 }
+
+export interface OrdenLibro {
+  id: number;
+  fechaIngreso: Date;
+  estado: string;
+  impuestoTasa: number | null;
+  devuelto: number;
+  cliente: { nombre: string; apellido: string | null; identificacion: string | null } | null;
+  detalles: Pick<DetalleReporte, "subtotal" | "descuento" | "impuesto" | "base" | "cantidad" | "cantidadDevuelta">[];
+}
+
+/**
+ * Libro de ventas: una fila por venta no anulada, con lo que aún vale tras las devoluciones,
+ * separado en exento, base imponible e impuesto. `factor` convierte de la moneda principal a la
+ * del libro; cada fila se redondea sola para que las columnas sumen exactamente el total.
+ */
+export function libroDeVentas(ordenes: OrdenLibro[], factor = 1) {
+  const c = (n: number) => r2(n * factor);
+  const filas = ordenes
+    .filter((o) => o.estado !== "CANCELADO")
+    .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime() || a.id - b.id)
+    .map((o) => {
+      let exento = 0;
+      let base = 0;
+      let iva = 0;
+      for (const d of o.detalles) {
+        const v = valorVigente(d);
+        // Una línea con impuesto es gravada; sin él, exenta (o la venta no cobró impuesto).
+        if (d.impuesto > 0) {
+          base += v.base;
+          iva += v.impuesto;
+        } else {
+          exento += v.base;
+        }
+      }
+      const partes = { exento: c(exento), baseImponible: c(base), iva: c(iva) };
+      const nombre = o.cliente ? [o.cliente.nombre, o.cliente.apellido].filter(Boolean).join(" ") : "Venta de mostrador";
+      return {
+        id: o.id,
+        fecha: o.fechaIngreso.toISOString(),
+        cliente: nombre,
+        identificacion: o.cliente?.identificacion ?? null,
+        total: r2(partes.exento + partes.baseImponible + partes.iva),
+        ...partes,
+        alicuota: base > 0 ? (o.impuestoTasa ?? 0) : 0,
+        conDevolucion: o.devuelto > 0.005,
+      };
+    });
+  const suma = (k: "total" | "exento" | "baseImponible" | "iva") => r2(filas.reduce((s, f) => s + f[k], 0));
+  return {
+    filas,
+    totales: { total: suma("total"), exento: suma("exento"), baseImponible: suma("baseImponible"), iva: suma("iva") },
+    anuladas: ordenes.length - filas.length,
+  };
+}

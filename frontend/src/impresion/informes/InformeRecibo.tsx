@@ -126,7 +126,8 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
               ¡Gracias por su preferencia!
             </p>
             <p className="leading-tight mt-0.5">{pie}</p>
-            {!(d && d.impuesto > 0) && <p className="font-bold mt-0.5">(No da derecho a crédito fiscal)</p>}
+            <p className="font-bold uppercase mt-1">Comprobante no fiscal</p>
+            <p className="leading-tight">No es una factura ni da derecho a crédito fiscal.</p>
           </TkPie>
         </TicketPapel>
       )}
@@ -247,6 +248,7 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
           </div>
 
           <NotaImpresa>{pie}</NotaImpresa>
+          <p className="text-center text-[9pt] font-bold uppercase tracking-wider text-neutral-600 border border-neutral-400 py-1.5">Comprobante no fiscal · No es una factura ni da derecho a crédito fiscal</p>
           <FirmasImpresas firmas={["Entregado por", "Recibí conforme"]} />
         </HojaReporte>
       )}

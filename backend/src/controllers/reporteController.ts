@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import type { Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
+import { tasaCruzada } from "@lavanderia/shared/dist/utils/monedaHelpers";
 import {
   agruparPorCobrar,
   diasInclusivos,
   elegirAgrupacion,
+  libroDeVentas,
   parseFechaLocal,
   resumirCobros,
   resumirGanancia,
@@ -257,5 +259,52 @@ export async function getPorCobrar(req: Request, res: Response) {
   } catch (error) {
     console.error("Error al generar cuentas por cobrar:", error);
     return res.status(500).json({ message: "Error al generar el reporte" });
+  }
+}
+
+// GET /api/reportes/libro-ventas?desde=AAAA-MM-DD&hasta=AAAA-MM-DD&moneda=VES
+export async function getLibroVentas(req: Request, res: Response) {
+  const desde = parseFechaLocal(String(req.query.desde ?? ""), false);
+  const hasta = parseFechaLocal(String(req.query.hasta ?? ""), true);
+  if (!desde || !hasta) return res.status(400).json({ message: "Fechas inválidas. Usa el formato AAAA-MM-DD." });
+  if (hasta < desde) return res.status(400).json({ message: "La fecha final no puede ser anterior a la inicial." });
+  if (diasInclusivos(desde, hasta) > MAX_DIAS) return res.status(400).json({ message: "El rango máximo es de 5 años." });
+
+  try {
+    const config = await prisma.configuracion.findFirst();
+    const { principal, tasas } = await cargarContexto();
+    const pedida = String(req.query.moneda ?? principal).toUpperCase();
+    if (!["USD", "VES", "COP"].includes(pedida)) return res.status(400).json({ message: "Moneda no válida." });
+    const moneda = pedida as Moneda;
+    const tasa = tasaCruzada(moneda, principal, tasas);
+    if (tasa === null) {
+      return res.status(400).json({ message: `Falta la tasa de ${moneda} en Configuración para convertir el libro.` });
+    }
+
+    const ordenes = await prisma.orden.findMany({
+      where: { fechaIngreso: { gte: desde, lte: hasta } },
+      select: {
+        id: true,
+        fechaIngreso: true,
+        estado: true,
+        impuestoTasa: true,
+        devuelto: true,
+        cliente: { select: { nombre: true, apellido: true, identificacion: true } },
+        detalles: { select: { subtotal: true, descuento: true, impuesto: true, base: true, cantidad: true, cantidadDevuelta: true } },
+      },
+    });
+
+    return res.json({
+      desde: String(req.query.desde),
+      hasta: String(req.query.hasta),
+      moneda,
+      principal,
+      tasa,
+      contribuyente: { nombre: config?.nombreNegocio ?? "", rif: config?.rif ?? null, direccion: config?.direccion ?? null },
+      ...libroDeVentas(ordenes, tasa),
+    });
+  } catch (error) {
+    console.error("Error en el libro de ventas:", error);
+    return res.status(500).json({ message: "No se pudo generar el libro de ventas." });
   }
 }

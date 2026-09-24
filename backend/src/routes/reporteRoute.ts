@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDashboard, getPorCobrar, getResumen } from "../controllers/reporteController";
+import { getDashboard, getLibroVentas, getPorCobrar, getResumen } from "../controllers/reporteController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
 
@@ -8,5 +8,7 @@ const router = Router();
 router.get("/dashboard", protect, authorizeRoles([Role.ADMIN, Role.EMPLOYEE, Role.CAJERO]), getDashboard);
 router.get("/resumen", protect, authorizeRoles([Role.ADMIN]), getResumen);
 router.get("/por-cobrar", protect, authorizeRoles([Role.ADMIN, Role.EMPLOYEE]), getPorCobrar);
+
+router.get("/libro-ventas", protect, authorizeRoles([Role.ADMIN]), getLibroVentas);
 
 export default router;

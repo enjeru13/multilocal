@@ -11,6 +11,7 @@ import { reportesService } from "../services/reportesService";
 import { formatearMoneda } from "../utils/monedaHelpers";
 import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
 import ImprimirResumen from "../impresion/informes/InformeResumen";
+import ImprimirLibroVentas from "../impresion/informes/InformeLibroVentas";
 import ImprimirPorCobrar from "../impresion/informes/InformeCobrar";
 import ImprimirPorPagar from "../impresion/informes/InformePagar";
 import ImprimirInventario, { type ModoInventario } from "../impresion/informes/InformeInventario";
@@ -70,7 +71,7 @@ export default function PantallaReportes() {
   const et = useEtiquetas();
   const { config } = useConfiguracion();
   const navigate = useNavigate();
-  const [imprimir, setImprimir] = useState<null | "resumen" | "cobrar" | "pagar" | ModoInventario>(null);
+  const [imprimir, setImprimir] = useState<null | "libro" | "resumen" | "cobrar" | "pagar" | ModoInventario>(null);
   const [preset, setPreset] = useState<PresetPeriodo>("mes");
   const [rango, setRango] = useState(() => rangoDePreset("mes"));
   const [data, setData] = useState<ReporteResumen | null>(null);
@@ -132,6 +133,7 @@ export default function PantallaReportes() {
             <MenuItems anchor="bottom end" className="z-60 mt-2 w-72 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg p-1 focus:outline-none">
               {[
                 { id: "resumen", titulo: "Resumen del periodo", detalle: "Ventas, cobros, ganancia y más vendidos", mostrar: !!data, accion: () => setImprimir("resumen") },
+                { id: "libro", titulo: "Libro de ventas", detalle: "Exento, base imponible e IVA de cada venta", mostrar: true, accion: () => setImprimir("libro") },
                 { id: "cobrar", titulo: "Cuentas por cobrar", detalle: "Quién debe y desde cuándo", mostrar: true, accion: () => setImprimir("cobrar") },
                 { id: "pagar", titulo: "Cuentas por pagar", detalle: "Lo que se debe a proveedores", mostrar: !!config?.moduloProveedores, accion: () => setImprimir("pagar") },
                 { id: "inv", titulo: "Inventario", detalle: "Existencias y su valor", mostrar: !!config?.moduloInventario, accion: () => setImprimir("existencias") },
@@ -158,6 +160,7 @@ export default function PantallaReportes() {
       </header>
 
       <ImprimirResumen open={imprimir === "resumen"} onClose={() => setImprimir(null)} data={data} />
+      <ImprimirLibroVentas open={imprimir === "libro"} onClose={() => setImprimir(null)} desde={rango.desde} hasta={rango.hasta} />
       <ImprimirPorCobrar open={imprimir === "cobrar"} onClose={() => setImprimir(null)} />
       <ImprimirPorPagar open={imprimir === "pagar"} onClose={() => setImprimir(null)} />
       <ImprimirInventario open={imprimir === "existencias" || imprimir === "reposicion"} modo={imprimir === "reposicion" ? "reposicion" : "existencias"} onClose={() => setImprimir(null)} />

@@ -21,6 +21,8 @@ interface Props {
   ticket?: (ref: Ref<HTMLDivElement>) => ReactNode;
   /** Para tablas anchas: abre en horizontal. */
   horizontal?: boolean;
+  /** Controles propios del reporte (moneda, exportar…), junto a los del papel. */
+  controles?: ReactNode;
   /** Mientras se piden los datos del reporte. */
   cargando?: boolean;
   error?: string | null;
@@ -33,7 +35,7 @@ const MARGEN_HOJA_MM = 14;
  * (Carta/A4/Oficio, o el ancho del rollo térmico) y la orientación; recuerda la elección
  * de este equipo y le dice al diálogo de impresión el tamaño de papel exacto.
  */
-export default function ModalImpresion({ open, onClose, titulo, subtitulo, documentTitle, hoja, ticket, horizontal: horizontalInicial = false, cargando = false, error = null }: Props) {
+export default function ModalImpresion({ open, onClose, titulo, subtitulo, documentTitle, hoja, ticket, horizontal: horizontalInicial = false, controles, cargando = false, error = null }: Props) {
   const [prefs, guardar] = usePreferenciasImpresion();
   const formato: Formato = hoja && ticket ? prefs.formato : ticket ? "ticket" : "hoja";
   const [horizontal, setHorizontal] = useState(horizontalInicial);
@@ -90,6 +92,7 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
 
       {/* Papel */}
       <div className="shrink-0 flex flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+        {controles}
         {hoja && ticket && (
           <Segmentado
             ariaLabel="Formato de impresión"
