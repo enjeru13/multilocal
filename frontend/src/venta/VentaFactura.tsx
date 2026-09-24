@@ -30,7 +30,7 @@ export default function VentaFactura() {
   const [nuevoCliente, setNuevoCliente] = useState(false);
   const [verEspera, setVerEspera] = useState(false);
   const buscador = useRef<HTMLInputElement>(null);
-  const inputDescuento = useRef<HTMLInputElement>(null);
+  const inputDescuento = useRef<HTMLElement>(null);
 
   const resultados = useMemo(() => (busqueda.trim() ? venta.filtrar(busqueda.replace(/^\s*\d+(?:[.,]\d+)?\s*[*x×]\s*/i, ""), 10) : []), [busqueda, venta]);
   const idx = Math.min(resaltado, Math.max(resultados.length - 1, 0));

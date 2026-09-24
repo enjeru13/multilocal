@@ -50,7 +50,7 @@ export default function VentaCaja() {
   const [recibido, setRecibido] = useState("");
   const [hora, setHora] = useState(() => dayjs().format("HH:mm"));
   const buscador = useRef<HTMLInputElement>(null);
-  const inputDescuento = useRef<HTMLInputElement>(null);
+  const inputDescuento = useRef<HTMLElement>(null);
   const inputRecibido = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -288,7 +288,7 @@ export default function VentaCaja() {
         </section>
 
         {/* Total y productos rápidos */}
-        <aside className="min-h-0 flex flex-col gap-3 p-4 lg:pl-0">
+        <aside className="min-h-0 overflow-y-auto flex flex-col gap-3 p-4 lg:pl-0">
           <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 space-y-3">
             <div className="flex gap-2">
               <button
@@ -370,20 +370,27 @@ export default function VentaCaja() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 flex flex-col rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="flex gap-1 overflow-x-auto p-2 border-b border-gray-100 dark:border-gray-800 shrink-0">
-              {venta.frecuentes.length > 0 && (
-                <button type="button" onClick={() => setPestana("__frecuentes")} className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap cursor-pointer ${pestanaActiva === "__frecuentes" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"}`}>
-                  ★ Frecuentes
-                </button>
-              )}
-              {categorias.map((c) => (
-                <button key={c} type="button" onClick={() => setPestana(c)} className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap cursor-pointer ${pestanaActiva === c ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"}`}>
-                  {c}
-                </button>
-              ))}
+          <div className="flex-1 min-h-[200px] flex flex-col rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Productos</span>
+              <select
+                value={pestanaActiva}
+                onChange={(e) => {
+                  setPestana(e.target.value);
+                  enfocar();
+                }}
+                aria-label="Categoría"
+                className="ml-auto min-w-0 max-w-[65%] h-8 pl-2.5 pr-7 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm font-medium text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer truncate"
+              >
+                {venta.frecuentes.length > 0 && <option value="__frecuentes">★ Frecuentes</option>}
+                {categorias.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-2 content-start">
+            <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2.5 content-start">
               {productosRapidos.map((s) => {
                 const agotado = venta.disponible(s) - venta.enCarrito(s.id) <= 0;
                 return (
@@ -395,10 +402,10 @@ export default function VentaCaja() {
                       venta.agregar(s);
                       enfocar();
                     }}
-                    className="text-left p-2.5 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40 cursor-pointer"
+                    className="text-left p-3 min-h-[68px] flex flex-col justify-between gap-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/40 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:scale-[0.98] transition disabled:opacity-40 cursor-pointer"
                   >
-                    <p className="text-xs font-semibold leading-tight line-clamp-2">{s.nombreServicio}</p>
-                    <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mt-1 tabular-nums">{formatearMoneda(s.precioBase, moneda)}</p>
+                    <p className="text-[13px] font-medium leading-snug line-clamp-2">{s.nombreServicio}</p>
+                    <p className="text-sm font-bold text-blue-700 dark:text-blue-400 tabular-nums">{formatearMoneda(s.precioBase, moneda)}</p>
                   </button>
                 );
               })}
