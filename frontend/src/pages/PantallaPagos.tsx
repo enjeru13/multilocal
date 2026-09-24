@@ -16,7 +16,7 @@ import { ordenesService } from "../services/ordenesService";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import ModalDetalleOrden from "../components/modal/ModalDetalleOrden";
 import TablaPagos from "../components/tabla/TablaPagos";
-import ModalImprimirPagos from "../components/modal/ModalImprimirPagos";
+import ImprimirPagos from "../impresion/informes/InformePagos";
 import { TableSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
 import { FaMoneyBillWave } from "react-icons/fa";
@@ -322,13 +322,17 @@ export default function PantallaPagos() {
         />
       )}
 
-      <ModalImprimirPagos
-        visible={mostrarModalImprimir}
+      <ImprimirPagos
+        open={mostrarModalImprimir}
         onClose={() => setMostrarModalImprimir(false)}
         pagos={pagosCompletos}
         monedaPrincipal={monedaPrincipal}
-        totalIngresos={totalIngresos}
         configuracion={configNegocio}
+        filtros={[
+          `Mes: ${dayjs().month(mesSeleccionado).locale("es").format("MMMM")} ${anioSeleccionado}`,
+          `Moneda: ${monedaFiltro === "TODAS" ? "todas" : monedaFiltro}`,
+          ...(filtroBusqueda.trim() ? [`Búsqueda: «${filtroBusqueda.trim()}»`] : []),
+        ]}
       />
     </div>
   );

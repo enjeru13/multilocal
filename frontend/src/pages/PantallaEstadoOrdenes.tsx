@@ -19,7 +19,7 @@ import { badgeEstado, badgePago } from "../utils/badgeHelpers";
 import ModalDetalleOrden from "../components/modal/ModalDetalleOrden";
 import ModalPago from "../components/modal/ModalPago";
 import Button from "../components/ui/Button";
-import ModalImprimirOrdenes from "../components/modal/ModalImprimirOrdenes";
+import ImprimirOrdenes from "../impresion/informes/InformeOrdenes";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
@@ -505,16 +505,17 @@ export default function PantallaEstadoOrdenes() {
       )}
 
       {/* 3. MODAL DE IMPRESIÓN */}
-      <ModalImprimirOrdenes
-        visible={mostrarModalImprimir}
+      <ImprimirOrdenes
+        open={mostrarModalImprimir}
         onClose={() => setMostrarModalImprimir(false)}
-        ordenes={ordenesFiltradasYSorteadas} // Pasamos TODAS las filtradas, no solo las de la página actual
+        ordenes={ordenesFiltradasYSorteadas} // Todas las filtradas, no solo las de la página actual
         monedaPrincipal={monedaPrincipal}
-        configuracion={configNegocio!}
-        filtros={{
-          estado: filtroEstadoEntrega,
-          pago: filtroEstadoPago,
-        }}
+        configuracion={configNegocio}
+        filtros={[
+          `Estado: ${!filtroEstadoEntrega || filtroEstadoEntrega === "TODOS" ? "todos" : String(filtroEstadoEntrega).toLowerCase()}`,
+          `Pago: ${!filtroEstadoPago || filtroEstadoPago === "TODOS" ? "todos" : filtroEstadoPago === "COMPLETO" ? "pagados" : "con saldo"}`,
+          ...(busqueda.trim() ? [`Búsqueda: «${busqueda.trim()}»`] : []),
+        ]}
       />
     </div>
   );

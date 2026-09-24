@@ -630,3 +630,34 @@ export interface DashboardData {
   porPagar?: PorCobrarResumen;
   stockBajo?: StockBajoResumen;
 }
+
+// --- Cuentas por cobrar (deudas de clientes, con antigüedad) ---
+
+export interface CuentaPorCobrarOrden {
+  id: number;
+  fecha: string;
+  total: number;
+  abonado: number;
+  faltante: number;
+  dias: number;
+}
+
+export interface CuentaPorCobrarCliente {
+  clienteId: number | null;
+  nombre: string;
+  telefono: string | null;
+  /** Suma de lo que debe. */
+  monto: number;
+  /** Días de la deuda más antigua. */
+  masAntigua: number;
+  ordenes: CuentaPorCobrarOrden[];
+}
+
+export interface CuentasPorCobrar {
+  moneda: Moneda;
+  corte: string;
+  cantidad: number;
+  monto: number;
+  antiguedad: { id: string; etiqueta: string; monto: number; cantidad: number }[];
+  clientes: CuentaPorCobrarCliente[];
+}

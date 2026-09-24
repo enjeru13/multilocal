@@ -3,11 +3,17 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
-import { FaChartLine, FaDownload, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { useNavigate } from "react-router-dom";
+import { FaChartLine, FaDownload, FaArrowUp, FaArrowDown, FaPrint, FaChevronDown } from "react-icons/fa";
 import type { ReporteResumen } from "@lavanderia/shared/types/types";
 import { reportesService } from "../services/reportesService";
 import { formatearMoneda } from "../utils/monedaHelpers";
-import { useEtiquetas } from "../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../context/configuracionCore";
+import ImprimirResumen from "../impresion/informes/InformeResumen";
+import ImprimirPorCobrar from "../impresion/informes/InformeCobrar";
+import ImprimirPorPagar from "../impresion/informes/InformePagar";
+import ImprimirInventario, { type ModoInventario } from "../impresion/informes/InformeInventario";
 import GraficoBarras from "../components/charts/GraficoBarras";
 import Button from "../components/ui/Button";
 import { exportarReporteCsv } from "../utils/reporteCsv";
@@ -62,6 +68,9 @@ function Kpi({
 
 export default function PantallaReportes() {
   const et = useEtiquetas();
+  const { config } = useConfiguracion();
+  const navigate = useNavigate();
+  const [imprimir, setImprimir] = useState<null | "resumen" | "cobrar" | "pagar" | ModoInventario>(null);
   const [preset, setPreset] = useState<PresetPeriodo>("mes");
   const [rango, setRango] = useState(() => rangoDePreset("mes"));
   const [data, setData] = useState<ReporteResumen | null>(null);
@@ -115,10 +124,43 @@ export default function PantallaReportes() {
               : "Elige un periodo."}
           </p>
         </div>
-        <Button variant="secondary" onClick={exportar} disabled={!data || cargando} leftIcon={<FaDownload />}>
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Menu as="div" className="relative">
+            <MenuButton className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer">
+              <FaPrint /> Imprimir <FaChevronDown size={9} />
+            </MenuButton>
+            <MenuItems anchor="bottom end" className="z-60 mt-2 w-72 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg p-1 focus:outline-none">
+              {[
+                { id: "resumen", titulo: "Resumen del periodo", detalle: "Ventas, cobros, ganancia y más vendidos", mostrar: !!data, accion: () => setImprimir("resumen") },
+                { id: "cobrar", titulo: "Cuentas por cobrar", detalle: "Quién debe y desde cuándo", mostrar: true, accion: () => setImprimir("cobrar") },
+                { id: "pagar", titulo: "Cuentas por pagar", detalle: "Lo que se debe a proveedores", mostrar: !!config?.moduloProveedores, accion: () => setImprimir("pagar") },
+                { id: "inv", titulo: "Inventario", detalle: "Existencias y su valor", mostrar: !!config?.moduloInventario, accion: () => setImprimir("existencias") },
+                { id: "rep", titulo: "Lista de reposición", detalle: "Lo que está en el mínimo, para pedir", mostrar: !!config?.moduloInventario, accion: () => setImprimir("reposicion") },
+                { id: "pagos", titulo: "Reporte de pagos", detalle: "Se imprime desde Pagos, con sus filtros", mostrar: true, accion: () => navigate("/pagos") },
+                { id: "ord", titulo: `Reporte de ${et.ordenesMin}`, detalle: `Se imprime desde ${et.ordenes}, con sus filtros`, mostrar: true, accion: () => navigate("/estado-ordenes") },
+                { id: "caja", titulo: "Cierres de caja", detalle: "Cada cierre tiene su comprobante en Caja", mostrar: !!config?.moduloCaja, accion: () => navigate("/caja") },
+              ]
+                .filter((o) => o.mostrar)
+                .map((o) => (
+                  <MenuItem key={o.id}>
+                    <button type="button" onClick={o.accion} className="w-full text-left px-3 py-2 rounded-lg data-focus:bg-gray-100 dark:data-focus:bg-gray-800 cursor-pointer">
+                      <span className="block text-sm font-medium text-gray-800 dark:text-gray-100">{o.titulo}</span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">{o.detalle}</span>
+                    </button>
+                  </MenuItem>
+                ))}
+            </MenuItems>
+          </Menu>
+          <Button variant="secondary" onClick={exportar} disabled={!data || cargando} leftIcon={<FaDownload />}>
+            Exportar CSV
+          </Button>
+        </div>
       </header>
+
+      <ImprimirResumen open={imprimir === "resumen"} onClose={() => setImprimir(null)} data={data} />
+      <ImprimirPorCobrar open={imprimir === "cobrar"} onClose={() => setImprimir(null)} />
+      <ImprimirPorPagar open={imprimir === "pagar"} onClose={() => setImprimir(null)} />
+      <ImprimirInventario open={imprimir === "existencias" || imprimir === "reposicion"} modo={imprimir === "reposicion" ? "reposicion" : "existencias"} onClose={() => setImprimir(null)} />
 
       <SelectorPeriodo
         preset={preset}

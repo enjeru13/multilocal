@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
-import { FaCashRegister, FaLockOpen, FaLock, FaPlus, FaMinus, FaChevronRight } from "react-icons/fa";
+import { FaCashRegister, FaLockOpen, FaLock, FaPlus, FaMinus, FaChevronRight, FaPrint } from "react-icons/fa";
 import { cajaService, type CajaActual, type CajaMonedaResumen, type CajaSesion, type DetalleCierreMoneda } from "../services/cajaService";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useAuth } from "../hooks/useAuth";
@@ -10,6 +10,7 @@ import { convertirAmonedaPrincipal, formatearMoneda, parsearMonto, type Moneda }
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import CampoMonto from "../components/ui/CampoMonto";
+import ImprimirCierreCaja from "../impresion/informes/InformeCaja";
 import { Campo, ModalEncabezado, ModalPie, campo } from "../components/ui/Formulario";
 
 const inputCls = campo;
@@ -60,6 +61,7 @@ export default function PantallaCaja() {
   const [movConcepto, setMovConcepto] = useState("");
 
   const [cerrando, setCerrando] = useState(false);
+  const [imprimirId, setImprimirId] = useState<number | null>(null);
   const [contado, setContado] = useState<Partial<Record<Moneda, string>>>({});
   const [observacion, setObservacion] = useState("");
 
@@ -135,8 +137,10 @@ export default function PantallaCaja() {
     }
     setEnviando(true);
     try {
-      await cajaService.cerrar({ contadoPorMoneda: porMoneda, observacionCierre: observacion.trim() || undefined });
+      const cierre = await cajaService.cerrar({ contadoPorMoneda: porMoneda, observacionCierre: observacion.trim() || undefined });
       toast.success("Caja cerrada.");
+      // Al cerrar se ofrece el comprobante para firmar y archivar.
+      setImprimirId(cierre.data.id);
       setCerrando(false);
       setContado({});
       setObservacion("");
@@ -197,6 +201,9 @@ export default function PantallaCaja() {
               </Button>
               <Button onClick={() => { setMovMoneda(principal); setMovTipo("EGRESO"); }} variant="iconWarning" size="sm" leftIcon={<FaMinus size={10} />}>
                 Egreso
+              </Button>
+              <Button onClick={() => setImprimirId(caja.sesion.id)} variant="iconNeutral" size="sm" leftIcon={<FaPrint size={10} />} title="Imprimir el arqueo hasta este momento">
+                Arqueo
               </Button>
               <Button onClick={() => setCerrando(true)} variant="danger" size="sm" leftIcon={<FaLock size={10} />}>
                 Cerrar caja
@@ -261,6 +268,7 @@ export default function PantallaCaja() {
                   <th className="px-4 py-2 text-right">Esperado</th>
                   <th className="px-4 py-2 text-right">Contado</th>
                   <th className="px-4 py-2 text-right">Diferencia</th>
+                  <th className="w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -282,10 +290,24 @@ export default function PantallaCaja() {
                         <td className="px-4 py-2 text-right tabular-nums">{fmt(s.montoFinalSistema ?? 0)}</td>
                         <td className="px-4 py-2 text-right tabular-nums">{fmt(s.montoFinalContado ?? 0)}</td>
                         <td className={`px-4 py-2 text-right font-semibold tabular-nums ${(s.diferencia ?? 0) === 0 ? "text-emerald-600" : "text-red-500"}`}>{fmt(s.diferencia ?? 0)}</td>
+                        <td className="px-2 py-1 text-right">
+                          <Button
+                            variant="iconNeutral"
+                            size="icon"
+                            title="Imprimir el comprobante de este cierre"
+                            aria-label="Imprimir comprobante"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setImprimirId(s.id);
+                            }}
+                          >
+                            <FaPrint size={11} />
+                          </Button>
+                        </td>
                       </tr>
                       {abierto === s.id && detalle.length > 0 && (
                         <tr className="bg-gray-50/70 dark:bg-gray-950/30">
-                          <td colSpan={5} className="px-4 py-3">
+                          <td colSpan={6} className="px-4 py-3">
                             <ul className="grid sm:grid-cols-3 gap-3 text-xs">
                               {detalle.map((d) => (
                                 <li key={d.moneda} className="rounded-lg border border-gray-200 dark:border-gray-800 p-3 tabular-nums">
@@ -310,6 +332,8 @@ export default function PantallaCaja() {
           </div>
         </section>
       )}
+
+      <ImprimirCierreCaja open={imprimirId !== null} onClose={() => setImprimirId(null)} sesionId={imprimirId} />
 
       {movTipo && (
         <Modal open onClose={() => setMovTipo(null)} maxWidth="max-w-sm">

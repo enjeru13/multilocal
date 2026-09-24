@@ -1,6 +1,7 @@
 import { calcularTotalAbonado } from "@lavanderia/shared/dist/utils/pagoFinance";
 import { valorVigente } from "@lavanderia/shared/dist/utils/totales";
-import type { Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
+import { diasDeAntiguedad, resumirAntiguedad } from "@lavanderia/shared/dist/utils/antiguedad";
+import type { CuentaPorCobrarCliente, CuentasPorCobrar, Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
 
 // Agregaciones puras para reportes. Todo importe sale en moneda principal:
 // las ventas ya están guardadas así y los pagos se convierten con la tasa
@@ -251,5 +252,61 @@ export function topClientes(ordenes: OrdenReporte[], limite = 10) {
       .slice(0, limite)
       .map((f) => ({ ...f, total: r2(f.total) })),
     sinCliente: { ventas: sinCliente.ventas, total: r2(sinCliente.total) },
+  };
+}
+
+export interface OrdenPorCobrar {
+  id: number;
+  fechaIngreso: Date;
+  total: number;
+  abonado: number;
+  faltante: number;
+  clienteId: number | null;
+  cliente: { nombre: string; apellido: string | null; telefono: string | null } | null;
+}
+
+/**
+ * Deudas de clientes agrupadas por cliente, la más grande primero, con la antigüedad de
+ * cada una y el resumen por tramos. Las ventas sin cliente van juntas en un solo renglón.
+ */
+export function agruparPorCobrar(
+  ordenes: OrdenPorCobrar[],
+  moneda: Moneda,
+  hoy: Date = new Date()
+): CuentasPorCobrar {
+  const grupos = new Map<string, CuentaPorCobrarCliente>();
+  const items: { dias: number; monto: number }[] = [];
+
+  for (const o of ordenes) {
+    const dias = diasDeAntiguedad(o.fechaIngreso, hoy);
+    const clave = o.clienteId === null ? "sin" : String(o.clienteId);
+    const g =
+      grupos.get(clave) ??
+      ({
+        clienteId: o.clienteId,
+        nombre: o.cliente ? `${o.cliente.nombre} ${o.cliente.apellido ?? ""}`.trim() : "Sin cliente",
+        telefono: o.cliente?.telefono ?? null,
+        monto: 0,
+        masAntigua: 0,
+        ordenes: [],
+      } satisfies CuentaPorCobrarCliente);
+    g.monto += o.faltante;
+    g.masAntigua = Math.max(g.masAntigua, dias);
+    g.ordenes.push({ id: o.id, fecha: o.fechaIngreso.toISOString(), total: o.total, abonado: o.abonado, faltante: o.faltante, dias });
+    grupos.set(clave, g);
+    items.push({ dias, monto: o.faltante });
+  }
+
+  const clientes = [...grupos.values()]
+    .map((g) => ({ ...g, monto: r2(g.monto), ordenes: g.ordenes.sort((a, b) => b.dias - a.dias) }))
+    .sort((a, b) => b.monto - a.monto);
+
+  return {
+    moneda,
+    corte: hoy.toISOString(),
+    cantidad: ordenes.length,
+    monto: r2(ordenes.reduce((s, o) => s + o.faltante, 0)),
+    antiguedad: resumirAntiguedad(items),
+    clientes,
   };
 }

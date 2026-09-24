@@ -235,6 +235,28 @@ export async function cerrarCaja(req: AuthRequest, res: Response) {
   }
 }
 
+// GET /api/caja/:id/comprobante — todo lo necesario para imprimir el arqueo de una sesión.
+export async function getComprobanteCaja(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ message: "Sesión inválida." });
+  try {
+    const resumen = await calcularResumen(id);
+    if (!resumen) return res.status(404).json({ message: "Sesión de caja no encontrada." });
+    const sesion = await prisma.cajaSesion.findUnique({
+      where: { id },
+      include: {
+        usuarioApertura: { select: { id: true, name: true, email: true } },
+        movimientos: { orderBy: { fecha: "asc" } },
+      },
+    });
+    const { tasas } = await cargarTasas();
+    return res.json({ ...resumen, sesion, tasas });
+  } catch (error) {
+    console.error("Error al obtener el comprobante de caja:", error);
+    return res.status(500).json({ message: "Error al obtener el comprobante" });
+  }
+}
+
 export async function getHistorialCajas(req: Request, res: Response) {
   try {
     const sesiones = await prisma.cajaSesion.findMany({

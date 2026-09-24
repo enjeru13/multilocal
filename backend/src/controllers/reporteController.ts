@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import type { Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
 import {
+  agruparPorCobrar,
   diasInclusivos,
   elegirAgrupacion,
   parseFechaLocal,
@@ -233,5 +234,28 @@ export async function getDashboard(req: Request, res: Response) {
   } catch (error) {
     console.error("Error al generar el dashboard:", error);
     return res.status(500).json({ message: "Error al cargar el dashboard" });
+  }
+}
+
+// GET /api/reportes/por-cobrar — deudas de clientes con su antigüedad.
+export async function getPorCobrar(req: Request, res: Response) {
+  try {
+    const { principal } = await cargarContexto();
+    const ordenes = await prisma.orden.findMany({
+      where: { estado: { not: "CANCELADO" }, faltante: { gt: 0.005 } },
+      select: {
+        id: true,
+        fechaIngreso: true,
+        total: true,
+        abonado: true,
+        faltante: true,
+        clienteId: true,
+        cliente: { select: { nombre: true, apellido: true, telefono: true } },
+      },
+    });
+    return res.json(agruparPorCobrar(ordenes, principal));
+  } catch (error) {
+    console.error("Error al generar cuentas por cobrar:", error);
+    return res.status(500).json({ message: "Error al generar el reporte" });
   }
 }

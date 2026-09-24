@@ -2,13 +2,14 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
-import { FaFileInvoiceDollar, FaExclamationCircle, FaChevronRight } from "react-icons/fa";
+import { FaFileInvoiceDollar, FaExclamationCircle, FaChevronRight, FaPrint } from "react-icons/fa";
 import type { Compra, CuentasPorPagar, MetodoPago, Moneda } from "@lavanderia/shared/types/types";
 import { comprasService } from "../services/comprasService";
 import { convertirDesdePrincipal, formatearMoneda, montoAEntrada, parsearMonto } from "../utils/monedaHelpers";
 import { useConfiguracion } from "../context/configuracionCore";
 import Modal from "../components/ui/Modal";
 import CampoMonto from "../components/ui/CampoMonto";
+import ImprimirPorPagar from "../impresion/informes/InformePagar";
 import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 
@@ -105,6 +106,7 @@ export default function PantallaCuentasPorPagar() {
   const [cargando, setCargando] = useState(true);
   const [aPagar, setAPagar] = useState<Compra | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
+  const [imprimir, setImprimir] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -126,12 +128,18 @@ export default function PantallaCuentasPorPagar() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <FaFileInvoiceDollar className="text-amber-500" /> Cuentas por pagar
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400">Lo que se le debe a proveedores por compras a crédito.</p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <FaFileInvoiceDollar className="text-amber-500" /> Cuentas por pagar
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400">Lo que se le debe a proveedores por compras a crédito.</p>
+        </div>
+        <Button variant="secondary" leftIcon={<FaPrint />} onClick={() => setImprimir(true)}>
+          Imprimir
+        </Button>
       </header>
+      <ImprimirPorPagar open={imprimir} onClose={() => setImprimir(false)} />
 
       {cargando ? (
         <div className={`${tarjeta} h-40 animate-pulse`} />

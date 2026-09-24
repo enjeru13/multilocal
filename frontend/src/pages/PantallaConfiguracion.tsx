@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint } from "react-icons/fa";
+import { SelectorHoja, SelectorRollo } from "../impresion/SelectorPapel";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
 import {
@@ -491,6 +492,27 @@ export default function PantallaConfiguracion() {
                 placeholder="Ej. 4000,00"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-5">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100">
+            <FaPrint size={26} className="text-blue-500 dark:text-blue-400" />
+            Papel de impresión
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Vale solo para este equipo, porque cada computadora tiene su impresora. Se guarda al elegirlo y también puedes cambiarlo al imprimir cada reporte.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reportes en hoja</p>
+            <SelectorHoja />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Rollo de la impresora térmica</p>
+            <SelectorRollo />
+            <p className="text-xs text-gray-500 dark:text-gray-400">Suelen ser de 58 mm o de 80 mm; si el tuyo es distinto, elige «Otro» y escribe el ancho.</p>
           </div>
         </div>
       </section>

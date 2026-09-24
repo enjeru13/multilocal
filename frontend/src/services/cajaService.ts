@@ -62,6 +62,7 @@ export type CajaActual =
 
 export const cajaService = {
   actual: (): Promise<{ data: CajaActual }> => apiClient.get("/caja/actual"),
+  comprobante: (id: number): Promise<{ data: ComprobanteCaja }> => apiClient.get(`/caja/${id}/comprobante`),
   historial: (): Promise<{ data: CajaSesion[] }> => apiClient.get("/caja/historial"),
   abrir: (montoInicial: number) => apiClient.post("/caja/abrir", { montoInicial }),
   movimiento: (data: {
@@ -76,3 +77,14 @@ export const cajaService = {
     observacionCierre?: string;
   }) => apiClient.post("/caja/cerrar", datos),
 };
+
+/** Todo lo necesario para imprimir el arqueo de una sesión (abierta o cerrada). */
+export interface ComprobanteCaja {
+  principal: Moneda;
+  sesion: CajaSesion & { movimientos: CajaMovimiento[] };
+  porMoneda: CajaMonedaResumen[];
+  cantidadPagos: number;
+  otrosMetodos: number;
+  efectivoEsperado: number;
+  tasas: { VES: number | null; COP: number | null };
+}

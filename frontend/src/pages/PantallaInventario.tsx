@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "react-toastify";
-import { FaExclamationTriangle, FaSearch, FaSlidersH, FaHistory } from "react-icons/fa";
+import { FaExclamationTriangle, FaSearch, FaSlidersH, FaHistory, FaPrint } from "react-icons/fa";
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
 import { servicioService } from "../services/serviciosService";
@@ -13,6 +13,7 @@ import { inventarioService, type MovimientoInventario } from "../services/invent
 import { useAuth } from "../hooks/useAuth";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+import ImprimirInventario, { type ModoInventario } from "../impresion/informes/InformeInventario";
 import { Campo, ModalEncabezado, ModalPie, Segmentado, campo } from "../components/ui/Formulario";
 
 const MOTIVO: Record<MovimientoInventario["motivo"], string> = {
@@ -31,6 +32,7 @@ export default function PantallaInventario() {
   const [ajNota, setAjNota] = useState("");
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
   const [historialDe, setHistorialDe] = useState<Servicio | null>(null);
+  const [imprimir, setImprimir] = useState<ModoInventario | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoInventario[]>([]);
   const [items, setItems] = useState<Servicio[]>([]);
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
@@ -111,12 +113,23 @@ export default function PantallaInventario() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Inventario</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t("servicio")} con control de stock activado.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Inventario</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t("servicio")} con control de stock activado.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" leftIcon={<FaPrint />} onClick={() => setImprimir("reposicion")}>
+            Lista de reposición
+          </Button>
+          <Button variant="secondary" leftIcon={<FaPrint />} onClick={() => setImprimir("existencias")}>
+            Imprimir inventario
+          </Button>
+        </div>
       </div>
+      <ImprimirInventario open={imprimir !== null} modo={imprimir ?? "existencias"} onClose={() => setImprimir(null)} />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col">
