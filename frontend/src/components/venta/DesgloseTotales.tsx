@@ -1,7 +1,9 @@
 import type { Moneda } from "@lavanderia/shared/types/types";
 import type { TotalesCalculados } from "@lavanderia/shared/utils/totales";
 import { formatearMoneda } from "../../utils/monedaHelpers";
+import { Link } from "react-router-dom";
 import { useConfiguracion } from "../../context/configuracionCore";
+import { useAuth } from "../../hooks/useAuth";
 
 interface Props {
   totales: Pick<TotalesCalculados, "subtotal" | "descuento" | "impuesto" | "total"> & { base?: number };
@@ -17,6 +19,7 @@ interface Props {
  */
 export default function DesgloseTotales({ totales, moneda, tamano = "md" }: Props) {
   const { config } = useConfiguracion();
+  const { hasRole } = useAuth();
   const nombre = config?.impuestoNombre || "IVA";
   const incluido = config?.preciosIncluyenImpuesto ?? true;
   const fmt = (n: number) => formatearMoneda(n, moneda);
@@ -48,6 +51,11 @@ export default function DesgloseTotales({ totales, moneda, tamano = "md" }: Prop
           <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">El total incluye {nombre}</p>
           {fila("Base sin impuesto", fmt(base))}
           {fila(etiquetaImpuesto, fmt(totales.impuesto))}
+          {hasRole(["ADMIN"]) && (
+            <Link to="/configuracion" className="block text-[11px] text-blue-600 dark:text-blue-400 hover:underline pt-0.5">
+              ¿Tus precios no incluyen {nombre}? Cámbialo en Configuración
+            </Link>
+          )}
         </div>
       )}
     </div>
