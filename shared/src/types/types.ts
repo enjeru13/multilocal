@@ -519,6 +519,13 @@ export interface ReciboData {
   mensajePieRecibo: string | null;
   monedaPrincipal: Moneda;
   totalCantidadPiezas: number;
+  /** Cómo pagó el cliente, en la moneda en que entregó cada pago (y el vuelto que recibió). */
+  pagos?: {
+    metodo: string;
+    moneda: Moneda;
+    monto: number;
+    vueltos: { monto: number; moneda: string }[];
+  }[];
   /** Solo cuando la venta lleva descuento o impuesto. */
   desglose?: {
     subtotal: number;

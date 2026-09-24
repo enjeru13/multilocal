@@ -135,7 +135,7 @@ export async function anularOrden(req: AuthRequest, res: Response) {
       return tx.orden.update({
         where: { id },
         data: { estado: "CANCELADO", abonado: 0, faltante: 0 },
-        include: { cliente: true, pagos: true, detalles: { include: { servicio: true } } },
+        include: { cliente: true, pagos: { include: { vueltos: true } }, detalles: { include: { servicio: true } } },
       });
     });
 
@@ -166,7 +166,7 @@ export async function getAllOrdenes(req: Request, res: Response) {
             },
           },
         },
-        pagos: true,
+        pagos: { include: { vueltos: true } },
         deliveredBy: {
           select: {
             id: true,
@@ -234,7 +234,7 @@ export async function getOrdenById(req: Request, res: Response) {
             },
           },
         },
-        pagos: true,
+        pagos: { include: { vueltos: true } },
         devoluciones: { include: { detalles: true }, orderBy: { fecha: "desc" } },
         deliveredBy: {
           select: {
@@ -631,7 +631,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         data: datos,
         include: {
           cliente: true,
-          pagos: true,
+          pagos: { include: { vueltos: true } },
           detalles: { include: { servicio: true } },
           deliveredBy: { select: { id: true, name: true, email: true } },
         },
@@ -820,7 +820,7 @@ export async function crearDevolucion(req: AuthRequest, res: Response) {
         where: { id },
         include: {
           cliente: true,
-          pagos: true,
+          pagos: { include: { vueltos: true } },
           devoluciones: { include: { detalles: true }, orderBy: { fecha: "desc" } },
           detalles: { include: { servicio: { select: SERVICIO_RESUMEN } } },
         },
@@ -904,7 +904,7 @@ export async function actualizarObservacion(req: Request, res: Response) {
       where: { id: Number(id) },
       include: {
         cliente: true,
-        pagos: true,
+        pagos: { include: { vueltos: true } },
         detalles: {
           include: {
             servicio: {

@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { formatearMoneda } from "../../../shared/src/utils/monedaHelpers";
+import { formatearMoneda, type Moneda } from "../../../shared/src/utils/monedaHelpers";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import type { ReciboData as ReciboProps } from "@lavanderia/shared/types/types";
@@ -21,6 +21,7 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
       monedaPrincipal,
       totalCantidadPiezas,
       desglose,
+      pagos,
     },
     ref
   ) => {
@@ -191,6 +192,25 @@ const ReciboEntrega = forwardRef<HTMLDivElement, ReciboProps>(
             label="ABONO:"
             valor={formatearMoneda(abono, monedaPrincipal)}
           />
+          {pagos && pagos.length > 0 && (
+            <div className="mt-1 text-[10px] font-mono normal-case">
+              <p className="font-bold uppercase">Pagado con:</p>
+              {pagos.map((p, i) => (
+                <div key={i}>
+                  <div className="flex justify-between w-full uppercase">
+                    <span>{p.metodo}</span>
+                    <span>{formatearMoneda(p.monto, p.moneda)}</span>
+                  </div>
+                  {p.vueltos.map((v, j) => (
+                    <div key={j} className="flex justify-between w-full uppercase pl-3">
+                      <span>Vuelto</span>
+                      <span>{formatearMoneda(v.monto, v.moneda as Moneda)}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
           <div className="my-1 border-t border-dotted border-gray-400" />
 
           <div className="flex justify-between w-full font-black text-sm mt-1">

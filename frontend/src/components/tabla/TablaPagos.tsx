@@ -10,7 +10,8 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import Button from "../ui/Button";
 import { nombreCliente } from "../../utils/clienteHelpers";
-import { useEtiquetas } from "../../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
+import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
 
 dayjs.locale("es");
 
@@ -43,6 +44,7 @@ const metodoPagoDisplay: Record<MetodoPago, string> = {
 
 export default function TablaPagos({
   pagos,
+  monedaPrincipal,
   sortColumn,
   sortDirection,
   monedaFiltro,
@@ -52,6 +54,8 @@ export default function TablaPagos({
   onVerDetallesOrden,
 }: Props) {
   const et = useEtiquetas();
+  const { config } = useConfiguracion();
+  const tasas = { VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null };
   const getSortIcon = (column: SortKeys) => {
     if (sortColumn === column) {
       return sortDirection === "asc" ? <FaSortUp /> : <FaSortDown />;
@@ -167,8 +171,20 @@ export default function TablaPagos({
                   <td className="px-4 py-3 font-medium whitespace-nowrap">
                     {monedaSegura}
                   </td>
-                  <td className="px-4 py-3 text-green-700 dark:text-green-500 font-semibold whitespace-nowrap">
-                    {formatearMoneda(pago.monto, monedaSegura)}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className={`font-semibold tabular-nums ${pago.monto < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                      {formatearMoneda(pago.monto, monedaSegura)}
+                    </div>
+                    {monedaSegura !== monedaPrincipal && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                        ≈ {formatearMoneda(calcularTotalAbonado([{ ...pago, tasa: pago.tasa ?? null, vueltos: [] }], tasas, monedaPrincipal), monedaPrincipal)}
+                      </div>
+                    )}
+                    {(pago.vueltos ?? []).map((v) => (
+                      <div key={v.id} className="text-xs text-sky-600 dark:text-sky-400 tabular-nums">
+                        vuelto {formatearMoneda(v.monto, v.moneda as Moneda)}
+                      </div>
+                    ))}
                   </td>
                   <td className="px-4 py-3 text-center whitespace-nowrap">
                     <Button

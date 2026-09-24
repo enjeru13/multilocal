@@ -250,6 +250,14 @@ export default function ModalDetalleOrden({
           : configuracion?.mensajePieRecibo ?? null,
       monedaPrincipal: principalSeguro,
       totalCantidadPiezas: totalCantidadPiezas,
+      pagos: (orden.pagos ?? [])
+        .filter((p) => p.monto > 0)
+        .map((p) => ({
+          metodo: METODO_TEXTO[p.metodoPago] ?? p.metodoPago,
+          moneda: p.moneda,
+          monto: p.monto,
+          vueltos: (p.vueltos ?? []).map((v) => ({ monto: v.monto, moneda: v.moneda })),
+        })),
       desglose:
         orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0
           ? {

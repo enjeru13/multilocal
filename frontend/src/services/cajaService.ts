@@ -13,7 +13,26 @@ export interface CajaSesion {
   diferencia: number | null;
   estado: "ABIERTA" | "CERRADA";
   observacionCierre: string | null;
+  /** JSON con el arqueo por moneda (esperado, contado y diferencia). */
+  detalleCierre?: string | null;
   movimientos?: CajaMovimiento[];
+}
+
+export interface CajaMonedaResumen {
+  moneda: Moneda;
+  inicial: number;
+  cobrado: number;
+  vueltos: number;
+  ingresos: number;
+  egresos: number;
+  esperado: number;
+}
+
+export interface DetalleCierreMoneda {
+  moneda: Moneda;
+  esperado: number;
+  contado: number;
+  diferencia: number;
 }
 
 export interface CajaMovimiento {
@@ -37,6 +56,8 @@ export type CajaActual =
       ingresos: number;
       egresos: number;
       efectivoEsperado: number;
+      principal: Moneda;
+      porMoneda: CajaMonedaResumen[];
     };
 
 export const cajaService = {
@@ -49,6 +70,9 @@ export const cajaService = {
     moneda: Moneda;
     concepto: string;
   }) => apiClient.post("/caja/movimientos", data),
-  cerrar: (montoFinalContado: number, observacionCierre?: string) =>
-    apiClient.post("/caja/cerrar", { montoFinalContado, observacionCierre }),
+  cerrar: (datos: {
+    contadoPorMoneda?: Partial<Record<Moneda, number>>;
+    montoFinalContado?: number;
+    observacionCierre?: string;
+  }) => apiClient.post("/caja/cerrar", datos),
 };

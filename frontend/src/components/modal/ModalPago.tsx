@@ -13,13 +13,16 @@ import {
   normalizarMoneda,
   formatearMoneda,
   parsearMonto,
+  parsearTasa,
   type Moneda,
   type TasasConversion,
 } from "../../utils/monedaHelpers";
 import { calcularResumenPago } from "@lavanderia/shared/utils/pagoFinance";
 import type { Orden, MetodoPago } from "@lavanderia/shared/types/types";
 import { nombreCliente } from "../../utils/clienteHelpers";
-import { useEtiquetas } from "../../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
+import { useAuth } from "../../hooks/useAuth";
+import { configuracionService } from "../../services/configuracionService";
 
 interface Fila {
   id: number;
@@ -87,8 +90,46 @@ interface ModalPagoProps {
  * la moneda y el monto, y se puede dividir en varios pagos. Si se recibe de más,
  * calcula el vuelto y lo deja registrado.
  */
-export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas, monedaPrincipal }: ModalPagoProps) {
+export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tasasProp, monedaPrincipal }: ModalPagoProps) {
   const et = useEtiquetas();
+  const { config, refetch } = useConfiguracion();
+  const { hasRole } = useAuth();
+  // La tasa vigente sale de la configuración: si se cambia aquí mismo, todo se recalcula.
+  const tasas: TasasConversion = useMemo(
+    () => ({ VES: config?.tasaVES ?? tasasProp.VES ?? null, COP: config?.tasaCOP ?? tasasProp.COP ?? null }),
+    [config, tasasProp]
+  );
+  const [editarTasa, setEditarTasa] = useState<Moneda | null>(null);
+  const [tasaTexto, setTasaTexto] = useState("");
+  const [guardandoTasa, setGuardandoTasa] = useState(false);
+
+  const guardarTasa = async () => {
+    if (!editarTasa || !config) return;
+    const valor = parsearTasa(tasaTexto);
+    if (!valor || valor <= 0) return toast.error("Escribe una tasa válida (mayor a 0).");
+    setGuardandoTasa(true);
+    try {
+      await configuracionService.update({
+        nombreNegocio: config.nombreNegocio ?? "Mi negocio",
+        monedaPrincipal: config.monedaPrincipal,
+        tasaVES: editarTasa === "VES" ? valor : config.tasaVES,
+        tasaCOP: editarTasa === "COP" ? valor : config.tasaCOP,
+      });
+      await refetch();
+      toast.success(`Tasa ${editarTasa} actualizada.`);
+      setEditarTasa(null);
+    } catch {
+      toast.error("No se pudo guardar la tasa.");
+    } finally {
+      setGuardandoTasa(false);
+    }
+  };
+
+  const pedirTasa = (m: Moneda) => {
+    setEditarTasa(m);
+    const actual = m === "VES" ? tasas.VES : m === "COP" ? tasas.COP : null;
+    setTasaTexto(actual ? String(actual) : "");
+  };
   const principal: Moneda = useMemo(() => normalizarMoneda(monedaPrincipal), [monedaPrincipal]);
   const resumen = useMemo(() => calcularResumenPago(orden, tasas, principal), [orden, tasas, principal]);
   const saldo = resumen.faltante;
@@ -236,12 +277,11 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas, mon
                     <Segmentos
                       ariaLabel="Moneda"
                       valor={f.moneda}
-                      onChange={(m) => cambiarMoneda(f, m)}
+                      onChange={(m) => (habilitada(m) ? cambiarMoneda(f, m) : pedirTasa(m))}
                       opciones={monedas.map((m) => ({
                         id: m.id,
-                        label: m.id,
-                        deshabilitado: !m.disponible,
-                        titulo: m.disponible ? undefined : `Configura la tasa ${m.id} para cobrar en esa moneda`,
+                        label: m.disponible ? m.id : (<>{m.id}<span className="text-amber-500" title="Falta la tasa">•</span></>),
+                        titulo: m.disponible ? undefined : `Falta la tasa ${m.id}: haz clic para definirla`,
                       }))}
                     />
                     <div className="flex-1 min-w-40 flex items-center gap-2">
@@ -270,12 +310,51 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas, mon
 
                   {f.moneda !== principal && equiv > 0 && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-                      Equivale a <strong className="text-gray-700 dark:text-gray-300">{formatearMoneda(equiv, principal)}</strong> (tasa {f.moneda === "VES" ? tasas.VES : tasas.COP})
+                      Equivale a <strong className="text-gray-700 dark:text-gray-300">{formatearMoneda(equiv, principal)}</strong> (tasa {f.moneda === "VES" ? tasas.VES : tasas.COP}
+                      {hasRole(["ADMIN"]) && (
+                        <>
+                          {" · "}
+                          <button type="button" onClick={() => pedirTasa(f.moneda)} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                            cambiar
+                          </button>
+                        </>
+                      )}
+                      )
                     </p>
                   )}
                 </div>
               );
             })}
+
+            {editarTasa && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 space-y-2">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  {(editarTasa === "VES" ? tasas.VES : tasas.COP) ? `Tasa ${editarTasa} del día` : `Falta la tasa ${editarTasa}`}
+                </p>
+                {hasRole(["ADMIN"]) ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-amber-800 dark:text-amber-300">{editarTasa} por 1 {principal}:</span>
+                    <input
+                      autoFocus
+                      value={tasaTexto}
+                      onChange={(e) => setTasaTexto(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), guardarTasa())}
+                      inputMode="decimal"
+                      placeholder={editarTasa === "VES" ? "Ej. 38,50" : "Ej. 4000"}
+                      className="w-32 h-9 px-3 text-right tabular-nums rounded-lg border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
+                    />
+                    <Button size="sm" variant="primary" onClick={guardarTasa} isLoading={guardandoTasa}>
+                      Guardar tasa
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditarTasa(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-800 dark:text-amber-300">Pide a un administrador que defina la tasa {editarTasa} para poder cobrar en esa moneda.</p>
+                )}
+              </div>
+            )}
 
             <button
               type="button"

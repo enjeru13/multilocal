@@ -274,6 +274,8 @@ model CajaSesion {
 
   estado            EstadoCaja @default(ABIERTA)
   observacionCierre String?
+  // Arqueo por moneda al cerrar (JSON): esperado, contado y diferencia de cada una.
+  detalleCierre     String?
 
   ordenes     Orden[]
   pagos       Pago[]

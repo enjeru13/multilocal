@@ -23,9 +23,14 @@ const MovimientoSchema = z.object({
   concepto: z.string().min(1, "El concepto es requerido"),
 });
 const CerrarSchema = z.object({
-  montoFinalContado: monto,
+  // Total contado en moneda principal (si no se detalla por moneda).
+  montoFinalContado: monto.optional(),
+  // Arqueo por moneda: lo que hay físicamente de cada una.
+  contadoPorMoneda: z.record(z.enum(["USD", "VES", "COP"]), monto).optional(),
   observacionCierre: z.string().nullable().optional(),
 });
+
+const MONEDAS: Moneda[] = ["USD", "VES", "COP"];
 
 async function cargarTasas() {
   const config = await prisma.configuracion.findFirst();
@@ -71,7 +76,40 @@ async function calcularResumen(sesionId: number) {
   }
 
   const r2 = (n: number) => parseFloat(n.toFixed(2));
+
+  // Efectivo físico por moneda: lo que entró (menos vueltos) más ingresos, menos egresos.
+  // El fondo inicial se cuenta en la moneda principal.
+  const cajon = new Map<Moneda, { cobrado: number; vueltos: number; ingresos: number; egresos: number }>();
+  const fila = (m: Moneda) => {
+    if (!cajon.has(m)) cajon.set(m, { cobrado: 0, vueltos: 0, ingresos: 0, egresos: 0 });
+    return cajon.get(m)!;
+  };
+  fila(principal);
+  for (const p of pagos.filter((x) => x.metodoPago === "EFECTIVO")) {
+    fila(p.moneda as Moneda).cobrado += p.monto;
+    for (const v of p.vueltos) fila(v.moneda as Moneda).vueltos += v.monto;
+  }
+  for (const m of sesion.movimientos) {
+    if (m.tipo === "INGRESO") fila(m.moneda as Moneda).ingresos += m.monto;
+    else fila(m.moneda as Moneda).egresos += m.monto;
+  }
+  const porMoneda = MONEDAS.filter((m) => cajon.has(m)).map((m) => {
+    const f = cajon.get(m)!;
+    const inicial = m === principal ? sesion.montoInicial : 0;
+    return {
+      moneda: m,
+      inicial: r2(inicial),
+      cobrado: r2(f.cobrado),
+      vueltos: r2(f.vueltos),
+      ingresos: r2(f.ingresos),
+      egresos: r2(f.egresos),
+      esperado: r2(inicial + f.cobrado - f.vueltos + f.ingresos - f.egresos),
+    };
+  });
+
   return {
+    porMoneda,
+    principal,
     sesion,
     cantidadPagos: pagos.length,
     montoInicial: sesion.montoInicial,
@@ -150,7 +188,33 @@ export async function cerrarCaja(req: AuthRequest, res: Response) {
     }
     const resumen = await calcularResumen(abierta.id);
     const esperado = resumen!.efectivoEsperado;
-    const contado = result.data.montoFinalContado;
+    const { principal, tasas } = await cargarTasas();
+
+    // Con arqueo por moneda, el total contado sale de convertir cada moneda con la tasa vigente.
+    let contado = result.data.montoFinalContado;
+    let detalleCierre: string | null = null;
+    const porMoneda = result.data.contadoPorMoneda;
+    if (porMoneda && Object.keys(porMoneda).length > 0) {
+      let total = 0;
+      const detalle = resumen!.porMoneda.map((f) => {
+        const contadoM = (porMoneda[f.moneda] as number | undefined) ?? 0;
+        total += convertirAmonedaPrincipal(contadoM, f.moneda, tasas, principal);
+        return { moneda: f.moneda, esperado: f.esperado, contado: contadoM, diferencia: parseFloat((contadoM - f.esperado).toFixed(2)) };
+      });
+      // Una moneda contada que no aparece en el resumen también se registra.
+      for (const m of MONEDAS) {
+        const c = porMoneda[m] as number | undefined;
+        if (c && c > 0 && !detalle.some((d) => d.moneda === m)) {
+          total += convertirAmonedaPrincipal(c, m, tasas, principal);
+          detalle.push({ moneda: m, esperado: 0, contado: c, diferencia: parseFloat(c.toFixed(2)) });
+        }
+      }
+      contado = parseFloat(total.toFixed(2));
+      detalleCierre = JSON.stringify(detalle);
+    }
+    if (contado === undefined) {
+      return res.status(400).json({ message: "Indica el efectivo contado." });
+    }
 
     const cerrada = await prisma.cajaSesion.update({
       where: { id: abierta.id },
@@ -161,6 +225,7 @@ export async function cerrarCaja(req: AuthRequest, res: Response) {
         montoFinalSistema: esperado,
         diferencia: parseFloat((contado - esperado).toFixed(2)),
         observacionCierre: result.data.observacionCierre ?? null,
+        detalleCierre,
       },
     });
     return res.json(cerrada);
