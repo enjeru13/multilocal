@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
+import CampoMonto from "../ui/CampoMonto";
 import ResumenCobro from "../ui/ResumenCobro";
 import { pagosService } from "../../services/pagosService";
 import { ordenesService } from "../../services/ordenesService";
@@ -13,6 +14,7 @@ import {
   normalizarMoneda,
   formatearMoneda,
   parsearMonto,
+  montoAEntrada,
   parsearTasa,
   type Moneda,
   type TasasConversion,
@@ -39,8 +41,8 @@ const METODOS: { id: MetodoPago; label: string; icono: React.ReactNode }[] = [
 
 const EPS = 0.005;
 
-// Texto de un monto para el campo: sin separador de miles y con los decimales de la moneda.
-const comoCampo = (n: number, moneda: Moneda) => (moneda === "COP" ? String(Math.round(n)) : String(Math.round(n * 100) / 100));
+// Texto de un monto para el campo, con separador de miles a la manera de cada moneda.
+const comoCampo = (n: number, moneda: Moneda) => montoAEntrada(n, moneda);
 
 function Segmentos<T extends string>({
   valor,
@@ -285,11 +287,10 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
                       }))}
                     />
                     <div className="flex-1 min-w-40 flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="decimal"
+                      <CampoMonto
+                        moneda={f.moneda}
                         value={f.monto}
-                        onChange={(e) => actualizar(f.id, { monto: e.target.value })}
+                        onValue={(monto) => actualizar(f.id, { monto })}
                         onFocus={(e) => e.target.select()}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {

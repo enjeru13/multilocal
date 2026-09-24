@@ -118,3 +118,55 @@ export function parsearMonto(valor: string, moneda: Moneda = "USD"): number {
   const num = parseFloat(limpio);
   return isNaN(num) ? 0 : num;
 }
+
+const AGRUPAR = /\B(?=(\d{3})+(?!\d))/g;
+
+/** Separadores de la convención de cada moneda: USD "1,234.50"; VES/COP "1.234,50". */
+function separadores(moneda: Moneda) {
+  return moneda === "USD" ? { dec: ".", mil: "," } : { dec: ",", mil: "." };
+}
+
+/**
+ * Texto de un monto listo para un campo de entrada: con separador de miles y
+ * sin ceros decimales sobrantes. Es el inverso de `parsearMonto`.
+ * Ejemplo: (1500.5, "VES") -> "1.500,5"
+ */
+export function montoAEntrada(n: number, moneda: Moneda = "USD"): string {
+  if (typeof n !== "number" || !isFinite(n)) return "";
+  const r = moneda === "COP" ? Math.round(n) : Math.round(n * 100) / 100;
+  const { dec, mil } = separadores(moneda);
+  const [entero, fraccion = ""] = r.toFixed(2).split(".");
+  const miles = entero.replace(AGRUPAR, mil);
+  const sobrante = fraccion.replace(/0+$/, "");
+  return sobrante ? `${miles}${dec}${sobrante}` : miles;
+}
+
+/**
+ * Da formato al texto de un campo de monto mientras se escribe: agrupa los
+ * miles ("1.500.000") y deja como máximo dos decimales. Acepta "." o "," como
+ * decimal al teclearlo al final, y al pegar "1500.50" lo entiende como decimal.
+ * `previo` es el texto anterior del campo: distingue teclear de borrar o pegar.
+ */
+export function formatearEntradaMonto(raw: string, moneda: Moneda = "USD", previo = ""): string {
+  const { dec, mil } = separadores(moneda);
+  const teclado = raw.length === previo.length + 1;
+  const pegado = raw.length > previo.length + 1;
+
+  let posDec = raw.indexOf(dec);
+  if (posDec < 0) {
+    const ultimo = raw.lastIndexOf(mil);
+    if (ultimo >= 0) {
+      const cola = raw.slice(ultimo + 1);
+      const escribioAlFinal = teclado && ultimo === raw.length - 1;
+      if (escribioAlFinal || (pegado && /^\d{1,2}$/.test(cola))) posDec = ultimo;
+    }
+  }
+
+  const soloDigitos = (t: string) => t.replace(/\D/g, "");
+  let entero = soloDigitos(posDec < 0 ? raw : raw.slice(0, posDec)).replace(/^0+(?=\d)/, "");
+  const fraccion = posDec < 0 ? null : soloDigitos(raw.slice(posDec + 1)).slice(0, 2);
+
+  if (entero === "" && fraccion === null) return "";
+  if (entero === "") entero = "0";
+  return entero.replace(AGRUPAR, mil) + (fraccion !== null ? dec + fraccion : "");
+}

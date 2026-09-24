@@ -5,9 +5,10 @@ import { AxiosError } from "axios";
 import type { MetodoPago, Proveedor, Servicio } from "@lavanderia/shared/types/types";
 import { useConfiguracion } from "../../context/configuracionCore";
 import { comprasService } from "../../services/comprasService";
-import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
+import { formatearMoneda, parsearMonto, type Moneda } from "../../utils/monedaHelpers";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import CampoMonto, { CampoMontoNumero } from "../ui/CampoMonto";
 import { Campo, Seccion, Segmentado, ModalEncabezado, ModalPie, Opcion, campo } from "../ui/Formulario";
 
 type Linea = { servicioId: number; cantidad: number; costoUnit: number };
@@ -69,7 +70,7 @@ export default function ModalRegistrarCompra({
     }
     setCargando(true);
     try {
-      const abonoNum = parseFloat(abono.replace(",", "."));
+      const abonoNum = abono === "" ? NaN : parsearMonto(abono, monedaPrincipal);
       if (pago === "ABONO" && (isNaN(abonoNum) || abonoNum <= 0 || abonoNum >= total)) {
         toast.error("El abono debe ser mayor a 0 y menor al total.");
         setCargando(false);
@@ -99,7 +100,7 @@ export default function ModalRegistrarCompra({
     }
   };
 
-  const restante = pago === "ABONO" ? Math.max(0, total - (parseFloat(abono.replace(",", ".")) || 0)) : pago === "CREDITO" ? total : 0;
+  const restante = pago === "ABONO" ? Math.max(0, total - (parsearMonto(abono, monedaPrincipal) || 0)) : pago === "CREDITO" ? total : 0;
 
   return (
     <Modal open onClose={onClose} maxWidth="max-w-xl" className="max-h-[92vh] flex flex-col overflow-hidden">
@@ -122,7 +123,7 @@ export default function ModalRegistrarCompra({
               <input type="number" value={cantidadSel} onChange={(e) => setCantidadSel(e.target.value ? Number(e.target.value) : "")} className={`${campo} text-right tabular-nums`} />
             </Campo>
             <Campo etiqueta="Costo unit.">
-              <input type="number" step="any" value={costoSel} onChange={(e) => setCostoSel(e.target.value ? Number(e.target.value) : "")} className={`${campo} text-right tabular-nums`} />
+              <CampoMontoNumero moneda={monedaPrincipal} valor={costoSel === "" ? null : costoSel} onValor={(n) => setCostoSel(n ?? "")} className={`${campo} text-right tabular-nums`} placeholder="0.00" />
             </Campo>
             <Button type="button" onClick={agregarLinea} variant="iconSuccess" size="icon" title="Agregar a la compra">
               <FaPlus size={12} />
@@ -166,7 +167,7 @@ export default function ModalRegistrarCompra({
           />
           {pago === "ABONO" && (
             <Campo etiqueta={`Monto abonado (${monedaPrincipal})`}>
-              <input type="number" step="any" value={abono} onChange={(e) => setAbono(e.target.value)} className={`${campo} text-right tabular-nums`} placeholder="0.00" />
+              <CampoMonto moneda={monedaPrincipal} value={abono} onValue={setAbono} className={`${campo} text-right tabular-nums`} placeholder="0.00" />
             </Campo>
           )}
           {pago !== "CREDITO" && (

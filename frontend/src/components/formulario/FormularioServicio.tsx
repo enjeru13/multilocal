@@ -6,10 +6,12 @@ import type {
   ServicioCreate,
   ServicioUpdatePayload,
   Categoria,
+  Moneda,
 } from "@lavanderia/shared/types/types";
 import { AxiosError } from "axios";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { CampoMontoNumero } from "../ui/CampoMonto";
 import { Campo, Seccion, ModalEncabezado, ModalPie, Opcion, campo, campoError } from "../ui/Formulario";
 import { useConfiguracion } from "../../context/configuracionCore";
 import { useEtiquetas } from "../../context/configuracionCore";
@@ -42,6 +44,7 @@ export default function FormularioServicio({
 
   const { config } = useConfiguracion();
   const inventarioActivo = !!config?.moduloInventario;
+  const monedaPrincipal = (config?.monedaPrincipal ?? "USD") as Moneda;
 
   const [controlaStock, setControlaStock] = useState(false);
   const [sku, setSku] = useState("");
@@ -200,19 +203,7 @@ export default function FormularioServicio({
               )}
             </Campo>
             <Campo etiqueta="Precio de venta" error={errores.precio}>
-              <input
-                type="number"
-                step="any"
-                min={0}
-                value={precio ?? ""}
-                onChange={(e) => {
-                  const parsed = parseFloat(e.target.value);
-                  setPrecio(isNaN(parsed) ? null : parsed);
-                }}
-                className={`${campo} text-right tabular-nums ${conError("precio")}`}
-                placeholder="0.00"
-                disabled={cargando}
-              />
+              <CampoMontoNumero moneda={monedaPrincipal} valor={precio} onValor={setPrecio} className={`${campo} text-right tabular-nums ${conError("precio")}`} placeholder="0.00" disabled={cargando} />
             </Campo>
           </div>
 
@@ -240,19 +231,7 @@ export default function FormularioServicio({
                 <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} className={campo} placeholder="Ej. FIL-001" disabled={cargando} />
               </Campo>
               <Campo etiqueta="Costo" opcional ayuda="Se guarda con cada venta para calcular tu ganancia.">
-                <input
-                  type="number"
-                  step="any"
-                  min={0}
-                  value={costo ?? ""}
-                  onChange={(e) => {
-                    const parsed = parseFloat(e.target.value);
-                    setCosto(isNaN(parsed) ? null : parsed);
-                  }}
-                  className={`${campo} text-right tabular-nums`}
-                  placeholder="0.00"
-                  disabled={cargando}
-                />
+                <CampoMontoNumero moneda={monedaPrincipal} valor={costo} onValor={setCosto} className={`${campo} text-right tabular-nums`} placeholder="0.00" disabled={cargando} />
               </Campo>
               <div className="flex items-end pb-1">
                 {margen !== null && costo !== null && precio !== null && (

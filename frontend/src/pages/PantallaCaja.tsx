@@ -9,6 +9,7 @@ import { useAuth } from "../hooks/useAuth";
 import { convertirAmonedaPrincipal, formatearMoneda, parsearMonto, type Moneda } from "../utils/monedaHelpers";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+import CampoMonto from "../components/ui/CampoMonto";
 import { Campo, ModalEncabezado, ModalPie, campo } from "../components/ui/Formulario";
 
 const inputCls = campo;
@@ -81,7 +82,7 @@ export default function PantallaCaja() {
   }, [cargar]);
 
   const abrir = async () => {
-    const n = parseFloat(montoInicial.replace(",", "."));
+    const n = montoInicial === "" ? NaN : parsearMonto(montoInicial, principal);
     if (isNaN(n) || n < 0) return toast.error("Indica un monto inicial válido.");
     setEnviando(true);
     try {
@@ -173,7 +174,7 @@ export default function PantallaCaja() {
           <div className="flex gap-3 items-end">
             <div className="flex-1">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Efectivo inicial ({principal})</label>
-              <input type="text" inputMode="decimal" value={montoInicial} onChange={(e) => setMontoInicial(e.target.value)} className={inputCls} placeholder="0.00" />
+              <CampoMonto moneda={principal} value={montoInicial} onValue={setMontoInicial} className={`${inputCls} text-right tabular-nums`} placeholder="0.00" />
             </div>
             <Button onClick={abrir} variant="primary" isLoading={enviando}>
               Abrir caja
@@ -329,7 +330,7 @@ export default function PantallaCaja() {
             <Campo etiqueta="Monto">
               <div className="flex items-center gap-3">
                 <Selector valor={movMoneda} opciones={monedasConTasa} onChange={setMovMoneda} />
-                <input type="text" inputMode="decimal" value={movMonto} onChange={(e) => setMovMonto(e.target.value)} className={`${inputCls} text-right tabular-nums`} placeholder="0.00" autoFocus />
+                <CampoMonto moneda={movMoneda} value={movMonto} onValue={setMovMonto} className={`${inputCls} text-right tabular-nums`} placeholder="0.00" autoFocus />
               </div>
             </Campo>
             <Campo etiqueta="Concepto">
@@ -362,11 +363,10 @@ export default function PantallaCaja() {
                       <span className="font-medium text-gray-800 dark:text-gray-200">{NOMBRE_MONEDA[f.moneda]}</span>
                       <span className="text-gray-500 dark:text-gray-400 tabular-nums">Esperado {formatearMoneda(f.esperado, f.moneda)}</span>
                     </div>
-                    <input
-                      type="text"
-                      inputMode="decimal"
+                    <CampoMonto
+                      moneda={f.moneda}
                       value={txt}
-                      onChange={(e) => setContado((c) => ({ ...c, [f.moneda]: e.target.value }))}
+                      onValue={(t) => setContado((c) => ({ ...c, [f.moneda]: t }))}
                       className={`${inputCls} text-right tabular-nums`}
                       placeholder={`Contado en ${f.moneda}`}
                       autoFocus={i === 0}

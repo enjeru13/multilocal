@@ -7,6 +7,8 @@ import {
   formatearTasa,
   normalizarMoneda,
   formatearMoneda,
+  montoAEntrada,
+  formatearEntradaMonto,
 } from "../utils/monedaHelpers";
 
 const tasas = { VES: 500, COP: 4000 };
@@ -75,5 +77,47 @@ describe("parseo de números", () => {
     expect(formatearTasa(535)).toBe("535.00");
     expect(formatearTasa("535,5")).toBe("535.50");
     expect(formatearTasa("x")).toBe("");
+  });
+});
+
+describe("campos de monto", () => {
+  it("montoAEntrada agrupa miles y recorta ceros decimales", () => {
+    expect(montoAEntrada(1500.5, "VES")).toBe("1.500,5");
+    expect(montoAEntrada(1234567, "COP")).toBe("1.234.567");
+    expect(montoAEntrada(1500, "USD")).toBe("1,500");
+    expect(montoAEntrada(0.5, "USD")).toBe("0.5");
+    expect(parsearMonto(montoAEntrada(1500.5, "VES"), "VES")).toBe(1500.5);
+    expect(parsearMonto(montoAEntrada(2345.75, "USD"), "USD")).toBe(2345.75);
+  });
+
+  it("formatearEntradaMonto agrupa al teclear", () => {
+    let t = "";
+    for (const c of "1500000") t = formatearEntradaMonto(t + c, "VES", t);
+    expect(t).toBe("1.500.000");
+    for (const c of ",5") t = formatearEntradaMonto(t + c, "VES", t);
+    expect(t).toBe("1.500.000,5");
+  });
+
+  it("acepta punto o coma como decimal según se teclea al final", () => {
+    expect(formatearEntradaMonto("12.", "VES", "12")).toBe("12,");
+    expect(formatearEntradaMonto("12,", "USD", "12")).toBe("12.");
+    expect(formatearEntradaMonto("12.505", "USD", "12.50")).toBe("12.50");
+  });
+
+  it("al borrar un dígito de un grupo no lo toma por decimal", () => {
+    expect(formatearEntradaMonto("1.50", "VES", "1.500")).toBe("150");
+    expect(formatearEntradaMonto("1,50", "USD", "1,500")).toBe("150");
+  });
+
+  it("al pegar distingue decimal de miles", () => {
+    expect(formatearEntradaMonto("1500.50", "VES", "")).toBe("1.500,50");
+    expect(formatearEntradaMonto("1.500", "VES", "")).toBe("1.500");
+    expect(formatearEntradaMonto("1500.5", "USD", "")).toBe("1,500.5");
+  });
+
+  it("vacío y ceros a la izquierda", () => {
+    expect(formatearEntradaMonto("", "USD", "5")).toBe("");
+    expect(formatearEntradaMonto("007", "USD", "")).toBe("7");
+    expect(formatearEntradaMonto(",", "VES", "")).toBe("0,");
   });
 });

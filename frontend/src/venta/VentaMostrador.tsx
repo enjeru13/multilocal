@@ -371,7 +371,7 @@ export default function VentaMostrador() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={vaciar} disabled={carrito.length === 0 && !cliente}>
+            <Button variant="ghost" size="lg" onClick={vaciar} disabled={carrito.length === 0 && !cliente}>
               Vaciar
             </Button>
             <Button className="flex-1" size="lg" variant="whatsapp" onClick={cobrar} isLoading={guardando} disabled={carrito.length === 0}>

@@ -5,9 +5,10 @@ import { isAxiosError } from "axios";
 import { FaFileInvoiceDollar, FaExclamationCircle, FaChevronRight } from "react-icons/fa";
 import type { Compra, CuentasPorPagar, MetodoPago, Moneda } from "@lavanderia/shared/types/types";
 import { comprasService } from "../services/comprasService";
-import { convertirDesdePrincipal, formatearMoneda } from "../utils/monedaHelpers";
+import { convertirDesdePrincipal, formatearMoneda, montoAEntrada, parsearMonto } from "../utils/monedaHelpers";
 import { useConfiguracion } from "../context/configuracionCore";
 import Modal from "../components/ui/Modal";
+import CampoMonto from "../components/ui/CampoMonto";
 import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 
@@ -21,7 +22,7 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
   );
 
   const [monedaPago, setMonedaPago] = useState<Moneda>(moneda);
-  const [monto, setMonto] = useState(String(compra.saldo));
+  const [monto, setMonto] = useState(montoAEntrada(compra.saldo, moneda));
   const [metodo, setMetodo] = useState<MetodoPago>("TRANSFERENCIA");
   const [desdeCaja, setDesdeCaja] = useState(true);
   const [nota, setNota] = useState("");
@@ -29,12 +30,12 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
 
   const cambiarMoneda = (m: Moneda) => {
     setMonedaPago(m);
-    setMonto(String(convertirDesdePrincipal(compra.saldo, m, tasas, moneda)));
+    setMonto(montoAEntrada(convertirDesdePrincipal(compra.saldo, m, tasas, moneda), m));
   };
 
   const pagar = async (e: React.FormEvent) => {
     e.preventDefault();
-    const n = parseFloat(monto.replace(",", "."));
+    const n = parsearMonto(monto, monedaPago);
     if (isNaN(n) || n <= 0) return toast.error("El monto debe ser mayor a 0.");
     setGuardando(true);
     try {
@@ -65,7 +66,7 @@ function ModalPagarCompra({ compra, moneda, onClose, onPagada }: { compra: Compr
         </div>
         <Campo etiqueta="Monto a pagar" ayuda={monedaPago !== moneda ? `Equivale a ${formatearMoneda(compra.saldo, moneda)} al cambio actual.` : undefined}>
           <div className="flex gap-2">
-            <input className={`${campo} flex-1 text-right tabular-nums`} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto a pagar" />
+            <CampoMonto moneda={monedaPago} className={`${campo} flex-1 text-right tabular-nums`} value={monto} onValue={setMonto} autoFocus aria-label="Monto a pagar" />
             <select className={`${campo} w-24!`} value={monedaPago} onChange={(e) => cambiarMoneda(e.target.value as Moneda)} aria-label="Moneda">
               {monedas.map((m) => (
                 <option key={m} value={m}>

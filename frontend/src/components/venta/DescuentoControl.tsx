@@ -2,6 +2,8 @@ import { FaTag, FaTimes } from "react-icons/fa";
 import type { DescuentoOrden } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
 import { useConfiguracion } from "../../context/configuracionCore";
+import type { Moneda } from "../../utils/monedaHelpers";
+import { CampoMontoNumero } from "../ui/CampoMonto";
 
 interface Props {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -15,6 +17,7 @@ export default function DescuentoControl({ value, onChange, disabled, inputRef }
   const { config } = useConfiguracion();
   const { hasRole } = useAuth();
   const tipo = value?.tipo ?? "PORCENTAJE";
+  const principal = (config?.monedaPrincipal ?? "USD") as Moneda;
   const tope = config?.descuentoMaxPct ?? 100;
   const conTope = !hasRole(["ADMIN"]) && tope < 100;
 
@@ -47,18 +50,31 @@ export default function DescuentoControl({ value, onChange, disabled, inputRef }
               </button>
             ))}
           </div>
-          <input
-            ref={inputRef}
-            type="number"
-            min={0}
-            step="any"
-            disabled={disabled}
-            value={value?.valor ? value.valor : ""}
-            onChange={(e) => cambiar(tipo, e.target.value)}
-            placeholder="0"
-            aria-label="Valor del descuento"
-            className="w-20 text-right px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 text-sm"
-          />
+          {tipo === "MONTO" ? (
+            <CampoMontoNumero
+              inputRef={inputRef}
+              moneda={principal}
+              disabled={disabled}
+              valor={value?.valor ? value.valor : null}
+              onValor={(n) => (n === null ? onChange(null) : onChange({ tipo: "MONTO", valor: n }))}
+              placeholder="0"
+              aria-label="Valor del descuento"
+              className="w-28 text-right px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 text-sm tabular-nums"
+            />
+          ) : (
+            <input
+              ref={inputRef}
+              type="number"
+              min={0}
+              step="any"
+              disabled={disabled}
+              value={value?.valor ? value.valor : ""}
+              onChange={(e) => cambiar(tipo, e.target.value)}
+              placeholder="0"
+              aria-label="Valor del descuento"
+              className="w-20 text-right px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 text-sm"
+            />
+          )}
           {value && (
             <button
               type="button"

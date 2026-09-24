@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { FaTshirt, FaPlus, FaDollarSign, FaTrashAlt } from "react-icons/fa";
-import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
+import { formatearMoneda, montoAEntrada, parsearMonto, type Moneda } from "../../utils/monedaHelpers";
+import CampoMonto from "../ui/CampoMonto";
 import { useEtiquetas } from "../../context/configuracionCore";
 import type {
   Servicio,
@@ -37,19 +38,19 @@ export default function ServiciosPanel({
   // Resetear precio y ajustar cantidad mínima al cambiar de servicio
   useEffect(() => {
     if (servicioActual) {
-      setPrecioPersonalizado(servicioActual.precioBase.toString());
+      setPrecioPersonalizado(montoAEntrada(servicioActual.precioBase, monedaPrincipal));
       setCantidad(1);
     } else {
       setPrecioPersonalizado("");
     }
-  }, [servicioActual]);
+  }, [servicioActual, monedaPrincipal]);
 
   const agregarServicio = () => {
     if (!servicioActual) return;
     if (cantidad <= 0) return;
 
     // Validar precio
-    const precioFinal = parseFloat(precioPersonalizado);
+    const precioFinal = precioPersonalizado === "" ? NaN : parsearMonto(precioPersonalizado, monedaPrincipal);
     if (isNaN(precioFinal) || precioFinal < 0) return;
 
     const existe = serviciosSeleccionados.find(
@@ -118,13 +119,11 @@ export default function ServiciosPanel({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaDollarSign className="text-gray-400 dark:text-gray-500 text-xs" />
             </div>
-            <input
-              type="number"
-              min="0"
-              step={servicioActual?.permiteDecimales ? "0.01" : "1"}
+            <CampoMonto
+              moneda={monedaPrincipal}
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 pl-8 focus:ring-2 focus:ring-blue-500 focus:outline-none text-right font-medium bg-white dark:bg-gray-800 dark:text-gray-100 transition-colors"
               value={precioPersonalizado}
-              onChange={(e) => setPrecioPersonalizado(e.target.value)}
+              onValue={setPrecioPersonalizado}
               disabled={!servicioId}
             />
           </div>

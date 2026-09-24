@@ -6,13 +6,14 @@ import { isAxiosError } from "axios";
 import { FaMoneyCheckAlt, FaPlus, FaTrashAlt } from "react-icons/fa";
 import type { GastosListado, MetodoPago, Moneda } from "@lavanderia/shared/types/types";
 import { gastosService } from "../services/gastosService";
-import { formatearMoneda } from "../utils/monedaHelpers";
+import { formatearMoneda, montoAEntrada, parsearMonto } from "../utils/monedaHelpers";
 import { rangoDePreset, rangoValido, type PresetPeriodo } from "../utils/rangosFecha";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/configuracionCore";
 import SelectorPeriodo from "../components/SelectorPeriodo";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import Modal from "../components/ui/Modal";
+import CampoMonto from "../components/ui/CampoMonto";
 import { Campo, ModalEncabezado, ModalPie, Opcion, campo } from "../components/ui/Formulario";
 import Button from "../components/ui/Button";
 
@@ -36,9 +37,15 @@ function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[];
   const [desdeCaja, setDesdeCaja] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
+  // Al cambiar de moneda se reescribe el mismo número con el formato de la nueva.
+  const cambiarMoneda = (nueva: Moneda) => {
+    if (monto) setMonto(montoAEntrada(parsearMonto(monto, moneda), nueva));
+    setMoneda(nueva);
+  };
+
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    const n = parseFloat(monto.replace(",", "."));
+    const n = parsearMonto(monto, moneda);
     if (!concepto.trim()) return toast.error("Indica en qué se gastó.");
     if (!categoria.trim()) return toast.error("Elige o escribe una categoría.");
     if (isNaN(n) || n <= 0) return toast.error("El monto debe ser mayor a 0.");
@@ -86,8 +93,8 @@ function ModalGasto({ categorias, onClose, onGuardado }: { categorias: string[];
           </Campo>
           <Campo etiqueta="Monto">
             <div className="flex gap-2">
-              <input className={`${campo} text-right tabular-nums`} inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" />
-              <select className={`${campo} w-24!`} value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)} aria-label="Moneda">
+              <CampoMonto moneda={moneda} className={`${campo} text-right tabular-nums`} value={monto} onValue={setMonto} placeholder="0.00" />
+              <select className={`${campo} w-24!`} value={moneda} onChange={(e) => cambiarMoneda(e.target.value as Moneda)} aria-label="Moneda">
                 {monedas.map((m) => (
                   <option key={m} value={m}>
                     {m}

@@ -7,6 +7,7 @@ import { useAtajos } from "../atajos/atajosCore";
 import Kbd from "../atajos/Kbd";
 import Button from "../components/ui/Button";
 import DescuentoControl from "../components/venta/DescuentoControl";
+import { CampoMontoNumero } from "../components/ui/CampoMonto";
 import DesgloseTotales from "../components/venta/DesgloseTotales";
 import { TableSkeleton } from "../components/Skeleton";
 import { useVenta } from "./useVenta";
@@ -206,15 +207,10 @@ export default function VentaFactura() {
                             />
                           </td>
                           <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={precio}
-                              onChange={(e) => {
-                                const v = parseFloat(e.target.value);
-                                venta.fijarPrecio(l.servicio.id, isNaN(v) ? undefined : v === l.servicio.precioBase ? undefined : v);
-                              }}
+                            <CampoMontoNumero
+                              moneda={moneda}
+                              valor={precio}
+                              onValor={(v) => venta.fijarPrecio(l.servicio.id, v === null ? undefined : v === l.servicio.precioBase ? undefined : v)}
                               className={`w-28 text-right px-2 py-1 rounded-md border bg-transparent tabular-nums ${
                                 bajoCosto ? "border-red-400 text-red-600" : modificado ? "border-amber-400" : "border-gray-300 dark:border-gray-700"
                               }`}
@@ -279,7 +275,7 @@ export default function VentaFactura() {
             ))}
 
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => venta.ponerEnEspera() && enfocar()} disabled={!hayItems || ocupado} leftIcon={<FaSave />}>
+            <Button variant="secondary" size="lg" onClick={() => venta.ponerEnEspera() && enfocar()} disabled={!hayItems || ocupado} leftIcon={<FaSave />}>
               Cotización
             </Button>
             <Button variant="whatsapp" size="lg" onClick={venta.cobrar} isLoading={venta.guardando} disabled={!hayItems || ocupado}>
