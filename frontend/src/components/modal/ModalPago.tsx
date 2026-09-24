@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { FiX, FiPlus } from "react-icons/fi";
+import { useMemo, useRef, useState } from "react";
+import { FaCheckCircle, FaExclamationCircle, FaMoneyBillWave, FaMobileAlt, FaExchangeAlt, FaPlus, FaTimes } from "react-icons/fa";
+import { toast } from "react-toastify";
+import { isAxiosError } from "axios";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
-import { MdOutlinePayments } from "react-icons/md";
-import { toast } from "react-toastify";
+import ResumenCobro from "../ui/ResumenCobro";
 import { pagosService } from "../../services/pagosService";
 import { ordenesService } from "../../services/ordenesService";
 import {
@@ -17,18 +18,61 @@ import {
 } from "../../utils/monedaHelpers";
 import { calcularResumenPago } from "@lavanderia/shared/utils/pagoFinance";
 import type { Orden, MetodoPago } from "@lavanderia/shared/types/types";
+import { nombreCliente } from "../../utils/clienteHelpers";
+import { useEtiquetas } from "../../context/configuracionCore";
 
-type PagoInput = {
-  monto: string;
+interface Fila {
+  id: number;
+  metodo: MetodoPago;
   moneda: Moneda;
-  metodo: "Efectivo" | "Transferencia" | "Pago móvil";
-};
+  monto: string;
+}
 
-const metodoPagoMap: Record<PagoInput["metodo"], MetodoPago> = {
-  Efectivo: "EFECTIVO",
-  Transferencia: "TRANSFERENCIA",
-  "Pago móvil": "PAGO_MOVIL",
-};
+const METODOS: { id: MetodoPago; label: string; icono: React.ReactNode }[] = [
+  { id: "EFECTIVO", label: "Efectivo", icono: <FaMoneyBillWave /> },
+  { id: "TRANSFERENCIA", label: "Transferencia", icono: <FaExchangeAlt /> },
+  { id: "PAGO_MOVIL", label: "Pago móvil", icono: <FaMobileAlt /> },
+];
+
+const EPS = 0.005;
+
+// Texto de un monto para el campo: sin separador de miles y con los decimales de la moneda.
+const comoCampo = (n: number, moneda: Moneda) => (moneda === "COP" ? String(Math.round(n)) : String(Math.round(n * 100) / 100));
+
+function Segmentos<T extends string>({
+  valor,
+  opciones,
+  onChange,
+  ariaLabel,
+}: {
+  valor: T;
+  opciones: { id: T; label: React.ReactNode; deshabilitado?: boolean; titulo?: string }[];
+  onChange: (v: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5">
+      {opciones.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="radio"
+          aria-checked={valor === o.id}
+          disabled={o.deshabilitado}
+          title={o.titulo}
+          onClick={() => onChange(o.id)}
+          className={`px-3 h-8 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+            valor === o.id
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface ModalPagoProps {
   orden: Orden;
@@ -38,433 +82,283 @@ interface ModalPagoProps {
   monedaPrincipal: Moneda;
 }
 
-export default function ModalPago({
-  orden,
-  onClose,
-  onPagoRegistrado,
-  tasas,
-  monedaPrincipal,
-}: ModalPagoProps) {
-  const principalSegura: Moneda = useMemo(
-    () => normalizarMoneda(monedaPrincipal),
-    [monedaPrincipal]
+/**
+ * Cobro: por defecto propone pagar todo el saldo en efectivo; se ajusta el método,
+ * la moneda y el monto, y se puede dividir en varios pagos. Si se recibe de más,
+ * calcula el vuelto y lo deja registrado.
+ */
+export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas, monedaPrincipal }: ModalPagoProps) {
+  const et = useEtiquetas();
+  const principal: Moneda = useMemo(() => normalizarMoneda(monedaPrincipal), [monedaPrincipal]);
+  const resumen = useMemo(() => calcularResumenPago(orden, tasas, principal), [orden, tasas, principal]);
+  const saldo = resumen.faltante;
+
+  const monedas = useMemo(
+    () =>
+      (["USD", "VES", "COP"] as Moneda[]).map((m) => ({
+        id: m,
+        disponible: m === principal || (m === "VES" && !!tasas.VES && tasas.VES > 0) || (m === "COP" && !!tasas.COP && tasas.COP > 0),
+      })),
+    [principal, tasas]
   );
-  const resumen = useMemo(
-    () => calcularResumenPago(orden, tasas, principalSegura),
-    [orden, tasas, principalSegura]
-  );
+  const habilitada = (m: Moneda) => monedas.find((x) => x.id === m)?.disponible ?? false;
 
-  const [pagos, setPagos] = useState<PagoInput[]>([
-    {
-      monto: "0",
-      moneda: "USD" as Moneda,
-      metodo: "Efectivo" as PagoInput["metodo"],
-    },
-  ]);
-  const [estaRegistrando, setEstaRegistrando] = useState(false);
+  const siguienteId = useRef(2);
+  const [filas, setFilas] = useState<Fila[]>([{ id: 1, metodo: "EFECTIVO", moneda: principal, monto: comoCampo(saldo, principal) }]);
+  const [monedaVuelto, setMonedaVuelto] = useState<Moneda | null>(null);
+  const [registrando, setRegistrando] = useState(false);
 
-  const totalPagosEnModalPrincipal = useMemo(() => {
-    return pagos.reduce(
-      (sum, p) =>
-        sum +
-        convertirAmonedaPrincipal(
-          parsearMonto(p.monto, p.moneda),
-          p.moneda,
-          tasas,
-          principalSegura
-        ),
-      0
-    );
-  }, [pagos, tasas, principalSegura]);
+  const enPrincipal = (f: Fila) => convertirAmonedaPrincipal(parsearMonto(f.monto, f.moneda), f.moneda, tasas, principal);
+  const recibido = filas.reduce((s, f) => s + enPrincipal(f), 0);
+  const restante = Math.max(saldo - recibido, 0);
+  const exceso = Math.max(recibido - saldo, 0);
+  const conExceso = exceso > EPS;
+  const saldaTodo = !conExceso && restante <= EPS && recibido > EPS;
 
-  const faltanteProyectado = useMemo(() => {
-    return Math.max(resumen.faltante - totalPagosEnModalPrincipal, 0);
-  }, [resumen.faltante, totalPagosEnModalPrincipal]);
+  const ultima = filas[filas.length - 1];
+  const monedaVueltoEfectiva: Moneda = monedaVuelto && habilitada(monedaVuelto) ? monedaVuelto : habilitada(ultima.moneda) ? ultima.moneda : principal;
+  const vuelto = convertirDesdePrincipal(exceso, monedaVueltoEfectiva, tasas, principal);
 
-  const [displayedRestanteVES, setDisplayedRestanteVES] = useState(0);
-  const [displayedRestanteCOP, setDisplayedRestanteCOP] = useState(0);
+  const actualizar = (id: number, cambios: Partial<Fila>) => setFilas((fs) => fs.map((f) => (f.id === id ? { ...f, ...cambios } : f)));
 
-  useEffect(() => {
-    const initialFaltanteVES = convertirDesdePrincipal(
-      resumen.faltante,
-      "VES",
-      tasas,
-      principalSegura
-    );
-    const initialFaltanteCOP = convertirDesdePrincipal(
-      resumen.faltante,
-      "COP",
-      tasas,
-      principalSegura
-    );
-    setDisplayedRestanteVES(initialFaltanteVES);
-    setDisplayedRestanteCOP(initialFaltanteCOP);
-  }, [resumen.faltante, tasas, principalSegura]);
+  // Al cambiar de moneda se conserva el valor: los mismos dólares expresados en la nueva moneda.
+  const cambiarMoneda = (f: Fila, nueva: Moneda) => {
+    const equivalente = enPrincipal(f);
+    actualizar(f.id, { moneda: nueva, monto: equivalente > 0 ? comoCampo(convertirDesdePrincipal(equivalente, nueva, tasas, principal), nueva) : f.monto });
+  };
 
-  const updateDisplayedRemaining = useCallback(() => {
-    const currentFaltanteProyectado = Math.max(
-      resumen.faltante - totalPagosEnModalPrincipal,
-      0
-    );
-    setDisplayedRestanteVES(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "VES",
-        tasas,
-        principalSegura
-      )
-    );
-    setDisplayedRestanteCOP(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "COP",
-        tasas,
-        principalSegura
-      )
-    );
-  }, [resumen.faltante, totalPagosEnModalPrincipal, tasas, principalSegura]);
+  // Lo que falta después de los demás pagos, en la moneda de esta fila.
+  const completar = (f: Fila) => {
+    const otros = filas.filter((x) => x.id !== f.id).reduce((s, x) => s + enPrincipal(x), 0);
+    const falta = Math.max(saldo - otros, 0);
+    actualizar(f.id, { monto: comoCampo(convertirDesdePrincipal(falta, f.moneda, tasas, principal), f.moneda) });
+  };
 
-  const registrarPago = async () => {
-    const pagosValidos = pagos.filter(
-      (p) => parsearMonto(p.monto, p.moneda) > 0 && p.moneda && p.metodo
-    );
+  const agregarFila = () => {
+    const falta = restante;
+    setFilas((fs) => [
+      ...fs,
+      { id: siguienteId.current++, metodo: "TRANSFERENCIA", moneda: principal, monto: falta > EPS ? comoCampo(falta, principal) : "" },
+    ]);
+  };
 
-    if (pagosValidos.length === 0) {
-      toast.error("Ingresa al menos un pago válido.");
-      return;
-    }
+  const quitarFila = (id: number) => setFilas((fs) => (fs.length > 1 ? fs.filter((f) => f.id !== id) : fs));
 
-    if (resumen.faltante <= 0) {
-      toast.info("Ya está saldado.");
-      onClose();
-      return;
-    }
+  const validas = filas.filter((f) => parsearMonto(f.monto, f.moneda) > 0);
+  const puedeRegistrar = validas.length > 0 && saldo > EPS && !registrando;
 
-    if (totalPagosEnModalPrincipal > resumen.faltante + 0.01) {
-      toast.warn("El monto total de los pagos excede el faltante de la orden.");
-    }
-
-    setEstaRegistrando(true);
+  const registrar = async () => {
+    if (!puedeRegistrar) return;
+    setRegistrando(true);
     try {
-      for (const p of pagosValidos) {
+      for (let i = 0; i < validas.length; i++) {
+        const f = validas[i];
+        const esUltima = i === validas.length - 1;
         await pagosService.create({
           ordenId: orden.id,
-          monto: parsearMonto(p.monto, p.moneda),
-          moneda: p.moneda,
-          metodoPago: metodoPagoMap[p.metodo],
+          monto: parsearMonto(f.monto, f.moneda),
+          moneda: f.moneda,
+          metodoPago: f.metodo,
+          // El vuelto queda asociado al último pago, para que el neto por moneda cuadre en caja.
+          ...(esUltima && conExceso && vuelto > 0 ? { vueltos: [{ monto: vuelto, moneda: monedaVueltoEfectiva }] } : {}),
         });
       }
-
-      toast.success("Pagos registrados exitosamente.");
-
+      toast.success(validas.length > 1 ? "Pagos registrados." : "Pago registrado.");
       const res = await ordenesService.getById(orden.id);
-      const actualizada = res.data;
-
-      if (actualizada) {
-        onPagoRegistrado(actualizada);
-      }
+      if (res.data) onPagoRegistrado(res.data);
       onClose();
-      updateDisplayedRemaining();
     } catch (err) {
-      toast.error("Error al registrar el pago.");
-      console.error("Error pago:", err);
+      toast.error(isAxiosError(err) ? err.response?.data?.message ?? "No se pudo registrar el pago." : "No se pudo registrar el pago.");
     } finally {
-      setEstaRegistrando(false);
+      setRegistrando(false);
     }
   };
 
-  const actualizarPago = (
-    idx: number,
-    campo: keyof PagoInput,
-    valor: string
-  ) => {
-    const nuevos = [...pagos];
-    const pagoToUpdate: PagoInput = { ...nuevos[idx] };
-
-    if (campo === "monto") {
-      pagoToUpdate.monto = valor;
-    } else if (campo === "moneda") {
-      pagoToUpdate.moneda = valor as Moneda;
-    } else if (campo === "metodo") {
-      pagoToUpdate.metodo = valor as PagoInput["metodo"];
-    }
-
-    nuevos[idx] = pagoToUpdate;
-    setPagos(nuevos);
-  };
-
-  const agregarPago = () => {
-    const newPagos = [
-      ...pagos,
-      {
-        monto: "0",
-        moneda: "USD" as Moneda,
-        metodo: "Efectivo" as PagoInput["metodo"],
-      },
-    ];
-    setPagos(newPagos);
-    const currentTotalInPrincipal = newPagos.reduce(
-      (sum, p) =>
-        sum +
-        convertirAmonedaPrincipal(
-          parsearMonto(p.monto, p.moneda),
-          p.moneda,
-          tasas,
-          principalSegura
-        ),
-      0
-    );
-    const currentFaltanteProyectado = Math.max(
-      resumen.faltante - currentTotalInPrincipal,
-      0
-    );
-    setDisplayedRestanteVES(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "VES",
-        tasas,
-        principalSegura
-      )
-    );
-    setDisplayedRestanteCOP(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "COP",
-        tasas,
-        principalSegura
-      )
-    );
-  };
-
-  const eliminarPago = (idx: number) => {
-    const nuevaLista = pagos.filter((_, i) => i !== idx);
-    setPagos(nuevaLista);
-    const currentTotalInPrincipal = nuevaLista.reduce(
-      (sum, p) =>
-        sum +
-        convertirAmonedaPrincipal(
-          parsearMonto(p.monto, p.moneda),
-          p.moneda,
-          tasas,
-          principalSegura
-        ),
-      0
-    );
-    const currentFaltanteProyectado = Math.max(
-      resumen.faltante - currentTotalInPrincipal,
-      0
-    );
-    setDisplayedRestanteVES(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "VES",
-        tasas,
-        principalSegura
-      )
-    );
-    setDisplayedRestanteCOP(
-      convertirDesdePrincipal(
-        currentFaltanteProyectado,
-        "COP",
-        tasas,
-        principalSegura
-      )
-    );
-  };
+  const equivalencias = (["VES", "COP"] as const).filter((m) => m !== principal && habilitada(m));
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      maxWidth="max-w-xl md:max-w-2xl"
-      className="max-h-[90vh] overflow-hidden flex flex-col"
-    >
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <MdOutlinePayments className="text-2xl sm:text-3xl" />
-            Registrar pago
+    <Modal open onClose={onClose} maxWidth="max-w-2xl" className="max-h-[92vh] overflow-hidden flex flex-col">
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Cobrar {et.ordenMin} #{orden.id}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl font-bold transition-transform transform hover:rotate-90 cursor-pointer"
-            title="Cerrar"
-          >
-            <FiX />
-          </button>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{nombreCliente(orden.cliente)}</p>
         </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 cursor-pointer" title="Cerrar" aria-label="Cerrar">
+          <FaTimes />
+        </button>
+      </div>
 
-        <div className="px-6 py-4 overflow-y-auto flex-1 space-y-6 text-base text-gray-800 dark:text-gray-200">
-          {pagos.map((p, idx) => (
-            <div
-              key={idx}
-              className="border border-gray-300 dark:border-gray-700 rounded-xl p-5 bg-gray-50 dark:bg-gray-950 shadow-md relative space-y-4 transition-all duration-200 hover:shadow-lg"
-            >
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div>
-                  <label
-                    htmlFor={`monto-${idx}`}
-                    className="block text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1"
-                  >
-                    Monto
-                  </label>
-                  <input
-                    id={`monto-${idx}`}
-                    type="text"
-                    inputMode="decimal"
-                    value={p.monto}
-                    onChange={(e) =>
-                      actualizarPago(idx, "monto", e.target.value)
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base shadow-sm dark:text-gray-100"
-                    placeholder="Ej. 20.50 (USD), 1.458,78 (VES)"
+      <div className="px-6 py-5 overflow-y-auto flex-1 space-y-5">
+        <ResumenCobro total={orden.total} abonado={resumen.abonado} saldo={saldo} moneda={principal} />
+
+        {equivalencias.length > 0 && saldo > EPS && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+            Saldo equivalente:{" "}
+            {equivalencias.map((m, i) => (
+              <span key={m}>
+                {i > 0 && " · "}
+                <span className="font-medium text-gray-700 dark:text-gray-300 tabular-nums">{formatearMoneda(convertirDesdePrincipal(saldo, m, tasas, principal), m)}</span>
+              </span>
+            ))}
+          </p>
+        )}
+
+        {saldo <= EPS ? (
+          <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-5 text-center">
+            <FaCheckCircle className="mx-auto text-2xl text-emerald-600 dark:text-emerald-400 mb-2" />
+            <p className="font-semibold text-emerald-800 dark:text-emerald-200">Esta {et.ordenMin} ya está saldada.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filas.map((f, i) => {
+              const equiv = enPrincipal(f);
+              return (
+                <div key={f.id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{filas.length > 1 ? `Pago ${i + 1}` : "Cómo paga"}</p>
+                    {filas.length > 1 && (
+                      <button type="button" onClick={() => quitarFila(f.id)} className="text-gray-400 hover:text-red-500 p-1 cursor-pointer" title="Quitar este pago" aria-label="Quitar este pago">
+                        <FaTimes size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  <Segmentos
+                    ariaLabel="Método de pago"
+                    valor={f.metodo}
+                    onChange={(m) => actualizar(f.id, { metodo: m })}
+                    opciones={METODOS.map((m) => ({ id: m.id, label: (<><span className="text-xs">{m.icono}</span>{m.label}</>) }))}
                   />
-                </div>
-                <div>
-                  <label
-                    htmlFor={`moneda-${idx}`}
-                    className="block text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1"
-                  >
-                    Moneda
-                  </label>
-                  <select
-                    id={`moneda-${idx}`}
-                    value={p.moneda}
-                    onChange={(e) =>
-                      actualizarPago(idx, "moneda", e.target.value as Moneda)
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base shadow-sm dark:text-gray-100"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="VES">VES</option>
-                    <option value="COP">COP</option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor={`metodo-${idx}`}
-                    className="block text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1"
-                  >
-                    Método
-                  </label>
-                  <select
-                    id={`metodo-${idx}`}
-                    value={p.metodo}
-                    onChange={(e) =>
-                      actualizarPago(
-                        idx,
-                        "metodo",
-                        e.target.value as PagoInput["metodo"]
-                      )
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base shadow-sm dark:text-gray-100"
-                  >
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Pago móvil">Pago móvil</option>
-                  </select>
-                </div>
-              </div>
 
-              {pagos.length > 1 && (
-                <button
-                  onClick={() => eliminarPago(idx)}
-                  className="absolute top-3 right-3 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xl transition-transform transform hover:scale-110 cursor-pointer"
-                  title="Eliminar pago"
-                >
-                  <FiX />
-                </button>
-              )}
-            </div>
-          ))}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Segmentos
+                      ariaLabel="Moneda"
+                      valor={f.moneda}
+                      onChange={(m) => cambiarMoneda(f, m)}
+                      opciones={monedas.map((m) => ({
+                        id: m.id,
+                        label: m.id,
+                        deshabilitado: !m.disponible,
+                        titulo: m.disponible ? undefined : `Configura la tasa ${m.id} para cobrar en esa moneda`,
+                      }))}
+                    />
+                    <div className="flex-1 min-w-40 flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={f.monto}
+                        onChange={(e) => actualizar(f.id, { monto: e.target.value })}
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            registrar();
+                          }
+                        }}
+                        autoFocus={i === 0}
+                        aria-label={`Monto en ${f.moneda}`}
+                        placeholder="0.00"
+                        className="w-full h-11 px-3 text-right text-xl font-semibold tabular-nums rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                      />
+                      <Button type="button" variant="ghost" size="sm" onClick={() => completar(f)} title="Poner lo que falta por cobrar">
+                        Todo
+                      </Button>
+                    </div>
+                  </div>
 
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={agregarPago}
-              variant="outline"
-              leftIcon={<FiPlus className="text-base" />}
-              className="border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/40"
+                  {f.moneda !== principal && equiv > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                      Equivale a <strong className="text-gray-700 dark:text-gray-300">{formatearMoneda(equiv, principal)}</strong> (tasa {f.moneda === "VES" ? tasas.VES : tasas.COP})
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={agregarFila}
+              className="w-full h-10 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-300 flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
-              Agregar otro pago
+              <FaPlus size={11} /> Dividir en otro método o moneda
+            </button>
+
+            {/* Qué pasa con lo que se está recibiendo */}
+            {recibido > EPS && (
+              <div
+                className={`rounded-xl border p-4 flex items-start gap-3 ${
+                  conExceso
+                    ? "border-sky-200 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10"
+                    : saldaTodo
+                    ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10"
+                    : "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10"
+                }`}
+              >
+                {saldaTodo ? (
+                  <FaCheckCircle className="mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <FaExclamationCircle className={`mt-0.5 shrink-0 ${conExceso ? "text-sky-600 dark:text-sky-400" : "text-amber-600 dark:text-amber-400"}`} />
+                )}
+                <div className="flex-1 min-w-0 text-sm">
+                  {saldaTodo && <p className="font-semibold text-emerald-800 dark:text-emerald-200">Con este pago la {et.ordenMin} queda saldada.</p>}
+                  {!saldaTodo && !conExceso && (
+                    <p className="font-semibold text-amber-800 dark:text-amber-200">
+                      Quedará un saldo de {formatearMoneda(restante, principal)}
+                      {equivalencias.length > 0 && (
+                        <span className="font-normal text-amber-700 dark:text-amber-300">
+                          {" "}
+                          ({equivalencias.map((m) => formatearMoneda(convertirDesdePrincipal(restante, m, tasas, principal), m)).join(" · ")})
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {conExceso && (
+                    <>
+                      <p className="font-semibold text-sky-800 dark:text-sky-200">
+                        Recibes {formatearMoneda(exceso, principal)} de más: entrega vuelto de{" "}
+                        <span className="tabular-nums">{formatearMoneda(vuelto, monedaVueltoEfectiva)}</span>
+                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
+                        Dar el vuelto en
+                        <Segmentos
+                          ariaLabel="Moneda del vuelto"
+                          valor={monedaVueltoEfectiva}
+                          onChange={setMonedaVuelto}
+                          opciones={monedas.map((m) => ({ id: m.id, label: m.id, deshabilitado: !m.disponible }))}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+        <p className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+          {recibido > EPS ? (
+            <>
+              Recibes <strong className="text-gray-900 dark:text-gray-100 tabular-nums">{formatearMoneda(recibido, principal)}</strong>
+            </>
+          ) : (
+            "Indica cuánto te pagan"
+          )}
+        </p>
+        <div className="flex gap-3 ml-auto">
+          <Button onClick={onClose} variant="secondary" disabled={registrando}>
+            {saldo <= EPS ? "Cerrar" : "Cancelar"}
+          </Button>
+          {saldo > EPS && (
+            <Button onClick={registrar} variant="primary" disabled={!puedeRegistrar} isLoading={registrando}>
+              {recibido > EPS ? `Registrar ${formatearMoneda(Math.min(recibido, saldo), principal)}` : "Registrar pago"}
             </Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-            <div className="p-4 bg-blue-50 rounded-lg shadow-sm flex flex-col justify-between">
-              <span className="text-sm text-blue-800 font-semibold mb-1">
-                Total:
-              </span>
-              <span className="block text-blue-900 font-bold text-xl">
-                {formatearMoneda(orden.total, principalSegura)}
-              </span>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg shadow-sm flex flex-col justify-between">
-              <span className="text-sm text-green-800 font-semibold mb-1">
-                Total Abonado:
-              </span>
-              <span className="block text-green-900 font-bold text-xl">
-                {formatearMoneda(resumen.abonado, principalSegura)}
-              </span>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg shadow-sm flex flex-col justify-between">
-              <span className="text-sm text-purple-800 font-semibold mb-1">
-                Monto a abonar (este modal):
-              </span>
-              <span className="block text-purple-900 font-bold text-xl">
-                {formatearMoneda(totalPagosEnModalPrincipal, principalSegura)}
-              </span>
-            </div>
-            <div className="sm:col-span-2 lg:col-span-3 p-4 bg-red-50 rounded-lg shadow-sm flex flex-col justify-between">
-              <span className="text-sm text-red-800 font-semibold mb-1">
-                Faltante proyectado:
-              </span>
-              <span className="block text-red-900 font-bold text-2xl">
-                {formatearMoneda(faltanteProyectado, principalSegura)}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-inner ring-1 ring-gray-100 dark:ring-gray-900/50 space-y-3 mt-6">
-            <p className="font-bold text-gray-800 dark:text-gray-100 text-lg">
-              Faltante proyectado en otras monedas:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-                <span className="text-sm text-gray-700 dark:text-gray-400">Bolívares (VES):</span>
-                <span className="block text-red-700 dark:text-red-400 font-bold text-lg">
-                  {formatearMoneda(displayedRestanteVES, "VES")}
-                </span>
-              </div>
-              <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-                <span className="text-sm text-gray-700 dark:text-gray-400">Pesos (COP):</span>
-                <span className="block text-red-700 dark:text-red-400 font-bold text-lg">
-                  {formatearMoneda(displayedRestanteCOP, "COP")}
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-500 italic">
-              Estos valores se actualizan al agregar/eliminar pagos.
-            </p>
-          </div>
+          )}
         </div>
-
-        <div className="px-6 py-4 flex justify-end gap-4 font-medium border-t border-gray-200 dark:border-gray-800">
-          <Button onClick={onClose} variant="secondary">
-            Salir
-          </Button>
-
-          <Button
-            onClick={registrarPago}
-            disabled={
-              totalPagosEnModalPrincipal <= 0 ||
-              faltanteProyectado === resumen.faltante ||
-              estaRegistrando
-            }
-            isLoading={estaRegistrando}
-            variant="whatsapp"
-          >
-            Guardar pagos
-          </Button>
-        </div>
+      </div>
     </Modal>
   );
 }

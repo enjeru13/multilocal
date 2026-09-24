@@ -4,17 +4,17 @@ import { ordenesService } from "../../services/ordenesService";
 import { configuracionService } from "../../services/configuracionService";
 import { pagosService } from "../../services/pagosService";
 import { FiX } from "react-icons/fi";
-import { BiMessageSquareDetail } from "react-icons/bi";
-import { FaEdit, FaCheck, FaTimes, FaPencilAlt, FaUndoAlt } from "react-icons/fa";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { FaEdit, FaCheck, FaTimes, FaPencilAlt, FaUndoAlt, FaReceipt, FaEllipsisH, FaMoneyBillWave } from "react-icons/fa";
 import {
   formatearMoneda,
   normalizarMoneda,
   type Moneda,
   type TasasConversion,
 } from "../../utils/monedaHelpers";
-import { badgeEstado } from "../../utils/badgeHelpers";
+import { badgeEstado, badgePago } from "../../utils/badgeHelpers";
 import { toast } from "react-toastify";
-import { calcularResumenPago } from "@lavanderia/shared/utils/pagoFinance";
+import { calcularResumenPago, calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
 import type {
   Orden,
   Configuracion,
@@ -30,9 +30,11 @@ import { FaWhatsapp } from "react-icons/fa";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import ModalDevolucion from "./ModalDevolucion";
-import DesgloseTotales from "../venta/DesgloseTotales";
+import ResumenCobro from "../ui/ResumenCobro";
 import { nombreCliente } from "../../utils/clienteHelpers";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
+
+const METODO_TEXTO: Record<string, string> = { EFECTIVO: "Efectivo", TRANSFERENCIA: "Transferencia", PAGO_MOVIL: "Pago móvil" };
 
 interface Props {
   orden: Orden;
@@ -265,372 +267,298 @@ export default function ModalDetalleOrden({
 
   const isObservacionesDisabled = !hasRole(["ADMIN"]) || guardandoObservaciones;
 
+  const saldado = resumen.faltante <= 0.005;
+  const cancelada = orden.estado === "CANCELADO";
+  const quedanPorDevolver = orden.detalles?.some((d) => d.cantidad - d.cantidadDevuelta > 1e-9) ?? false;
+  // Devolver artículos tiene sentido donde se vende al momento (caja, mostrador); una lavandería anula la orden.
+  const permiteDevolver =
+    hasRole(["ADMIN", "EMPLOYEE"]) && !cancelada && quedanPorDevolver && perfil?.moduloFechaEntrega === false;
+  const puedeEntregar = conEntrega && orden.estado !== "ENTREGADO" && !cancelada;
+  const puedeMarcarLista = conEntrega && orden.estado === "PENDIENTE";
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+
+  const cambiarEstado = async (estado: "LISTO" | "ENTREGADO") => {
+    setCambiandoEstado(true);
+    try {
+      const res = await ordenesService.update(orden.id, { estado });
+      toast.success(estado === "LISTO" ? "Marcada como lista para entregar." : "Marcada como entregada.");
+      onPagoRegistrado(res.data);
+    } catch {
+      toast.error("No se pudo actualizar el estado.");
+    } finally {
+      setCambiandoEstado(false);
+    }
+  };
+
+  const filaMeta = (etiqueta: string, valor: React.ReactNode) => (
+    <div>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{etiqueta}</dt>
+      <dd className="mt-0.5 text-sm font-medium text-gray-900 dark:text-gray-100">{valor}</dd>
+    </div>
+  );
+
+  const titulo = (texto: string, extra?: React.ReactNode) => (
+    <div className="flex items-center justify-between mb-2.5">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{texto}</h3>
+      {extra}
+    </div>
+  );
+
+  const lineaDesglose = (etiqueta: string, valor: string, clase = "text-gray-700 dark:text-gray-300") => (
+    <div className="flex justify-between text-sm">
+      <span className="text-gray-500 dark:text-gray-400">{etiqueta}</span>
+      <span className={`tabular-nums ${clase}`}>{valor}</span>
+    </div>
+  );
+
+  const hayDesglose = orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0;
+
   return (
     <Modal
       open
       onClose={onClose}
       maxWidth="max-w-2xl"
-      className="relative p-6 space-y-6 text-base text-gray-800 dark:text-gray-200 overflow-auto max-h-[90vh]"
+      className="max-h-[92vh] flex flex-col overflow-hidden"
     >
-        {/* HEADER */}
-        <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <BiMessageSquareDetail className="text-3xl" />
-            Detalle de la {et.ordenMin}
-            <span className="text-gray-500 dark:text-gray-400 font-semibold">#{orden.id}</span>
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl font-bold transition-transform transform hover:rotate-90 cursor-pointer"
-            title="Cerrar"
-          >
-            <FiX />
-          </button>
+      {/* Encabezado */}
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {et.orden} <span className="text-gray-400 font-medium">#{orden.id}</span>
+            </h2>
+            {badgeEstado(orden.estado)}
+            {!cancelada && badgePago(resumen.estadoRaw)}
+          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">
+            {nombreCliente(orden.cliente)}
+            {orden.cliente?.telefono && <span className="text-gray-400"> · {orden.cliente.telefono}</span>}
+          </p>
         </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 cursor-pointer" title="Cerrar" aria-label="Cerrar">
+          <FiX size={20} />
+        </button>
+      </div>
 
-        {/* GRID DE INFO */}
-        <div className="grid sm:grid-cols-2 gap-5">
-          <div>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">{et.cliente}</p>
-            <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-              {nombreCliente(orden.cliente)}
-            </div>
-          </div>
-          <div>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-              {conEntrega ? "Estado de la entrega" : "Estado"}
-            </p>
-            <div className="bg-gray-100 dark:bg-gray-950 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center gap-2 shadow-sm">
-              {badgeEstado(orden.estado)}
-            </div>
-          </div>
-          <div>
-            <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-              Fecha de ingreso
-            </p>
-            <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-              {dayjs(orden.fechaIngreso).format("DD/MM/YYYY")}
-            </div>
-          </div>
-          {conEntrega && (
-            <div>
-              <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-                Fecha estimada de entrega
-              </p>
-              <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-                {orden.fechaEntrega
-                  ? dayjs(orden.fechaEntrega).format("DD/MM/YYYY")
-                  : "No definida"}
-              </div>
-            </div>
-          )}
-          {orden.estado === "ENTREGADO" && orden.deliveredBy && (
-            <div>
-              <p className="text-gray-700 dark:text-gray-300 font-semibold text-sm mb-2">
-                Entregado Por
-              </p>
-              <div className="bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800 font-medium text-gray-900 dark:text-gray-100 shadow-sm">
-                {orden.deliveredBy.name || orden.deliveredBy.email}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Contenido */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+          {filaMeta("Ingreso", dayjs(orden.fechaIngreso).format("DD/MM/YYYY"))}
+          {conEntrega && filaMeta("Entrega estimada", orden.fechaEntrega ? dayjs(orden.fechaEntrega).format("DD/MM/YYYY") : "Sin definir")}
+          {orden.estado === "ENTREGADO" && orden.deliveredBy && filaMeta("Entregado por", orden.deliveredBy.name || orden.deliveredBy.email)}
+        </dl>
 
-        {/* TABLA SERVICIOS */}
-        <div>
-          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-            {et.servicios}
-          </h3>
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
-            <table className="min-w-full bg-white dark:bg-gray-950 text-sm">
+        {/* Artículos */}
+        <section>
+          {titulo(et.servicios)}
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+            <table className="min-w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-semibold border-b border-gray-200 dark:border-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left">{et.servicio}</th>
-                  <th className="px-4 py-3 text-center">Cantidad</th>
-                  <th className="px-4 py-3 text-right">Precio Unitario</th>
-                  <th className="px-4 py-3 text-right">Subtotal</th>
+                  <th className="px-4 py-2.5 text-left">{et.servicio}</th>
+                  <th className="px-4 py-2.5 text-center">Cant.</th>
+                  <th className="px-4 py-2.5 text-right">Precio</th>
+                  <th className="px-4 py-2.5 text-right">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 {orden.detalles?.map((d) => (
-                  <tr
-                    key={d.id}
-                    className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition duration-200 ease-in-out"
-                  >
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                      {d.servicio?.nombreServicio ?? `${et.servicio} no disponible`}
+                  <tr key={d.id} className="border-t border-gray-100 dark:border-gray-800">
+                    <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100">{d.servicio?.nombreServicio ?? `${et.servicio} no disponible`}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-700 dark:text-gray-300">
+                      {d.cantidad}
+                      {d.cantidadDevuelta > 0 && <span className="block text-[11px] text-amber-600 dark:text-amber-400">{d.cantidadDevuelta} devuelto(s)</span>}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">
-                      x{d.cantidad}
-                      {d.cantidadDevuelta > 0 && (
-                        <span className="block text-xs font-normal text-amber-600 dark:text-amber-400">
-                          {d.cantidadDevuelta} devuelto(s)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right text-indigo-700 dark:text-indigo-400 font-bold">
-                      {formatearMoneda(d.precioUnit, principalSeguro)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-green-700 dark:text-green-500 font-bold">
-                      {formatearMoneda(d.subtotal, principalSeguro)}
-                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-400">{formatearMoneda(d.precioUnit, principalSeguro)}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 dark:text-gray-100">{formatearMoneda(d.subtotal, principalSeguro)}</td>
                   </tr>
                 )) ?? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-4 py-4 text-center text-gray-500 italic"
-                      >
-                        {`No hay ${et.serviciosMin} asociados.`}
-                      </td>
-                    </tr>
-                  )}
+                  <tr>
+                    <td colSpan={4} className="px-4 py-4 text-center text-gray-500 italic">{`No hay ${et.serviciosMin} asociados.`}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* PAGOS REALIZADOS */}
+        {/* Cuenta */}
+        <section className="space-y-3">
+          {titulo("Cuenta")}
+          {hayDesglose && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 space-y-1.5">
+              {lineaDesglose("Subtotal", formatearMoneda(orden.subtotal, principalSeguro))}
+              {orden.descuento > 0 && lineaDesglose("Descuento", `− ${formatearMoneda(orden.descuento, principalSeguro)}`, "text-emerald-600 dark:text-emerald-400")}
+              {orden.impuesto > 0 &&
+                lineaDesglose(
+                  `${configuracion?.impuestoNombre || "IVA"}${orden.impuestoTasa ? ` (${orden.impuestoTasa}%)` : ""}${configuracion?.preciosIncluyenImpuesto ?? true ? " incluido" : ""}`,
+                  formatearMoneda(orden.impuesto, principalSeguro)
+                )}
+              {orden.devuelto > 0 && lineaDesglose("Ya devuelto", formatearMoneda(orden.devuelto, principalSeguro), "text-amber-600 dark:text-amber-400")}
+            </div>
+          )}
+          {!cancelada && <ResumenCobro total={orden.total} abonado={resumen.abonado} saldo={resumen.faltante} moneda={principalSeguro} />}
+        </section>
+
+        {/* Pagos */}
         {(orden.pagos?.length ?? 0) > 0 && (
-          <div>
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-              Pagos realizados
-            </h3>
-            <ul className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-              {orden.pagos?.map((p) => (
-                <li
-                  key={p.id}
-                  className="bg-gray-100 dark:bg-gray-950 p-4 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-900 transition duration-200 ease-in-out"
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    {/* --- SECCIÓN EDITABLE DE FECHA --- */}
-                    <div className="flex items-center gap-2">
+          <section>
+            {titulo("Pagos")}
+            <ul className="rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+              {orden.pagos?.map((p) => {
+                const reembolso = p.monto < 0;
+                const enPrincipal = calcularTotalAbonado([p], tasas, principalSeguro);
+                return (
+                  <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <div className="min-w-0">
                       {editingPagoId === p.id ? (
-                        <div className="flex items-center gap-1 animate-fade-in">
+                        <div className="flex items-center gap-1">
                           <input
                             type="date"
                             value={editDateValue}
                             onChange={(e) => setEditDateValue(e.target.value)}
                             disabled={guardandoFechaPago}
-                            className="text-sm border border-gray-300 dark:border-gray-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 dark:text-gray-100"
+                            className="text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100"
                           />
-                          <button
-                            onClick={() => handleSaveFechaPago(p.id)}
-                            disabled={guardandoFechaPago}
-                            className="p-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-                            title="Guardar"
-                          >
-                            <FaCheck size={12} />
+                          <button onClick={() => handleSaveFechaPago(p.id)} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer" title="Guardar">
+                            <FaCheck size={11} />
                           </button>
-                          <button
-                            onClick={handleCancelEditPago}
-                            disabled={guardandoFechaPago}
-                            className="p-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
-                            title="Cancelar"
-                          >
-                            <FaTimes size={12} />
+                          <button onClick={handleCancelEditPago} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 disabled:opacity-50 cursor-pointer" title="Cancelar">
+                            <FaTimes size={11} />
                           </button>
                         </div>
                       ) : (
-                        <>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">
-                            {dayjs(p.fechaPago).format("DD/MM/YYYY")}
-                          </span>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                          {dayjs(p.fechaPago).format("DD/MM/YYYY")}
                           {hasRole(["ADMIN"]) && (
-                            <button
-                              onClick={() => handleEditPagoClick(p)}
-                              className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 ml-1 transition-colors cursor-pointer"
-                              title="Editar fecha"
-                            >
-                              <FaEdit size={12} />
+                            <button onClick={() => handleEditPagoClick(p)} className="text-gray-400 hover:text-blue-600 cursor-pointer" title="Editar fecha" aria-label="Editar fecha del pago">
+                              <FaEdit size={11} />
                             </button>
                           )}
-                        </>
+                        </p>
                       )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {reembolso ? "Reembolso" : METODO_TEXTO[p.metodoPago] ?? p.metodoPago}
+                        {p.moneda !== principalSeguro && p.tasa && p.tasa > 1 && <span> · tasa {Number(p.tasa).toFixed(2)}</span>}
+                      </p>
                     </div>
-
-                    <span className="font-bold text-indigo-700 dark:text-indigo-400">
-                      {formatearMoneda(p.monto, p.moneda)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-                    Pago en {p.moneda} vía {p.metodoPago}
-                    {p.tasa && p.tasa > 1 && p.moneda !== "USD" && (
-                      <span className="ml-1 text-gray-500 dark:text-gray-500 not-italic">
-                        (Tasa: {Number(p.tasa).toFixed(2)})
-                      </span>
-                    )}
-                  </p>
-                </li>
-              ))}
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-semibold tabular-nums ${reembolso ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{formatearMoneda(p.monto, p.moneda)}</p>
+                      {p.moneda !== principalSeguro && <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">≈ {formatearMoneda(enPrincipal, principalSeguro)}</p>}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
-          </div>
+          </section>
         )}
 
-        {/* RESUMEN DE PAGOS */}
-        <div className="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-3">
-          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-            Resumen de Pagos
-          </h3>
-          {(orden.descuento > 0 || orden.impuesto > 0 || orden.devuelto > 0) && (
-            <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 space-y-1">
-              <DesgloseTotales totales={orden} moneda={principalSeguro} />
-              {orden.devuelto > 0 && (
-                <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                  <span>Ya devuelto</span>
-                  <span className="tabular-nums">{formatearMoneda(orden.devuelto, principalSeguro)}</span>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4 text-sm font-medium">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm flex justify-between items-center border border-blue-100 dark:border-blue-900/30">
-              <span className="text-blue-800 dark:text-blue-300">Total:</span>
-              <span className="font-bold text-blue-900 dark:text-blue-100">
-                {formatearMoneda(orden.total, principalSeguro)}
-              </span>
-            </div>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm flex justify-between items-center border border-green-100 dark:border-green-900/30">
-              <span className="text-green-800 dark:text-green-300">Total Abonado:</span>
-              <span className="font-bold text-green-900 dark:text-green-100">
-                {formatearMoneda(resumen.abonado, principalSeguro)}
-              </span>
-            </div>
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg shadow-sm flex justify-between items-center border border-red-100 dark:border-red-900/30">
-              <span className="text-red-800 dark:text-red-300">Saldo Pendiente:</span>
-              <span className="font-bold text-red-900 dark:text-red-100">
-                {formatearMoneda(resumen.faltante, principalSeguro)}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {devoluciones.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">Devoluciones</h3>
-            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <section>
+            {titulo("Devoluciones")}
+            <ul className="rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
               {devoluciones.map((dv) => (
-                <li key={dv.id} className="flex justify-between gap-3 bg-gray-100 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-800">
-                  <span>
+                <li key={dv.id} className="flex justify-between gap-3 px-4 py-2.5 text-sm">
+                  <span className="text-gray-700 dark:text-gray-300">
                     {dayjs(dv.fecha).format("DD/MM/YYYY HH:mm")}
                     {dv.motivo && <span className="text-gray-500 dark:text-gray-400"> · {dv.motivo}</span>}
                   </span>
-                  <span className="font-semibold tabular-nums">
+                  <span className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                     {formatearMoneda(dv.total, principalSeguro)}
-                    {dv.reembolso > 0 && (
-                      <span className="font-normal text-gray-500 dark:text-gray-400"> (reembolsado {formatearMoneda(dv.reembolso, principalSeguro)})</span>
-                    )}
+                    {dv.reembolso > 0 && <span className="font-normal text-gray-500 dark:text-gray-400"> (reembolsado {formatearMoneda(dv.reembolso, principalSeguro)})</span>}
                   </span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
-        {/* NOTAS */}
-        <div className="pt-4 space-y-3 border-t border-gray-200 dark:border-gray-800">
-          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">
-            Notas
-          </h3>
+        {/* Notas */}
+        <section>
+          {titulo(
+            "Notas",
+            hasRole(["ADMIN"]) && observacionesEditadas.trim() !== (orden.observaciones ?? "").trim() ? (
+              <Button size="sm" variant="primary" onClick={guardarObservaciones} isLoading={guardandoObservaciones}>
+                Guardar nota
+              </Button>
+            ) : undefined
+          )}
           <textarea
             value={observacionesEditadas}
             onChange={(e) => setObservacionesEditadas(e.target.value)}
-            placeholder="Sin notas registradas..."
+            placeholder={hasRole(["ADMIN"]) ? "Escribe una nota interna…" : "Sin notas"}
             disabled={isObservacionesDisabled}
-            className="w-full min-h-[100px] px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y text-sm transition duration-200 dark:text-gray-200"
+            rows={2}
+            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/40 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-80 resize-y"
           />
-          <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-            Puedes agregar comentarios, aclaraciones o notas internas sobre la
-            orden. Solo los administradores pueden editar.
-          </p>
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={guardarObservaciones}
-              disabled={
-                isObservacionesDisabled ||
-                observacionesEditadas.trim() ===
-                (orden.observaciones ?? "").trim()
-              }
-              isLoading={guardandoObservaciones}
-              variant="primary"
-            >
-              Guardar notas
-            </Button>
-          </div>
-        </div>
+        </section>
+      </div>
 
-        {/* FOOTER CON BOTONES DE ACCIÓN */}
-        <div className="flex flex-wrap gap-3 justify-end items-center pt-4 border-t border-gray-200 dark:border-gray-800">
-          {/* BOTÓN VER RECIBO */}
-          <Button
-            onClick={() => setVerModalRecibo(true)}
-            disabled={cargandoConfiguracion}
-            variant="secondary"
-          >
-            Ver recibo
+      {/* Acciones: a la izquierda lo de consulta, a la derecha lo que hace avanzar la orden */}
+      <div className="flex flex-wrap items-center gap-2 px-6 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/30">
+        <Button size="sm" variant="ghost" onClick={() => setVerModalRecibo(true)} leftIcon={<FaReceipt />} disabled={cargandoConfiguracion}>
+          Recibo
+        </Button>
+        {orden.cliente?.telefono && orden.estado !== "ENTREGADO" && !cancelada && (
+          <Button size="sm" variant="ghost" onClick={handleWhatsAppClick} leftIcon={<FaWhatsapp />}>
+            Avisar
           </Button>
+        )}
+        {hasRole(["ADMIN", "EMPLOYEE"]) && orden.estado !== "ENTREGADO" && !cancelada && (
+          <Button size="sm" variant="ghost" onClick={handleIrAEditar} leftIcon={<FaPencilAlt />}>
+            Editar
+          </Button>
+        )}
+        {permiteDevolver && (
+          <Menu as="div" className="relative">
+            <MenuButton className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer" aria-label="Más acciones" title="Más acciones">
+              <FaEllipsisH />
+            </MenuButton>
+            <MenuItems anchor="top start" className="z-60 mb-2 w-52 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg p-1 focus:outline-none">
+              <MenuItem>
+                <button type="button" onClick={() => setVerDevolucion(true)} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 data-focus:bg-gray-100 dark:data-focus:bg-gray-800 cursor-pointer">
+                  <FaUndoAlt className="text-gray-400" /> Devolver artículos
+                </button>
+              </MenuItem>
+            </MenuItems>
+          </Menu>
+        )}
 
-          {/* BOTÓN WHATSAPP (Solo si no está entregada) */}
-          {orden.cliente?.telefono && orden.estado !== "ENTREGADO" && (
-            <Button
-              onClick={handleWhatsAppClick}
-              variant="whatsapp"
-              leftIcon={<FaWhatsapp size={20} />}
-            >
-              WhatsApp
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {puedeMarcarLista && (
+            <Button size="sm" variant="secondary" onClick={() => cambiarEstado("LISTO")} isLoading={cambiandoEstado}>
+              Marcar lista
             </Button>
           )}
-
-          {/* --- BOTÓN: EDITAR ORDEN --- */}
-          {hasRole(["ADMIN", "EMPLOYEE"]) && orden.estado !== "ENTREGADO" && (
-            <Button
-              onClick={handleIrAEditar}
-              variant="secondary"
-              leftIcon={<FaPencilAlt />}
-            >
-              Editar {et.orden}
+          {puedeEntregar && (
+            <Button size="sm" variant={saldado ? "primary" : "secondary"} onClick={() => cambiarEstado("ENTREGADO")} isLoading={cambiandoEstado}>
+              Entregar
             </Button>
           )}
-
-          {hasRole(["ADMIN", "EMPLOYEE"]) &&
-            orden.estado !== "CANCELADO" &&
-            orden.detalles?.some((d) => d.cantidad - d.cantidadDevuelta > 1e-9) && (
-              <Button onClick={() => setVerDevolucion(true)} variant="secondary" leftIcon={<FaUndoAlt />}>
-                Devolver
-              </Button>
-            )}
-
-          {/* BOTÓN REGISTRAR PAGO */}
-          {resumen.faltante > 0 && (
-            <Button
-              onClick={() => onAbrirPagoExtra(orden)}
-              variant="edit"
-            >
-              Registrar pago
+          {!saldado && !cancelada && (
+            <Button size="sm" variant="primary" onClick={() => onAbrirPagoExtra(orden)} leftIcon={<FaMoneyBillWave />}>
+              Cobrar {formatearMoneda(resumen.faltante, principalSeguro)}
             </Button>
           )}
         </div>
+      </div>
 
-        {verDevolucion && (
-          <ModalDevolucion
-            orden={orden}
-            monedaPrincipal={principalSeguro}
-            tasas={tasas}
-            onClose={() => setVerDevolucion(false)}
-            onDevuelto={(actualizada) => {
-              setDevoluciones(actualizada.devoluciones ?? []);
-              onPagoRegistrado(actualizada);
-            }}
-          />
-        )}
+      {verDevolucion && (
+        <ModalDevolucion
+          orden={orden}
+          monedaPrincipal={principalSeguro}
+          tasas={tasas}
+          onClose={() => setVerDevolucion(false)}
+          onDevuelto={(actualizada) => {
+            setDevoluciones(actualizada.devoluciones ?? []);
+            onPagoRegistrado(actualizada);
+          }}
+        />
+      )}
 
-        {verModalRecibo && configuracion && (
-          <ModalReciboEntrega
-            visible={true}
-            onClose={() => setVerModalRecibo(false)}
-            datosRecibo={generarDatosRecibo()}
-          />
-        )}
+      {verModalRecibo && configuracion && (
+        <ModalReciboEntrega visible={true} onClose={() => setVerModalRecibo(false)} datosRecibo={generarDatosRecibo()} />
+      )}
     </Modal>
   );
 }
