@@ -95,6 +95,9 @@ model Orden {
   descuentoValor      Float?
   impuesto            Float          @default(0)
   impuestoTasa        Float?
+  // Tasas del día de la venta (unidades por 1 USD), para el libro de ventas. Nulas en ventas anteriores a este registro.
+  tasaVES             Float?
+  tasaCOP             Float?
   devuelto            Float          @default(0)
   abonado             Float          @default(0)
   faltante            Float          @default(0)

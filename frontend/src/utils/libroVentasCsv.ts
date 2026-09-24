@@ -19,11 +19,11 @@ const ddmmaaaa = (iso: string) => {
 export function construirLibroVentasCsv(d: LibroVentas): string {
   const l: string[] = [];
   l.push(fila("Libro de ventas", d.contribuyente.nombre, d.contribuyente.rif ? `RIF ${d.contribuyente.rif}` : ""));
-  l.push(fila("Periodo", `${d.desde} a ${d.hasta}`, `Importes en ${d.moneda}`, d.moneda !== d.principal ? `Tasa usada: ${d.tasa} ${d.moneda} por 1 ${d.principal}` : ""));
+  l.push(fila("Periodo", `${d.desde} a ${d.hasta}`, `Importes en ${d.moneda}`, d.moneda !== d.principal ? `Tasa de cada venta: la de su día (${d.moneda} por 1 ${d.principal})` : ""));
   l.push("");
-  l.push(fila("N.º de operación", "Fecha", "Cliente", "RIF / cédula", "N.º de venta", "Total ventas (con IVA)", "Ventas exentas o no gravadas", "Base imponible", "Alícuota %", "Impuesto (IVA)", "Nota"));
+  l.push(fila("N.º de operación", "Fecha", "Cliente", "RIF / cédula", "N.º de venta", "Total ventas (con IVA)", "Ventas exentas o no gravadas", "Base imponible", "Alícuota %", "Impuesto (IVA)", "Tasa", "Nota"));
   d.filas.forEach((f, i) => {
-    l.push(fila(i + 1, ddmmaaaa(f.fecha), f.cliente, f.identificacion, f.id, f.total, f.exento, f.baseImponible, f.alicuota, f.iva, f.conDevolucion ? "Neto de devolución" : ""));
+    l.push(fila(i + 1, ddmmaaaa(f.fecha), f.cliente, f.identificacion, f.id, f.total, f.exento, f.baseImponible, f.alicuota, f.iva, f.tasa, [f.conDevolucion ? "Neto de devolución" : "", f.tasaDelDia ? "" : "Tasa actual (venta anterior al registro de tasas)"].filter(Boolean).join(". ")));
   });
   l.push(fila("", "", "", "", "TOTALES", d.totales.total, d.totales.exento, d.totales.baseImponible, "", d.totales.iva));
   return l.join("\r\n");

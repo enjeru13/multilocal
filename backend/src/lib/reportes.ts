@@ -1,3 +1,4 @@
+import { tasaCruzada } from "@lavanderia/shared/dist/utils/monedaHelpers";
 import { calcularTotalAbonado } from "@lavanderia/shared/dist/utils/pagoFinance";
 import { valorVigente } from "@lavanderia/shared/dist/utils/totales";
 import { diasDeAntiguedad, resumirAntiguedad } from "@lavanderia/shared/dist/utils/antiguedad";
@@ -316,6 +317,9 @@ export interface OrdenLibro {
   fechaIngreso: Date;
   estado: string;
   impuestoTasa: number | null;
+  /** Tasas del día de la venta (por 1 USD); nulas en ventas anteriores a que se guardaran. */
+  tasaVES: number | null;
+  tasaCOP: number | null;
   devuelto: number;
   cliente: { nombre: string; apellido: string | null; identificacion: string | null } | null;
   detalles: Pick<DetalleReporte, "subtotal" | "descuento" | "impuesto" | "base" | "cantidad" | "cantidadDevuelta">[];
@@ -323,45 +327,80 @@ export interface OrdenLibro {
 
 /**
  * Libro de ventas: una fila por venta no anulada, con lo que aún vale tras las devoluciones,
- * separado en exento, base imponible e impuesto. `factor` convierte de la moneda principal a la
- * del libro; cada fila se redondea sola para que las columnas sumen exactamente el total.
+ * separado en exento, base imponible e impuesto. Cada venta se convierte a la moneda del libro
+ * con la tasa de SU día; si es anterior a que se guardara, con la tasa actual (y se marca).
+ * Cada fila se redondea sola para que las columnas sumen exactamente el total.
  */
-export function libroDeVentas(ordenes: OrdenLibro[], factor = 1) {
-  const c = (n: number) => r2(n * factor);
-  const filas = ordenes
+export function libroDeVentas(ordenes: OrdenLibro[], moneda: Moneda, principal: Moneda, actuales: TasasConversion) {
+  const filas: {
+    id: number;
+    fecha: string;
+    cliente: string;
+    identificacion: string | null;
+    total: number;
+    exento: number;
+    baseImponible: number;
+    alicuota: number;
+    iva: number;
+    tasa: number;
+    tasaDelDia: boolean;
+    conDevolucion: boolean;
+  }[] = [];
+  let sinTasa = 0;
+
+  const vigentes = ordenes
     .filter((o) => o.estado !== "CANCELADO")
-    .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime() || a.id - b.id)
-    .map((o) => {
-      let exento = 0;
-      let base = 0;
-      let iva = 0;
-      for (const d of o.detalles) {
-        const v = valorVigente(d);
-        // Una línea con impuesto es gravada; sin él, exenta (o la venta no cobró impuesto).
-        if (d.impuesto > 0) {
-          base += v.base;
-          iva += v.impuesto;
-        } else {
-          exento += v.base;
-        }
+    .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime() || a.id - b.id);
+
+  for (const o of vigentes) {
+    const delDia: TasasConversion = { USD: 1, VES: o.tasaVES, COP: o.tasaCOP };
+    let tasa = tasaCruzada(moneda, principal, delDia);
+    let tasaDelDia = true;
+    if (tasa === null) {
+      tasa = tasaCruzada(moneda, principal, actuales);
+      tasaDelDia = false;
+    }
+    if (tasa === null) {
+      sinTasa += 1;
+      continue;
+    }
+    const c = (n: number) => r2(n * tasa);
+
+    let exento = 0;
+    let base = 0;
+    let iva = 0;
+    for (const d of o.detalles) {
+      const v = valorVigente(d);
+      // Una línea con impuesto es gravada; sin él, exenta (o la venta no cobró impuesto).
+      if (d.impuesto > 0) {
+        base += v.base;
+        iva += v.impuesto;
+      } else {
+        exento += v.base;
       }
-      const partes = { exento: c(exento), baseImponible: c(base), iva: c(iva) };
-      const nombre = o.cliente ? [o.cliente.nombre, o.cliente.apellido].filter(Boolean).join(" ") : "Venta de mostrador";
-      return {
-        id: o.id,
-        fecha: o.fechaIngreso.toISOString(),
-        cliente: nombre,
-        identificacion: o.cliente?.identificacion ?? null,
-        total: r2(partes.exento + partes.baseImponible + partes.iva),
-        ...partes,
-        alicuota: base > 0 ? (o.impuestoTasa ?? 0) : 0,
-        conDevolucion: o.devuelto > 0.005,
-      };
+    }
+    const partes = { exento: c(exento), baseImponible: c(base), iva: c(iva) };
+    const nombre = o.cliente ? [o.cliente.nombre, o.cliente.apellido].filter(Boolean).join(" ") : "Venta de mostrador";
+    filas.push({
+      id: o.id,
+      fecha: o.fechaIngreso.toISOString(),
+      cliente: nombre,
+      identificacion: o.cliente?.identificacion ?? null,
+      total: r2(partes.exento + partes.baseImponible + partes.iva),
+      ...partes,
+      alicuota: base > 0 ? (o.impuestoTasa ?? 0) : 0,
+      tasa,
+      tasaDelDia,
+      conDevolucion: o.devuelto > 0.005,
     });
+  }
   const suma = (k: "total" | "exento" | "baseImponible" | "iva") => r2(filas.reduce((s, f) => s + f[k], 0));
   return {
     filas,
     totales: { total: suma("total"), exento: suma("exento"), baseImponible: suma("baseImponible"), iva: suma("iva") },
-    anuladas: ordenes.length - filas.length,
+    anuladas: ordenes.length - vigentes.length,
+    sinTasa,
+    /** Ventas convertidas con la tasa actual por no tener la de su día. */
+    conTasaActual: filas.filter((f) => !f.tasaDelDia).length,
   };
 }

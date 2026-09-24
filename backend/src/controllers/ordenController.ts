@@ -394,6 +394,8 @@ export async function createOrden(req: AuthRequest, res: Response) {
           descuentoValor: totales.descuento > 0 ? descuento?.valor ?? null : null,
           impuesto: totales.impuesto,
           impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          tasaVES: config?.tasaVES ?? null,
+          tasaCOP: config?.tasaCOP ?? null,
           observaciones,
           fechaEntrega: entregaInmediata
             ? new Date()

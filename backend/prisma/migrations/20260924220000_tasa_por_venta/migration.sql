@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Orden" ADD COLUMN "tasaVES" REAL;
+ALTER TABLE "Orden" ADD COLUMN "tasaCOP" REAL;

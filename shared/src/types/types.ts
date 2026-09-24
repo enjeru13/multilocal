@@ -687,6 +687,10 @@ export interface FilaLibroVentas {
   /** Alícuota aplicada (%), 0 si no hubo impuesto. */
   alicuota: number;
   iva: number;
+  /** Unidades de la moneda del libro por 1 de la principal, con las que se convirtió esta venta. */
+  tasa: number;
+  /** false: la venta es anterior a que se guardara su tasa y se usó la actual. */
+  tasaDelDia: boolean;
   /** La venta tuvo devoluciones: los importes ya las descuentan. */
   conDevolucion: boolean;
 }
@@ -697,10 +701,10 @@ export interface LibroVentas {
   moneda: Moneda;
   /** Moneda principal del sistema, en la que están guardadas las ventas. */
   principal: Moneda;
-  /** Unidades de `moneda` por 1 de la principal usadas para convertir (1 si es la misma). */
-  tasa: number;
   contribuyente: { nombre: string; rif: string | null; direccion: string | null };
   filas: FilaLibroVentas[];
   totales: { total: number; exento: number; baseImponible: number; iva: number };
   anuladas: number;
+  /** Ventas convertidas con la tasa actual por no tener guardada la de su día. */
+  conTasaActual: number;
 }

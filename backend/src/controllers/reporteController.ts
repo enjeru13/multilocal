@@ -276,10 +276,6 @@ export async function getLibroVentas(req: Request, res: Response) {
     const pedida = String(req.query.moneda ?? principal).toUpperCase();
     if (!["USD", "VES", "COP"].includes(pedida)) return res.status(400).json({ message: "Moneda no válida." });
     const moneda = pedida as Moneda;
-    const tasa = tasaCruzada(moneda, principal, tasas);
-    if (tasa === null) {
-      return res.status(400).json({ message: `Falta la tasa de ${moneda} en Configuración para convertir el libro.` });
-    }
 
     const ordenes = await prisma.orden.findMany({
       where: { fechaIngreso: { gte: desde, lte: hasta } },
@@ -288,20 +284,27 @@ export async function getLibroVentas(req: Request, res: Response) {
         fechaIngreso: true,
         estado: true,
         impuestoTasa: true,
+        tasaVES: true,
+        tasaCOP: true,
         devuelto: true,
         cliente: { select: { nombre: true, apellido: true, identificacion: true } },
         detalles: { select: { subtotal: true, descuento: true, impuesto: true, base: true, cantidad: true, cantidadDevuelta: true } },
       },
     });
 
+    const libro = libroDeVentas(ordenes, moneda, principal, tasas);
+    if (libro.sinTasa > 0) {
+      const falta = moneda === principal ? "" : moneda;
+      return res.status(400).json({ message: `Falta la tasa de ${falta || "la moneda"} en Configuración para convertir el libro.` });
+    }
+    const { sinTasa: _sinTasa, ...datos } = libro;
     return res.json({
       desde: String(req.query.desde),
       hasta: String(req.query.hasta),
       moneda,
       principal,
-      tasa,
       contribuyente: { nombre: config?.nombreNegocio ?? "", rif: config?.rif ?? null, direccion: config?.direccion ?? null },
-      ...libroDeVentas(ordenes, tasa),
+      ...datos,
     });
   } catch (error) {
     console.error("Error en el libro de ventas:", error);

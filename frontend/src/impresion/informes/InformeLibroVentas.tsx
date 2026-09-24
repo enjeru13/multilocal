@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FaDownload } from "react-icons/fa";
-import type { LibroVentas, Moneda } from "@lavanderia/shared/types/types";
+import type { FilaLibroVentas, LibroVentas, Moneda } from "@lavanderia/shared/types/types";
 import { reportesService } from "../../services/reportesService";
 import { formatearMoneda } from "../../utils/monedaHelpers";
 import { exportarLibroVentasCsv } from "../../utils/libroVentasCsv";
@@ -35,6 +35,8 @@ export default function ImprimirLibroVentas({ open, onClose, desde, hasta }: Pro
 
   const { data: d, cargando, error } = useCarga<LibroVentas>(open, () => reportesService.libroVentas(desde, hasta, moneda).then((r) => r.data), [desde, hasta, moneda]);
   const fmt = (n: number) => formatearMoneda(n, moneda);
+  const convertido = !!d && d.moneda !== d.principal;
+  const tasaTexto = (n: number) => n.toLocaleString("es", { maximumFractionDigits: 4 });
 
   const controles = (
     <>
@@ -98,12 +100,16 @@ export default function ImprimirLibroVentas({ open, onClose, desde, hasta }: Pro
                 { titulo: "Base imponible", alinear: "right", nowrap: true, celda: (f) => fmt(f.baseImponible), total: fmt(d.totales.baseImponible) },
                 { titulo: "%", alinear: "right", ancho: "5%", celda: (f) => (f.alicuota ? `${f.alicuota}` : "—") },
                 { titulo: "IVA", alinear: "right", nowrap: true, celda: (f) => fmt(f.iva), total: fmt(d.totales.iva) },
+                ...(convertido
+                  ? [{ titulo: `Tasa (${d.moneda}/${d.principal})`, alinear: "right" as const, nowrap: true, celda: (f: FilaLibroVentas) => `${tasaTexto(f.tasa)}${f.tasaDelDia ? "" : " *"}` }]
+                  : []),
               ]}
             />
 
             <NotaImpresa>
               Cada venta aparece con lo que vale tras sus devoluciones.
-              {d.moneda !== d.principal && ` Convertido de ${d.principal} a ${d.moneda} con la tasa actual del sistema (${d.tasa.toLocaleString("es", { maximumFractionDigits: 4 })} ${d.moneda} por 1 ${d.principal}), no con la tasa del día de cada venta.`}{" "}
+              {convertido && ` Cada venta se convirtió de ${d.principal} a ${d.moneda} con la tasa que había el día en que se hizo (última columna).`}
+              {d.conTasaActual > 0 && ` * ${d.conTasaActual} venta(s) son anteriores a que el sistema guardara la tasa y se convirtieron con la tasa actual.`}{" "}
               Este listado sale de las ventas del sistema y no sustituye las facturas fiscales: confírmalo con tu contador antes de usarlo en una declaración.
             </NotaImpresa>
           </HojaReporte>
