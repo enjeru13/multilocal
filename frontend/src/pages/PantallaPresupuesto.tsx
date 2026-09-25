@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -66,6 +66,8 @@ const cantidadNum = (t: string) => {
 
 export default function PantallaPresupuesto() {
   const { id } = useParams();
+  const [params] = useSearchParams();
+  const clienteInicial = Number(params.get("cliente")) || null;
   const idNum = id ? Number(id) : null;
   const navigate = useNavigate();
   const { config } = useConfiguracion();
@@ -109,6 +111,12 @@ export default function PantallaPresupuesto() {
     setValidoHasta(dayjs().add(config.presupuestoValidezDias ?? 15, "day").format("YYYY-MM-DD"));
     setCondiciones(config.presupuestoCondiciones ?? "");
   }, [idNum, config]);
+
+  // Presupuesto nuevo desde la ficha de un cliente: ya viene con el cliente elegido.
+  useEffect(() => {
+    if (idNum || !clienteInicial) return;
+    clientesService.getById(clienteInicial).then((r) => setCliente(r.data)).catch(() => undefined);
+  }, [idNum, clienteInicial]);
 
   const aplicar = useCallback((p: Presupuesto) => {
     setPresupuesto(p);

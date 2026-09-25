@@ -102,7 +102,9 @@ export async function listarPresupuestos(req: Request, res: Response) {
   try {
     const estado = String(req.query.estado ?? "").toUpperCase();
     const q = String(req.query.q ?? "").trim();
+    const clienteId = Number(req.query.clienteId);
     const where: Prisma.PresupuestoWhereInput = {};
+    if (Number.isInteger(clienteId) && clienteId > 0) where.clienteId = clienteId;
     if (["BORRADOR", "ENVIADO", "ACEPTADO", "RECHAZADO", "CONVERTIDO"].includes(estado)) where.estado = estado as never;
     if (estado === "VENCIDO") {
       where.estado = { in: ["BORRADOR", "ENVIADO"] };

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
-import { FaFileSignature, FaPlus, FaSearch, FaChevronRight } from "react-icons/fa";
+import { FaFileSignature, FaPlus, FaSearch, FaChevronRight, FaTimes, FaUser } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import type { Presupuesto } from "@lavanderia/shared/types/types";
 import { presupuestosService } from "../services/presupuestosService";
+import { clientesService } from "../services/clientesService";
 import { destinatarioPresupuesto } from "../utils/presupuestoHelpers";
 import EtiquetaEstado from "../components/presupuesto/EtiquetaEstado";
 import { formatearMoneda, normalizarMoneda } from "../utils/monedaHelpers";
@@ -26,6 +27,9 @@ const FILTROS = [
 
 export default function PantallaPresupuestos() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const clienteId = Number(params.get("cliente")) || undefined;
+  const [nombreCliente, setNombreCliente] = useState<string | null>(null);
   const { config } = useConfiguracion();
   const moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
   const [estado, setEstado] = useState<string>("");
@@ -34,12 +38,21 @@ export default function PantallaPresupuestos() {
   const [cargando, setCargando] = useState(true);
   const peticion = useRef(0);
 
+  // Al venir desde la ficha de un cliente, se muestra de quién son los presupuestos.
+  useEffect(() => {
+    if (!clienteId) return;
+    clientesService
+      .getById(clienteId)
+      .then((r) => setNombreCliente(`${r.data.nombre} ${r.data.apellido ?? ""}`.trim()))
+      .catch(() => setNombreCliente(null));
+  }, [clienteId]);
+
   useEffect(() => {
     const n = ++peticion.current;
     const espera = setTimeout(async () => {
       setCargando(true);
       try {
-        const res = await presupuestosService.getAll({ estado: estado || undefined, q: busqueda.trim() || undefined });
+        const res = await presupuestosService.getAll({ estado: estado || undefined, q: busqueda.trim() || undefined, clienteId });
         if (n === peticion.current) setLista(res.data);
       } catch (err) {
         if (n === peticion.current) toast.error(isAxiosError(err) ? err.response?.data?.message ?? "No se pudieron cargar los presupuestos." : "No se pudieron cargar los presupuestos.");
@@ -48,7 +61,7 @@ export default function PantallaPresupuestos() {
       }
     }, busqueda ? 250 : 0);
     return () => clearTimeout(espera);
-  }, [estado, busqueda]);
+  }, [estado, busqueda, clienteId]);
 
   const abrir = (p: Presupuesto) => navigate(`/presupuestos/${p.id}`);
 
@@ -61,7 +74,7 @@ export default function PantallaPresupuestos() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Cotiza a tus clientes y conviértelo en venta cuando acepten.</p>
         </div>
-        <Link to="/presupuestos/nuevo">
+        <Link to={clienteId ? `/presupuestos/nuevo?cliente=${clienteId}` : "/presupuestos/nuevo"}>
           <Button variant="primary" leftIcon={<FaPlus />}>
             Nuevo presupuesto
           </Button>
@@ -69,6 +82,14 @@ export default function PantallaPresupuestos() {
       </header>
 
       <div className="space-y-3">
+        {clienteId && (
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 pl-3.5 pr-1.5 py-1 text-sm text-blue-900 dark:text-blue-200">
+            <FaUser className="text-xs" /> Solo de {nombreCliente ?? "este cliente"}
+            <button type="button" onClick={() => setParams({})} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-500/20 cursor-pointer" aria-label="Ver los de todos los clientes" title="Ver los de todos los clientes">
+              <FaTimes size={11} />
+            </button>
+          </div>
+        )}
         <div className="relative max-w-md">
           <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
           <input

@@ -178,6 +178,15 @@ describe("presupuestos", () => {
     expect(r3.body.presupuesto.clienteId).toBe(clienteId);
   });
 
+  it("lista solo los presupuestos de un cliente", async () => {
+    const otro = await prisma.cliente.create({ data: { nombre: "Otro", direccion: "X", identificacion: "V-999" } });
+    const mio = (await crear({ clienteId: otro.id, lineas: [{ descripcion: "Solo mío", cantidad: 1, precio: 5 }] })).body;
+    const res = await api().get(`/api/presupuestos?clienteId=${otro.id}`).set(auth(admin));
+    expect(res.body.map((x: { id: number }) => x.id)).toEqual([mio.id]);
+    const todos = await api().get("/api/presupuestos").set(auth(admin));
+    expect(todos.body.length).toBeGreaterThan(1);
+  });
+
   it("elimina un presupuesto no convertido", async () => {
     const p = (await crear({ clienteId, lineas: [{ descripcion: "Borrar", cantidad: 1, precio: 1 }] })).body;
     expect((await api().delete(`/api/presupuestos/${p.id}`).set(auth(admin))).status).toBe(200);
