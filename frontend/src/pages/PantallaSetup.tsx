@@ -226,17 +226,17 @@ export default function PantallaSetup() {
   const conVistaPrevia = paso >= 1 && rubro;
 
   return (
-    <div className="min-h-dvh flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-0 sm:p-4">
+    <div className="min-h-dvh lg:h-dvh flex items-center justify-center relative bg-gray-100 dark:bg-gray-950 p-0 sm:p-4">
       <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
         <SelectorTema />
       </div>
-      <div className="w-full max-w-7xl bg-white dark:bg-gray-900 sm:rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-clip flex flex-col lg:flex-row min-h-dvh sm:min-h-150 sm:my-8">
+      <div className="w-full max-w-7xl bg-white dark:bg-gray-900 sm:rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-clip flex flex-col lg:flex-row min-h-dvh sm:min-h-150 sm:my-8 lg:my-0 lg:h-full lg:min-h-0 lg:max-h-215">
         <div className="lg:flex lg:w-[30%] shrink-0">
           <PanelMarca nombre={nombreNegocio || null} rubro={rubro} className="w-full" />
         </div>
 
-        <div className="flex-1 min-w-0 flex flex-col" onKeyDown={enter}>
-          <header className="px-5 sm:px-8 pt-6 pb-5 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex-1 min-w-0 flex flex-col lg:min-h-0" onKeyDown={enter}>
+          <header className="shrink-0 px-5 sm:px-8 pt-6 pb-5 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-baseline justify-between gap-3">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 pr-24 sm:pr-0">Configuración inicial</h1>
               <span className="text-xs font-medium text-gray-400 shrink-0 max-sm:hidden">
@@ -257,7 +257,7 @@ export default function PantallaSetup() {
             </ol>
           </header>
 
-          <div className={`flex-1 px-5 sm:px-8 py-6 sm:py-7 grid gap-8 content-start ${conVistaPrevia ? "xl:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+          <div className={`flex-1 lg:min-h-0 lg:overflow-y-auto px-5 sm:px-8 py-6 sm:py-7 grid gap-8 content-start ${conVistaPrevia ? "xl:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
             <div className="@container space-y-7 min-w-0 max-w-2xl">
               {paso === 0 && (
                 <>
@@ -410,7 +410,7 @@ export default function PantallaSetup() {
             )}
           </div>
 
-          <footer className="sticky bottom-0 z-10 px-5 sm:px-8 py-4 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <footer className="shrink-0 sticky bottom-0 z-10 px-5 sm:px-8 py-4 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {paso > 0 ? (
               <Button onClick={() => setPaso((p) => (p - 1) as 0 | 1)} variant="ghost" leftIcon={<FaArrowLeft />} disabled={enviando}>
                 Atrás
