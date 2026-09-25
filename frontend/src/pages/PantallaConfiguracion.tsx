@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint, FaBoxes, FaTruck, FaCashRegister, FaCalendarAlt, FaAddressCard, FaUserCheck } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint, FaBoxes, FaTruck, FaCashRegister, FaCalendarAlt, FaAddressCard, FaUserCheck, FaFileSignature } from "react-icons/fa";
 import { SelectorHoja, SelectorRollo } from "../impresion/SelectorPapel";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -38,6 +38,9 @@ export default function PantallaConfiguracion() {
   const [moduloInventario, setModuloInventario] = useState(false);
   const [moduloProveedores, setModuloProveedores] = useState(false);
   const [moduloCaja, setModuloCaja] = useState(false);
+  const [moduloPresupuestos, setModuloPresupuestos] = useState(false);
+  const [presupuestoValidezDias, setPresupuestoValidezDias] = useState("15");
+  const [presupuestoCondiciones, setPresupuestoCondiciones] = useState("");
   const [moduloFechaEntrega, setModuloFechaEntrega] = useState(true);
   const [moduloClienteTipo, setModuloClienteTipo] = useState(true);
   const [clienteObligatorio, setClienteObligatorio] = useState(true);
@@ -75,6 +78,9 @@ export default function PantallaConfiguracion() {
         setModuloInventario(config.moduloInventario ?? false);
         setModuloProveedores(config.moduloProveedores ?? false);
         setModuloCaja(config.moduloCaja ?? false);
+        setModuloPresupuestos(config.moduloPresupuestos ?? false);
+        setPresupuestoValidezDias(String(config.presupuestoValidezDias ?? 15));
+        setPresupuestoCondiciones(config.presupuestoCondiciones ?? "");
         setModuloFechaEntrega(config.moduloFechaEntrega ?? true);
         setModuloClienteTipo(config.moduloClienteTipo ?? true);
         setClienteObligatorio(config.clienteObligatorio ?? true);
@@ -103,6 +109,7 @@ export default function PantallaConfiguracion() {
     setModuloInventario(preset.moduloInventario);
     setModuloProveedores(preset.moduloProveedores);
     setModuloCaja(preset.moduloCaja);
+    setModuloPresupuestos(preset.moduloPresupuestos);
     setModuloFechaEntrega(preset.moduloFechaEntrega);
     setModuloClienteTipo(preset.moduloClienteTipo);
     setClienteObligatorio(preset.clienteObligatorio);
@@ -118,6 +125,11 @@ export default function PantallaConfiguracion() {
     }
     if (isNaN(maxDesc) || maxDesc < 0 || maxDesc > 100) {
       toast.error("El descuento máximo debe estar entre 0 y 100.");
+      return;
+    }
+    const validez = parseInt(presupuestoValidezDias, 10);
+    if (moduloPresupuestos && (isNaN(validez) || validez < 1 || validez > 365)) {
+      toast.error("La validez de los presupuestos debe estar entre 1 y 365 días.");
       return;
     }
     setCargando(true);
@@ -138,6 +150,9 @@ export default function PantallaConfiguracion() {
         moduloInventario,
         moduloProveedores,
         moduloCaja,
+        moduloPresupuestos,
+        ...(moduloPresupuestos ? { presupuestoValidezDias: validez } : {}),
+        presupuestoCondiciones: presupuestoCondiciones.trim() || null,
         moduloFechaEntrega,
         moduloClienteTipo,
         clienteObligatorio,
@@ -308,7 +323,21 @@ export default function PantallaConfiguracion() {
               <Interruptor variante="tarjeta" activo={moduloProveedores} onChange={setModuloProveedores} icono={<FaTruck />} titulo="Proveedores y compras" detalle="Reposición y cuentas por pagar." />
               <Interruptor variante="tarjeta" activo={moduloCaja} onChange={setModuloCaja} icono={<FaCashRegister />} titulo="Caja" detalle="Apertura, egresos y cierre con arqueo." />
               <Interruptor variante="tarjeta" activo={moduloFechaEntrega} onChange={setModuloFechaEntrega} icono={<FaCalendarAlt />} titulo="Fecha de entrega" detalle="Para trabajos que se entregan después." />
+              <Interruptor variante="tarjeta" activo={moduloPresupuestos} onChange={setModuloPresupuestos} icono={<FaFileSignature />} titulo="Presupuestos" detalle="Cotizaciones con número y validez que se vuelven venta." />
             </div>
+            {moduloPresupuestos && (
+              <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 p-4 grid sm:grid-cols-[10rem_1fr] gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Validez (días)</label>
+                  <input type="text" inputMode="numeric" value={presupuestoValidezDias} onChange={(e) => setPresupuestoValidezDias(e.target.value.replace(/D/g, ""))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" />
+                  <p className="text-xs text-gray-400 mt-1">Cuánto dura cada presupuesto nuevo.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Condiciones que salen en cada presupuesto</label>
+                  <textarea rows={3} maxLength={2000} value={presupuestoCondiciones} onChange={(e) => setPresupuestoCondiciones(e.target.value)} placeholder="Ej. Precios sujetos a disponibilidad. Se requiere 50 % de anticipo. Garantía de instalación: 3 meses." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100 resize-y" />
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Cómo tratas a tus clientes</h3>

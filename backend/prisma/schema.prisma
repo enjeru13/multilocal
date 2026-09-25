@@ -22,17 +22,18 @@ model User {
 }
 
 model Cliente {
-  id                  Int          @id @default(autoincrement())
+  id                  Int           @id @default(autoincrement())
   nombre              String
   apellido            String?
   tipo                TipoCliente?
   telefono            String?
   telefono_secundario String?
   direccion           String?
-  identificacion      String?      @unique
+  identificacion      String?       @unique
   email               String?
-  fechaRegistro       DateTime     @default(now())
+  fechaRegistro       DateTime      @default(now())
   ordenes             Orden[]
+  presupuestos        Presupuesto[]
 }
 
 model Categoria {
@@ -47,30 +48,31 @@ model Categoria {
 // un producto con stock (repuestos/minimarket), o ambos. Los campos de
 // inventario quedan sin uso cuando controlaStock=false.
 model Servicio {
-  id               Int            @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   nombreServicio   String
   descripcion      String?
   precioBase       Float
-  permiteDecimales Boolean        @default(false)
+  permiteDecimales Boolean @default(false)
   categoriaId      String
 
   tipo         ItemTipo @default(SERVICIO)
   unidadMedida String   @default("unidad")
 
-  controlaStock Boolean  @default(false)
-  sku           String?  @unique
-  codigoBarras  String?  @unique
+  controlaStock Boolean @default(false)
+  sku           String? @unique
+  codigoBarras  String? @unique
   costoBase     Float?
-  stockActual   Float    @default(0)
+  stockActual   Float   @default(0)
   stockMinimo   Float?
 
   // Productos sin IVA (p. ej. alimentos básicos) aunque el negocio cobre impuesto.
   exentoImpuesto Boolean @default(false)
 
-  detalleOrdenes  DetalleOrden[]
-  categoria       Categoria              @relation(fields: [categoriaId], references: [id])
-  compraDetalles  CompraDetalle[]
-  movimientos     InventarioMovimiento[]
+  detalleOrdenes      DetalleOrden[]
+  categoria           Categoria              @relation(fields: [categoriaId], references: [id])
+  compraDetalles      CompraDetalle[]
+  movimientos         InventarioMovimiento[]
+  presupuestoDetalles PresupuestoDetalle[]
 
   @@index([categoriaId], map: "Servicio_categoriaId_fkey")
 }
@@ -79,39 +81,40 @@ model Servicio {
 // flujo de entrega) o venta instantánea (repuestos/minimarket, sin flujo
 // de entrega). El campo tipo distingue el comportamiento esperado.
 model Orden {
-  id                  Int            @id @default(autoincrement())
+  id                  Int           @id @default(autoincrement())
   clienteId           Int?
-  tipo                DocumentoTipo  @default(ORDEN_LAVANDERIA)
-  estado              EstadoOrden    @default(PENDIENTE)
-  fechaIngreso        DateTime       @default(now())
+  tipo                DocumentoTipo @default(ORDEN_LAVANDERIA)
+  estado              EstadoOrden   @default(PENDIENTE)
+  fechaIngreso        DateTime      @default(now())
   fechaEntrega        DateTime?
   observaciones       String?
   total               Float
   // Desglose del cobro. total = subtotal - descuento (+ impuesto si los
   // precios no lo incluían). Todo neto de devoluciones.
-  subtotal            Float          @default(0)
-  descuento           Float          @default(0)
+  subtotal            Float         @default(0)
+  descuento           Float         @default(0)
   descuentoTipo       String?
   descuentoValor      Float?
-  impuesto            Float          @default(0)
+  impuesto            Float         @default(0)
   impuestoTasa        Float?
   // Tasas del día de la venta (unidades por 1 USD), para el libro de ventas. Nulas en ventas anteriores a este registro.
   tasaVES             Float?
   tasaCOP             Float?
-  devuelto            Float          @default(0)
-  abonado             Float          @default(0)
-  faltante            Float          @default(0)
-  estadoPago          EstadoPago     @default(INCOMPLETO)
+  devuelto            Float         @default(0)
+  abonado             Float         @default(0)
+  faltante            Float         @default(0)
+  estadoPago          EstadoPago    @default(INCOMPLETO)
   deliveredByUserId   Int?
   deliveredByUserName String?
   cajaSesionId        Int?
 
-  detalles    DetalleOrden[]
-  cliente     Cliente?    @relation(fields: [clienteId], references: [id])
-  deliveredBy User?       @relation("DeliveredBy", fields: [deliveredByUserId], references: [id])
-  cajaSesion  CajaSesion? @relation(fields: [cajaSesionId], references: [id])
-  pagos       Pago[]
+  detalles     DetalleOrden[]
+  cliente      Cliente?       @relation(fields: [clienteId], references: [id])
+  deliveredBy  User?          @relation("DeliveredBy", fields: [deliveredByUserId], references: [id])
+  cajaSesion   CajaSesion?    @relation(fields: [cajaSesionId], references: [id])
+  pagos        Pago[]
   devoluciones Devolucion[]
+  presupuesto  Presupuesto?
 
   @@index([clienteId])
   @@index([estado])
@@ -120,20 +123,20 @@ model Orden {
 }
 
 model DetalleOrden {
-  id         Int      @id @default(autoincrement())
-  ordenId    Int
-  servicioId Int
-  cantidad   Float
-  precioUnit Float
-  costoUnit  Float?
-  subtotal   Float
+  id                 Int                 @id @default(autoincrement())
+  ordenId            Int
+  servicioId         Int
+  cantidad           Float
+  precioUnit         Float
+  costoUnit          Float?
+  subtotal           Float
   // Reparto del descuento/impuesto en la línea; base = sin impuesto.
-  descuento        Float @default(0)
-  impuesto         Float @default(0)
-  base             Float @default(0)
-  cantidadDevuelta Float @default(0)
-  orden      Orden    @relation(fields: [ordenId], references: [id])
-  servicio   Servicio @relation(fields: [servicioId], references: [id])
+  descuento          Float               @default(0)
+  impuesto           Float               @default(0)
+  base               Float               @default(0)
+  cantidadDevuelta   Float               @default(0)
+  orden              Orden               @relation(fields: [ordenId], references: [id])
+  servicio           Servicio            @relation(fields: [servicioId], references: [id])
   devolucionDetalles DevolucionDetalle[]
 
   @@index([ordenId], map: "DetalleOrden_ordenId_fkey")
@@ -185,15 +188,15 @@ model Configuracion {
   telefonoSecundario String?
   mensajePieRecibo   String?
 
-  rubro               Rubro             @default(GENERICO)
-  moduloInventario    Boolean           @default(false)
-  moduloProveedores   Boolean           @default(false)
-  moduloCaja          Boolean           @default(false)
-  moduloFechaEntrega  Boolean           @default(true)
-  moduloClienteTipo   Boolean           @default(true)
-  clienteObligatorio  Boolean           @default(true)
-  deduccionStockEn    MomentoDeduccion  @default(ENTREGA)
-  terminologia        String?
+  rubro              Rubro            @default(GENERICO)
+  moduloInventario   Boolean          @default(false)
+  moduloProveedores  Boolean          @default(false)
+  moduloCaja         Boolean          @default(false)
+  moduloFechaEntrega Boolean          @default(true)
+  moduloClienteTipo  Boolean          @default(true)
+  clienteObligatorio Boolean          @default(true)
+  deduccionStockEn   MomentoDeduccion @default(ENTREGA)
+  terminologia       String?
 
   impuestoActivo          Boolean @default(false)
   impuestoNombre          String  @default("IVA")
@@ -201,6 +204,11 @@ model Configuracion {
   preciosIncluyenImpuesto Boolean @default(true)
   // Tope de descuento (%) para quien no es administrador.
   descuentoMaxPct         Float   @default(100)
+
+  // Presupuestos (cotizaciones formales con número, validez y conversión a venta).
+  moduloPresupuestos     Boolean @default(false)
+  presupuestoValidezDias Int     @default(15)
+  presupuestoCondiciones String?
 }
 
 model Proveedor {
@@ -225,7 +233,7 @@ model Compra {
   detalles      CompraDetalle[]
 
   // Cuentas por pagar: lo abonado al proveedor y cuándo vence el saldo.
-  montoPagado      Float     @default(0)
+  montoPagado      Float        @default(0)
   fechaVencimiento DateTime?
   pagos            PagoCompra[]
 
@@ -409,7 +417,7 @@ model Devolucion {
 }
 
 model DevolucionDetalle {
-  id             Int    @id @default(autoincrement())
+  id             Int   @id @default(autoincrement())
   devolucionId   Int
   detalleOrdenId Int
   servicioId     Int
@@ -462,4 +470,68 @@ model Gasto {
 
   @@index([fecha])
   @@index([categoria])
+}
+
+enum EstadoPresupuesto {
+  BORRADOR
+  ENVIADO
+  ACEPTADO
+  RECHAZADO
+  CONVERTIDO
+}
+
+// Oferta al cliente antes de vender: no mueve stock ni caja. Al aceptarse se convierte
+// en una Orden (ordenId). "Vencido" no se guarda: se deduce de validoHasta.
+model Presupuesto {
+  id               Int               @id @default(autoincrement())
+  clienteId        Int?
+  // Para quien todavía no es cliente registrado.
+  contactoNombre   String?
+  contactoTelefono String?
+  fecha            DateTime          @default(now())
+  validoHasta      DateTime
+  estado           EstadoPresupuesto @default(BORRADOR)
+  observaciones    String?
+  condiciones      String?
+  subtotal         Float             @default(0)
+  descuento        Float             @default(0)
+  descuentoTipo    String?
+  descuentoValor   Float?
+  impuesto         Float             @default(0)
+  impuestoTasa     Float?
+  total            Float             @default(0)
+  ordenId          Int?              @unique
+  userId           Int?
+  userName         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  cliente  Cliente?             @relation(fields: [clienteId], references: [id])
+  orden    Orden?               @relation(fields: [ordenId], references: [id])
+  detalles PresupuestoDetalle[]
+
+  @@index([clienteId])
+  @@index([estado])
+  @@index([fecha])
+}
+
+model PresupuestoDetalle {
+  id            Int     @id @default(autoincrement())
+  presupuestoId Int
+  // Nulo en líneas libres (mano de obra, instalación, traslado…).
+  servicioId    Int?
+  descripcion   String
+  cantidad      Float
+  precioUnit    Float
+  exento        Boolean @default(false)
+  subtotal      Float
+  descuento     Float   @default(0)
+  impuesto      Float   @default(0)
+  base          Float   @default(0)
+
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  servicio    Servicio?   @relation(fields: [servicioId], references: [id])
+
+  @@index([presupuestoId])
+  @@index([servicioId])
 }

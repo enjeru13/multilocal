@@ -6,6 +6,7 @@ export interface RubroPreset {
   moduloInventario: boolean;
   moduloProveedores: boolean;
   moduloCaja: boolean;
+  moduloPresupuestos: boolean;
   moduloFechaEntrega: boolean;
   moduloClienteTipo: boolean;
   clienteObligatorio: boolean;
@@ -19,6 +20,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloInventario: false,
     moduloProveedores: false,
     moduloCaja: false,
+    moduloPresupuestos: false,
     moduloFechaEntrega: true,
     moduloClienteTipo: true,
     clienteObligatorio: true,
@@ -37,6 +39,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloInventario: true,
     moduloProveedores: true,
     moduloCaja: true,
+    moduloPresupuestos: true,
     moduloFechaEntrega: false,
     moduloClienteTipo: false,
     clienteObligatorio: false,
@@ -55,6 +58,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloInventario: true,
     moduloProveedores: true,
     moduloCaja: true,
+    moduloPresupuestos: false,
     moduloFechaEntrega: false,
     moduloClienteTipo: false,
     clienteObligatorio: false,
@@ -73,6 +77,7 @@ export const RUBRO_PRESETS: Record<Rubro, RubroPreset> = {
     moduloInventario: false,
     moduloProveedores: false,
     moduloCaja: false,
+    moduloPresupuestos: true,
     moduloFechaEntrega: true,
     moduloClienteTipo: true,
     clienteObligatorio: true,

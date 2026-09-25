@@ -18,6 +18,7 @@ import {
   FaBarcode,
   FaPlusCircle,
   FaColumns,
+  FaFileSignature,
 } from "react-icons/fa";
 import type { Configuracion, Role } from "@lavanderia/shared/types/types";
 import { ATAJO_BASE, experienciaDe, type Experiencia, type NavId } from "./experiencias";
@@ -51,6 +52,7 @@ const CATALOGO: Record<NavId, Def> = {
   resumen: { to: "/resumen", icon: <FaHome />, roles: TODOS, label: () => "Resumen", descripcion: "Cómo va el día" },
   tablero: { to: "/tablero", icon: <FaColumns />, roles: TODOS, label: () => "Tablero", descripcion: "Qué está pendiente, listo y por entregar", visible: (c) => c?.moduloFechaEntrega !== false },
   ordenes: { to: "/ordenes", icon: <FaClipboardList />, roles: TODOS, label: (t) => t("orden"), descripcion: "Historial y cobros" },
+  presupuestos: { to: "/presupuestos", icon: <FaFileSignature />, roles: GESTION, label: () => "Presupuestos", descripcion: "Cotizaciones para tus clientes", visible: (c) => !!c?.moduloPresupuestos },
   clientes: { to: "/clientes", icon: <FaUsers />, roles: TODOS, label: (t) => t("cliente"), descripcion: "Fichas y contacto" },
   servicios: { to: "/servicios", icon: <FaTshirt />, roles: GESTION, label: (t) => t("servicio"), descripcion: "Precios, códigos y costos" },
   inventario: { to: "/inventario", icon: <FaBoxes />, roles: GESTION, label: () => "Inventario", descripcion: "Existencias y movimientos", visible: (c) => !!c?.moduloInventario },

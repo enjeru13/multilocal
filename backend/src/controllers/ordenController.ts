@@ -263,7 +263,7 @@ const SERVICIO_RESUMEN = {
 } as const;
 
 // Un no-administrador no puede pasar del tope de descuento del negocio.
-function descuentoExcedeTope(
+export function descuentoExcedeTope(
   role: Role | undefined,
   config: { descuentoMaxPct?: number | null } | null,
   totales: { subtotal: number; descuento: number }

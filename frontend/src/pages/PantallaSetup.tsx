@@ -14,6 +14,7 @@ import {
   FaBoxes,
   FaTruck,
   FaCashRegister,
+  FaFileSignature,
   FaCalendarAlt,
   FaAddressCard,
   FaUserCheck,
@@ -107,6 +108,7 @@ export default function PantallaSetup() {
   const [moduloInventario, setModuloInventario] = useState(false);
   const [moduloProveedores, setModuloProveedores] = useState(false);
   const [moduloCaja, setModuloCaja] = useState(false);
+  const [moduloPresupuestos, setModuloPresupuestos] = useState(false);
   const [moduloFechaEntrega, setModuloFechaEntrega] = useState(true);
   const [moduloClienteTipo, setModuloClienteTipo] = useState(true);
   const [clienteObligatorio, setClienteObligatorio] = useState(true);
@@ -126,6 +128,7 @@ export default function PantallaSetup() {
     setModuloInventario(p.moduloInventario);
     setModuloProveedores(p.moduloProveedores);
     setModuloCaja(p.moduloCaja);
+    setModuloPresupuestos(p.moduloPresupuestos);
     setModuloFechaEntrega(p.moduloFechaEntrega);
     setModuloClienteTipo(p.moduloClienteTipo);
     setClienteObligatorio(p.clienteObligatorio);
@@ -193,6 +196,7 @@ export default function PantallaSetup() {
         moduloInventario,
         moduloProveedores,
         moduloCaja,
+        moduloPresupuestos,
         moduloFechaEntrega,
         moduloClienteTipo,
         clienteObligatorio,
@@ -382,6 +386,7 @@ export default function PantallaSetup() {
                       <Interruptor variante="tarjeta" activo={moduloProveedores} onChange={setModuloProveedores} icono={<FaTruck />} titulo="Proveedores y compras" detalle="Reposición y cuentas por pagar." />
                       <Interruptor variante="tarjeta" activo={moduloCaja} onChange={setModuloCaja} icono={<FaCashRegister />} titulo="Caja" detalle="Apertura, egresos y cierre con arqueo." />
                       <Interruptor variante="tarjeta" activo={moduloFechaEntrega} onChange={setModuloFechaEntrega} icono={<FaCalendarAlt />} titulo="Fecha de entrega" detalle="Para trabajos que se entregan después." />
+                      <Interruptor variante="tarjeta" activo={moduloPresupuestos} onChange={setModuloPresupuestos} icono={<FaFileSignature />} titulo="Presupuestos" detalle="Cotizaciones con número y validez que se vuelven venta." />
                     </div>
                   </Bloque>
 
@@ -404,6 +409,7 @@ export default function PantallaSetup() {
                   moduloInventario={moduloInventario}
                   moduloProveedores={moduloProveedores}
                   moduloCaja={moduloCaja}
+                  moduloPresupuestos={moduloPresupuestos}
                   moduloFechaEntrega={moduloFechaEntrega}
                 />
               </aside>

@@ -10,6 +10,7 @@ interface Props {
   moduloInventario: boolean;
   moduloProveedores: boolean;
   moduloCaja: boolean;
+  moduloPresupuestos?: boolean;
   moduloFechaEntrega: boolean;
 }
 
@@ -123,13 +124,13 @@ function Esbozo({ esquema }: { esquema: Esquema }) {
  * Vista previa del asistente: muestra cómo se va a sentir el sistema con el
  * rubro elegido (menú, pantalla de inicio, forma de vender y atajos).
  */
-export default function VistaPreviaRubro({ rubro, nombre, terminologia, moduloInventario, moduloProveedores, moduloCaja, moduloFechaEntrega }: Props) {
+export default function VistaPreviaRubro({ rubro, nombre, terminologia, moduloInventario, moduloProveedores, moduloCaja, moduloPresupuestos, moduloFechaEntrega }: Props) {
   const experiencia = experienciaDe(rubro);
   const esquema: Esquema = !moduloFechaEntrega && experiencia.modoVenta === "RECEPCION" ? "MOSTRADOR" : experiencia.modoVenta;
   const t = (k: "orden" | "servicio" | "cliente") => terminologia[k];
 
   // Se arma con las mismas reglas que el menú real, como si entrara el administrador.
-  const config = { rubro, moduloInventario, moduloProveedores, moduloCaja, moduloFechaEntrega } as Configuracion;
+  const config = { rubro, moduloInventario, moduloProveedores, moduloCaja, moduloPresupuestos, moduloFechaEntrega } as Configuracion;
   const items = experiencia.secciones
     .flatMap((s) => s.items)
     .map((id) => construirItemNav(id, { experiencia, config, t, hasRole: () => true }))

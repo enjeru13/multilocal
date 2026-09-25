@@ -13,6 +13,7 @@ export type NavId =
   | "resumen"
   | "tablero"
   | "ordenes"
+  | "presupuestos"
   | "clientes"
   | "servicios"
   | "inventario"
@@ -56,7 +57,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     modoVenta: "CAJA",
     inicio: "/venta",
     secciones: [
-      { titulo: "Venta", items: ["vender", "ordenes", "resumen"] },
+      { titulo: "Venta", items: ["vender", "ordenes", "presupuestos", "resumen"] },
       { titulo: "Productos", items: ["servicios", "inventario", "proveedores", "porPagar", "clientes"] },
       { titulo: "Finanzas", items: FINANZAS },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
@@ -72,7 +73,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     modoVenta: "FACTURA",
     inicio: "/venta",
     secciones: [
-      { titulo: "Mostrador", items: ["vender", "ordenes", "clientes", "resumen"] },
+      { titulo: "Mostrador", items: ["vender", "presupuestos", "ordenes", "clientes", "resumen"] },
       { titulo: "Almacén", items: ["servicios", "inventario", "proveedores", "porPagar"] },
       { titulo: "Finanzas", items: FINANZAS },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
@@ -88,7 +89,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     modoVenta: "RECEPCION",
     inicio: "/",
     secciones: [
-      { titulo: "Operación", items: ["recepcion", "tablero", "ordenes", "clientes", "servicios"] },
+      { titulo: "Operación", items: ["recepcion", "tablero", "ordenes", "presupuestos", "clientes", "servicios"] },
       { titulo: "Finanzas", items: ["pagos", "caja", "gastos", "reportes", "estadoOrdenes"] },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
     ],
@@ -103,7 +104,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     modoVenta: "RECEPCION",
     inicio: "/",
     secciones: [
-      { titulo: "Gestión", items: ["recepcion", "vender", "ordenes", "clientes", "servicios", "inventario", "proveedores", "porPagar"] },
+      { titulo: "Gestión", items: ["recepcion", "vender", "ordenes", "presupuestos", "clientes", "servicios", "inventario", "proveedores", "porPagar"] },
       { titulo: "Finanzas", items: ["caja", "gastos", "reportes", "pagos", "estadoOrdenes"] },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
     ],
@@ -122,6 +123,7 @@ export const ATAJO_BASE: Partial<Record<NavId, string>> = {
   resumen: "Alt+H",
   tablero: "Alt+T",
   ordenes: "Alt+O",
+  presupuestos: "Alt+U",
   clientes: "Alt+C",
   servicios: "Alt+P",
   inventario: "Alt+I",

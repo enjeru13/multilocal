@@ -422,6 +422,9 @@ export interface Configuracion {
   moduloInventario: boolean;
   moduloProveedores: boolean;
   moduloCaja: boolean;
+  moduloPresupuestos: boolean;
+  presupuestoValidezDias: number;
+  presupuestoCondiciones: string | null;
   moduloFechaEntrega: boolean;
   moduloClienteTipo: boolean;
   clienteObligatorio: boolean;
@@ -707,4 +710,68 @@ export interface LibroVentas {
   anuladas: number;
   /** Ventas convertidas con la tasa actual por no tener guardada la de su día. */
   conTasaActual: number;
+}
+
+// ---- Presupuestos ----
+
+export type EstadoPresupuesto = "BORRADOR" | "ENVIADO" | "ACEPTADO" | "RECHAZADO" | "CONVERTIDO";
+/** Lo que ve el usuario: los pendientes cuya fecha de validez ya pasó figuran como vencidos. */
+export type EstadoPresupuestoVisible = EstadoPresupuesto | "VENCIDO";
+
+export interface PresupuestoLinea {
+  id: number;
+  presupuestoId: number;
+  servicioId: number | null;
+  descripcion: string;
+  cantidad: number;
+  precioUnit: number;
+  exento: boolean;
+  subtotal: number;
+  descuento: number;
+  impuesto: number;
+  base: number;
+}
+
+export interface Presupuesto {
+  id: number;
+  clienteId: number | null;
+  contactoNombre: string | null;
+  contactoTelefono: string | null;
+  fecha: string;
+  validoHasta: string;
+  estado: EstadoPresupuesto;
+  estadoVisible: EstadoPresupuestoVisible;
+  observaciones: string | null;
+  condiciones: string | null;
+  subtotal: number;
+  descuento: number;
+  descuentoTipo: "PORCENTAJE" | "MONTO" | null;
+  descuentoValor: number | null;
+  impuesto: number;
+  impuestoTasa: number | null;
+  total: number;
+  ordenId: number | null;
+  userName: string | null;
+  cliente?: {
+    id: number;
+    nombre: string;
+    apellido: string | null;
+    telefono?: string | null;
+    identificacion?: string | null;
+    direccion?: string | null;
+    email?: string | null;
+  } | null;
+  detalles?: PresupuestoLinea[];
+  _count?: { detalles: number };
+}
+
+export interface PresupuestoInput {
+  clienteId: number | null;
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
+  validoHasta?: string;
+  observaciones?: string | null;
+  condiciones?: string | null;
+  descuento?: DescuentoOrden | null;
+  lineas: { servicioId?: number | null; descripcion?: string; cantidad: number; precio: number; exento?: boolean }[];
 }

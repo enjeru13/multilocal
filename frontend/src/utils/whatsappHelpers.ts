@@ -10,7 +10,7 @@ import {
  * Función auxiliar inteligente para detectar país automáticamente
  * Prioridad: Colombia (57) y Venezuela (58)
  */
-const limpiarYFormatearTelefono = (telefono: string): string | null => {
+export const limpiarYFormatearTelefono = (telefono: string): string | null => {
   // 1. Quitar todo lo que no sea número
   const tel = telefono.replace(/\D/g, "");
 
