@@ -7,6 +7,7 @@ import { useNavegacion } from "../experiencia/navegacion";
 import { useTema, type PreferenciaTema } from "../tema/temaCore";
 import { useInstalarApp } from "../pwa/instalar";
 import Modal from "./ui/Modal";
+import InsigniaNav from "./presupuesto/InsigniaNav";
 import Button from "./ui/Button";
 import ModalCambiarPassword from "./modal/ModalCambiarPassword";
 
@@ -36,7 +37,10 @@ export function BarraInferior({ onMas }: { onMas: () => void }) {
                   on ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800"
                 }`}
               >
-                <span className={`text-[19px] transition-transform ${on ? "scale-110" : ""}`}>{n.icon}</span>
+                <span className={`relative text-[19px] transition-transform ${on ? "scale-110" : ""}`}>
+                  {n.icon}
+                  {n.id === "presupuestos" && <InsigniaNav flotante />}
+                </span>
                 <span className="max-w-full truncate px-1">{n.label}</span>
               </Link>
             </li>
@@ -115,7 +119,10 @@ export function MenuMovil({ open, onClose }: { open: boolean; onClose: () => voi
                           : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-gray-800"
                       }`}
                     >
-                      <span className="text-xl">{n.icon}</span>
+                      <span className="relative text-xl">
+                        {n.icon}
+                        {n.id === "presupuestos" && <InsigniaNav flotante />}
+                      </span>
                       <span className="text-[11.5px] font-medium leading-tight line-clamp-2">{n.label}</span>
                     </Link>
                   );

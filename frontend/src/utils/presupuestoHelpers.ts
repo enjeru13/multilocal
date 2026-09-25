@@ -12,6 +12,19 @@ export const ESTADOS_PRESUPUESTO: Record<EstadoPresupuestoVisible, { label: stri
   CONVERTIDO: { label: "Convertido en venta", clases: "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300" },
 };
 
+/**
+ * Días que faltan para que venza un presupuesto pendiente (0 = vence hoy), o null si ya está
+ * resuelto o vencido. Sirve para avisar de los que están por vencer.
+ */
+export function diasParaVencer(p: Pick<Presupuesto, "estado" | "estadoVisible" | "validoHasta">): number | null {
+  if (p.estadoVisible === "VENCIDO" || (p.estado !== "BORRADOR" && p.estado !== "ENVIADO")) return null;
+  return dayjs(p.validoHasta).startOf("day").diff(dayjs().startOf("day"), "day");
+}
+
+export function textoVencimiento(dias: number): string {
+  return dias <= 0 ? "Vence hoy" : dias === 1 ? "Vence mañana" : `Vence en ${dias} días`;
+}
+
 /** A quién va dirigido: el cliente registrado o el contacto que se escribió. */
 export function destinatarioPresupuesto(p: Pick<Presupuesto, "cliente" | "contactoNombre">): string {
   if (p.cliente) return `${p.cliente.nombre} ${p.cliente.apellido ?? ""}`.trim();

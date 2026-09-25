@@ -8,6 +8,7 @@ import {
   crearPresupuesto,
   eliminarPresupuesto,
   listarPresupuestos,
+  obtenerAlertas,
   obtenerPresupuesto,
   requerirModulo,
 } from "../controllers/presupuestoController";
@@ -18,6 +19,7 @@ const gestion = authorizeRoles([Role.ADMIN, Role.EMPLOYEE]);
 router.use(protect, gestion, requerirModulo);
 
 router.get("/", listarPresupuestos);
+router.get("/alertas", obtenerAlertas);
 router.post("/", crearPresupuesto);
 router.get("/:id", obtenerPresupuesto);
 router.put("/:id", actualizarPresupuesto);

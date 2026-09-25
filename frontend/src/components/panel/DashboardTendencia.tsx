@@ -38,6 +38,22 @@ export default function DashboardTendencia({ data }: { data: DashboardData | nul
             <strong className="tabular-nums">{formatearMoneda(data.porPagar.monto, data.moneda)}</strong>
           </Link>
         )}
+        {data.presupuestos && (data.presupuestos.vencidos > 0 || data.presupuestos.porVencer > 0) && (
+          <Link
+            to={`/presupuestos${data.presupuestos.vencidos > 0 ? "?estado=VENCIDO" : ""}`}
+            className="flex justify-between gap-3 text-sm mb-3 pb-3 border-b border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            <span className="flex items-center gap-2">
+              <FaExclamationTriangle className={data.presupuestos.vencidos > 0 ? "text-red-500" : "text-amber-500"} />
+              Presupuestos por atender
+            </span>
+            <strong className="tabular-nums text-right">
+              {data.presupuestos.vencidos > 0 && `${data.presupuestos.vencidos} vencido${data.presupuestos.vencidos === 1 ? "" : "s"}`}
+              {data.presupuestos.vencidos > 0 && data.presupuestos.porVencer > 0 && " · "}
+              {data.presupuestos.porVencer > 0 && `${data.presupuestos.porVencer} por vencer`}
+            </strong>
+          </Link>
+        )}
         {data.stockBajo && data.stockBajo.cantidad > 0 ? (
           <div className="text-sm">
             <p className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium mb-2">
@@ -58,7 +74,8 @@ export default function DashboardTendencia({ data }: { data: DashboardData | nul
             </Link>
           </div>
         ) : (
-          !(data.porPagar && data.porPagar.monto > 0) && (
+          !(data.porPagar && data.porPagar.monto > 0) &&
+          !(data.presupuestos && (data.presupuestos.vencidos > 0 || data.presupuestos.porVencer > 0)) && (
             <p className="text-sm text-gray-500 dark:text-gray-400">Todo en orden por ahora.</p>
           )
         )}

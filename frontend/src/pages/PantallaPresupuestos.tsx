@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
-import { FaFileSignature, FaPlus, FaSearch, FaChevronRight, FaTimes, FaUser } from "react-icons/fa";
+import { FaClock, FaExclamationTriangle, FaFileSignature, FaPlus, FaSearch, FaChevronRight, FaTimes, FaUser } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import type { Presupuesto } from "@lavanderia/shared/types/types";
@@ -11,6 +11,7 @@ import { destinatarioPresupuesto } from "../utils/presupuestoHelpers";
 import EtiquetaEstado from "../components/presupuesto/EtiquetaEstado";
 import { formatearMoneda, normalizarMoneda } from "../utils/monedaHelpers";
 import { useConfiguracion } from "../context/configuracionCore";
+import { useAlertasPresupuestos } from "../hooks/useAlertasPresupuestos";
 import Button from "../components/ui/Button";
 import TarjetaRegistro from "../components/ui/TarjetaRegistro";
 import { TableSkeleton } from "../components/Skeleton";
@@ -32,7 +33,8 @@ export default function PantallaPresupuestos() {
   const [nombreCliente, setNombreCliente] = useState<string | null>(null);
   const { config } = useConfiguracion();
   const moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
-  const [estado, setEstado] = useState<string>("");
+  const alertas = useAlertasPresupuestos();
+  const [estado, setEstado] = useState<string>(() => (FILTROS.some((f) => f.id === params.get("estado")) ? params.get("estado")! : ""));
   const [busqueda, setBusqueda] = useState("");
   const [lista, setLista] = useState<Presupuesto[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -81,6 +83,32 @@ export default function PantallaPresupuestos() {
         </Link>
       </header>
 
+      {!clienteId && estado !== "VENCIDO" && (alertas.vencidos > 0 || alertas.porVencer > 0) && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+            <FaExclamationTriangle className="mt-0.5 shrink-0" />
+            <span>
+              {alertas.vencidos > 0 && (
+                <>
+                  <strong>{alertas.vencidos}</strong> {alertas.vencidos === 1 ? "presupuesto venció" : "presupuestos vencieron"} sin respuesta
+                </>
+              )}
+              {alertas.vencidos > 0 && alertas.porVencer > 0 && " y "}
+              {alertas.porVencer > 0 && (
+                <>
+                  <FaClock className="inline -mt-0.5 mr-1" />
+                  <strong>{alertas.porVencer}</strong> {alertas.porVencer === 1 ? "vence" : "vencen"} en los próximos días
+                </>
+              )}
+              . Dale seguimiento al cliente o amplía la fecha.
+            </span>
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => setEstado(alertas.vencidos > 0 ? "VENCIDO" : "ENVIADO")}>
+            {alertas.vencidos > 0 ? "Ver los vencidos" : "Ver los enviados"}
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-3">
         {clienteId && (
           <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 pl-3.5 pr-1.5 py-1 text-sm text-blue-900 dark:text-blue-200">
@@ -112,6 +140,9 @@ export default function PantallaPresupuestos() {
               }`}
             >
               {f.label}
+              {f.id === "VENCIDO" && alertas.vencidos > 0 && (
+                <span className={`ml-1.5 inline-flex min-w-4.5 h-4.5 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white ${estado === f.id ? "bg-white/30" : "bg-red-500"}`}>{alertas.vencidos}</span>
+              )}
             </button>
           ))}
         </div>
@@ -140,7 +171,7 @@ export default function PantallaPresupuestos() {
                 titulo={destinatarioPresupuesto(p)}
                 subtitulo={`Presupuesto N.º ${p.id}`}
                 destacado={formatearMoneda(p.total, moneda)}
-                chips={<EtiquetaEstado p={p} />}
+                chips={<EtiquetaEstado p={p} conAviso />}
                 datos={[
                   { k: "Fecha", v: dayjs(p.fecha).format("DD/MM/YYYY") },
                   { k: "Válido hasta", v: dayjs(p.validoHasta).format("DD/MM/YYYY") },
@@ -174,7 +205,7 @@ export default function PantallaPresupuestos() {
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{dayjs(p.fecha).format("DD/MM/YYYY")}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{dayjs(p.validoHasta).format("DD/MM/YYYY")}</td>
                     <td className="px-4 py-3">
-                      <EtiquetaEstado p={p} />
+                      <EtiquetaEstado p={p} conAviso />
                     </td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100">{formatearMoneda(p.total, moneda)}</td>
                     <td className="pr-3 text-gray-300 dark:text-gray-600">

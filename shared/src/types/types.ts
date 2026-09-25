@@ -642,6 +642,8 @@ export interface DashboardData {
   porCobrar?: PorCobrarResumen;
   porPagar?: PorCobrarResumen;
   stockBajo?: StockBajoResumen;
+  /** Solo con el módulo de presupuestos activo. */
+  presupuestos?: AlertasPresupuestos;
 }
 
 // --- Cuentas por cobrar (deudas de clientes, con antigüedad) ---
@@ -713,6 +715,14 @@ export interface LibroVentas {
 }
 
 // ---- Presupuestos ----
+
+export interface AlertasPresupuestos {
+  /** Pendientes (borrador o enviado) cuya fecha de validez ya pasó. */
+  vencidos: number;
+  /** Pendientes que vencen hoy o en los próximos `diasAviso` días. */
+  porVencer: number;
+  diasAviso: number;
+}
 
 export type EstadoPresupuesto = "BORRADOR" | "ENVIADO" | "ACEPTADO" | "RECHAZADO" | "CONVERTIDO";
 /** Lo que ve el usuario: los pendientes cuya fecha de validez ya pasó figuran como vencidos. */

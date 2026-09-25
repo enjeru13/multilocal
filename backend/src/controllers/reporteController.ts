@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import type { Moneda, TasasConversion } from "@lavanderia/shared/dist/types/types";
 import { tasaCruzada } from "@lavanderia/shared/dist/utils/monedaHelpers";
+import { alertasDePresupuestos } from "./presupuestoController";
 import {
   agruparPorCobrar,
   diasInclusivos,
@@ -224,7 +225,13 @@ export async function getDashboard(req: Request, res: Response) {
     const desde7 = new Date(inicioHoy);
     desde7.setDate(desde7.getDate() - 6);
     const semana = await cargarRango(desde7, finHoy);
-    const [sinCobrar, bajos, sinPagar] = await Promise.all([porCobrarGlobal(), stockBajo(5), porPagarGlobal()]);
+    const config = await prisma.configuracion.findFirst({ select: { moduloPresupuestos: true } });
+    const [sinCobrar, bajos, sinPagar, presupuestos] = await Promise.all([
+      porCobrarGlobal(),
+      stockBajo(5),
+      porPagarGlobal(),
+      config?.moduloPresupuestos ? alertasDePresupuestos() : Promise.resolve(undefined),
+    ]);
 
     return res.json({
       ...base,
@@ -232,6 +239,7 @@ export async function getDashboard(req: Request, res: Response) {
       porCobrar: sinCobrar,
       porPagar: sinPagar,
       stockBajo: bajos,
+      ...(presupuestos ? { presupuestos } : {}),
     });
   } catch (error) {
     console.error("Error al generar el dashboard:", error);

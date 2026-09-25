@@ -97,6 +97,36 @@ async function calcular(lineas: Awaited<ReturnType<typeof prepararLineas>>, desc
   return { config, totales };
 }
 
+/** Días de aviso antes de que venza un presupuesto pendiente. */
+export const DIAS_AVISO_PRESUPUESTO = 3;
+
+/** Presupuestos pendientes (borrador o enviado) que ya vencieron o vencen en los próximos días. */
+export async function alertasDePresupuestos() {
+  const hoy = dayjs().startOf("day");
+  const pendientes = await prisma.presupuesto.findMany({
+    where: { estado: { in: ["BORRADOR", "ENVIADO"] } },
+    select: { validoHasta: true },
+  });
+  let vencidos = 0;
+  let porVencer = 0;
+  for (const p of pendientes) {
+    const dias = dayjs(p.validoHasta).startOf("day").diff(hoy, "day");
+    if (dias < 0) vencidos += 1;
+    else if (dias <= DIAS_AVISO_PRESUPUESTO) porVencer += 1;
+  }
+  return { vencidos, porVencer, diasAviso: DIAS_AVISO_PRESUPUESTO };
+}
+
+// GET /api/presupuestos/alertas
+export async function obtenerAlertas(_req: Request, res: Response) {
+  try {
+    return res.json(await alertasDePresupuestos());
+  } catch (error) {
+    console.error("Error al calcular las alertas de presupuestos:", error);
+    return res.status(500).json({ message: "No se pudieron calcular las alertas." });
+  }
+}
+
 // GET /api/presupuestos?estado=&q=
 export async function listarPresupuestos(req: Request, res: Response) {
   try {

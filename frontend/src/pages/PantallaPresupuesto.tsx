@@ -27,9 +27,10 @@ import { servicioService, type ServicioConCategoria } from "../services/servicio
 import { clientesService } from "../services/clientesService";
 import { convertirDesdePrincipal, formatearMoneda, normalizarMoneda } from "../utils/monedaHelpers";
 import { opcionesDeConfig } from "../utils/totales";
-import { enlaceWhatsAppPresupuesto, telefonoPresupuesto } from "../utils/presupuestoHelpers";
+import { diasParaVencer, enlaceWhatsAppPresupuesto, telefonoPresupuesto, textoVencimiento } from "../utils/presupuestoHelpers";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useMonedas } from "../context/useMonedas";
+import { refrescarAlertasPresupuestos } from "../hooks/useAlertasPresupuestos";
 import { useEsCompacto } from "../hooks/useMediaQuery";
 import Button from "../components/ui/Button";
 import { campo } from "../components/ui/Formulario";
@@ -227,10 +228,12 @@ export default function PantallaPresupuesto() {
       if (presupuesto) {
         const res = await presupuestosService.update(presupuesto.id, datos);
         aplicar(res.data);
+        refrescarAlertasPresupuestos();
         toast.success("Presupuesto guardado.");
         return res.data;
       }
       const res = await presupuestosService.create(datos);
+      refrescarAlertasPresupuestos();
       toast.success(`Presupuesto N.º ${res.data.id} creado.`);
       navigate(`/presupuestos/${res.data.id}`, { replace: true });
       return res.data;
@@ -248,6 +251,7 @@ export default function PantallaPresupuesto() {
     try {
       const res = await presupuestosService.cambiarEstado(presupuesto.id, estado);
       setPresupuesto(res.data);
+      refrescarAlertasPresupuestos();
     } catch (err) {
       toast.error(mensajeError(err, "No se pudo cambiar el estado."));
     } finally {
@@ -272,6 +276,7 @@ export default function PantallaPresupuesto() {
     try {
       const res = await presupuestosService.convertir(presupuesto.id, clienteId);
       setPresupuesto(res.data.presupuesto);
+      refrescarAlertasPresupuestos();
       toast.success(`Presupuesto convertido en la venta #${res.data.ordenId}.`);
     } catch (err) {
       toast.error(mensajeError(err, "No se pudo convertir el presupuesto en venta."));
@@ -293,6 +298,7 @@ export default function PantallaPresupuesto() {
     if (!presupuesto) return;
     try {
       await presupuestosService.eliminar(presupuesto.id);
+      refrescarAlertasPresupuestos();
       toast.success("Presupuesto eliminado.");
       navigate("/presupuestos", { replace: true });
     } catch (err) {
@@ -401,6 +407,16 @@ export default function PantallaPresupuesto() {
         )}
       </header>
 
+      {presupuesto?.estadoVisible === "VENCIDO" && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          Este presupuesto <strong>venció el {dayjs(presupuesto.validoHasta).format("DD/MM/YYYY")}</strong> sin respuesta. Si el cliente sigue interesado, cambia «Válido hasta» y guarda para reactivarlo; si no, márcalo como rechazado desde «Más».
+        </div>
+      )}
+      {presupuesto && diasParaVencer(presupuesto) !== null && diasParaVencer(presupuesto)! <= 3 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          <strong>{textoVencimiento(diasParaVencer(presupuesto)!)}</strong> (hasta el {dayjs(presupuesto.validoHasta).format("DD/MM/YYYY")}). Es buen momento para dar seguimiento al cliente.
+        </div>
+      )}
       {bloqueado && presupuesto?.ordenId && (
         <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10 px-4 py-3 text-sm text-violet-900 dark:text-violet-200 flex flex-wrap items-center justify-between gap-2">
           <span>Este presupuesto ya se convirtió en la venta #{presupuesto.ordenId}. Ya no se puede modificar.</span>

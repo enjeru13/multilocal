@@ -187,6 +187,39 @@ describe("presupuestos", () => {
     expect(todos.body.length).toBeGreaterThan(1);
   });
 
+  it("avisa de los presupuestos vencidos y por vencer, en su ruta y en el dashboard", async () => {
+    await prisma.presupuestoDetalle.deleteMany();
+    await prisma.presupuesto.deleteMany();
+    const dia = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const linea = [{ descripcion: "Algo", cantidad: 1, precio: 10 }];
+    const ayer = (await crear({ clienteId, lineas: linea, validoHasta: dia(-1) })).body;
+    await crear({ clienteId, lineas: linea, validoHasta: dia(-20) }); // vencido
+    await crear({ clienteId, lineas: linea, validoHasta: dia(0) }); // vence hoy
+    await crear({ clienteId, lineas: linea, validoHasta: dia(3) }); // dentro del aviso
+    await crear({ clienteId, lineas: linea, validoHasta: dia(4) }); // todavía lejos
+    const aceptado = (await crear({ clienteId, lineas: linea, validoHasta: dia(-5) })).body;
+    await estado(aceptado.id, "ACEPTADO"); // resuelto: no cuenta
+
+    const res = await api().get("/api/presupuestos/alertas").set(auth(admin));
+    expect(res.body).toEqual({ vencidos: 2, porVencer: 2, diasAviso: 3 });
+
+    const dash = await api().get("/api/reportes/dashboard").set(auth(admin));
+    expect(dash.body.presupuestos).toEqual({ vencidos: 2, porVencer: 2, diasAviso: 3 });
+
+    // Al ampliar la fecha deja de estar vencido.
+    await api().put(`/api/presupuestos/${ayer.id}`).set(auth(admin)).send({ clienteId, lineas: linea, validoHasta: dia(10) });
+    expect((await api().get("/api/presupuestos/alertas").set(auth(admin))).body.vencidos).toBe(1);
+
+    // Con el módulo apagado no hay alertas en el dashboard.
+    await configurar({ moduloPresupuestos: false });
+    expect((await api().get("/api/reportes/dashboard").set(auth(admin))).body.presupuestos).toBeUndefined();
+    await configurar({ moduloPresupuestos: true });
+  });
+
   it("elimina un presupuesto no convertido", async () => {
     const p = (await crear({ clienteId, lineas: [{ descripcion: "Borrar", cantidad: 1, precio: 1 }] })).body;
     expect((await api().delete(`/api/presupuestos/${p.id}`).set(auth(admin))).status).toBe(200);

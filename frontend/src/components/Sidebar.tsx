@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useNavegacion } from "../experiencia/navegacion";
 import Kbd from "../atajos/Kbd";
+import InsigniaNav from "./presupuesto/InsigniaNav";
 import { useEsCompacto } from "../hooks/useMediaQuery";
 
 const CLAVE = "mostrador.sidebar";
@@ -82,12 +83,14 @@ export default function Sidebar() {
                           : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                       }`}
                     >
-                      <span className={`text-[15px] shrink-0 ${activo ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300"}`}>
+                      <span className={`relative text-[15px] shrink-0 ${activo ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300"}`}>
                         {link.icon}
+                        {plegado && link.id === "presupuestos" && <InsigniaNav flotante />}
                       </span>
                       {!plegado && (
                         <>
                           <span className="flex-1 truncate">{link.label}</span>
+                          {link.id === "presupuestos" && <InsigniaNav />}
                           {link.atajo && (
                             <span className="hidden group-hover:block">
                               <Kbd combo={link.atajo} className="text-gray-400 dark:text-gray-500" />
