@@ -95,6 +95,8 @@ export default function PantallaSetup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [pideCodigo, setPideCodigo] = useState(false);
+  const [codigo, setCodigo] = useState("");
 
   // Paso 2
   const [nombreNegocio, setNombreNegocio] = useState("");
@@ -121,6 +123,11 @@ export default function PantallaSetup() {
   const [impuestoNombre, setImpuestoNombre] = useState("IVA");
   const [impuestoTasa, setImpuestoTasa] = useState("16");
   const [preciosIncluyen, setPreciosIncluyen] = useState(true);
+
+  // En un servidor en internet se pide el código que el dueño definió al instalarlo.
+  useEffect(() => {
+    authService.requiereCodigoInstalacion().then(setPideCodigo);
+  }, []);
 
   const elegirRubro = (r: Rubro) => {
     const p = RUBRO_PRESETS[r];
@@ -152,6 +159,7 @@ export default function PantallaSetup() {
       if (!emailValido) return toast.error("El correo no tiene un formato válido.");
       if (password.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres.");
       if (password !== confirmPassword) return toast.error("Las contraseñas no coinciden.");
+      if (pideCodigo && !codigo.trim()) return toast.error("Escribe el código de instalación.");
       return setPaso(1);
     }
     if (paso === 1) {
@@ -174,6 +182,7 @@ export default function PantallaSetup() {
         email: email.trim(),
         password,
         role: "ADMIN",
+        ...(pideCodigo ? { codigoInstalacion: codigo.trim() } : {}),
       });
 
       const loginOk = await login({ email: email.trim(), password });
@@ -282,6 +291,11 @@ export default function PantallaSetup() {
                       </Campo>
                     </div>
                   </div>
+                  {pideCodigo && (
+                    <Campo etiqueta="Código de instalación" ayuda="Es el que se definió al montar el servidor (variable MOSTRADOR_SETUP_CODE). Sin él nadie más puede crear la cuenta inicial.">
+                      <input className={campo} value={codigo} onChange={(e) => setCodigo(e.target.value)} autoComplete="off" />
+                    </Campo>
+                  )}
                 </>
               )}
 

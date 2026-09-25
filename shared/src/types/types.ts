@@ -477,6 +477,8 @@ export interface UserRegisterPayload {
   password: string;
   name?: string | null;
   role?: Role;
+  /** Solo en servidores en internet: código que se definió al instalarlo. */
+  codigoInstalacion?: string;
 }
 
 export interface UserLoginPayload {

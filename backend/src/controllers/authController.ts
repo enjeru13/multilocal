@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma";
+import { limpiarFallos, registrarFallo, segundosDeBloqueo } from "../lib/limiteIntentos";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -38,7 +39,7 @@ if (!JWT_SECRET) {
 export const getSetupStatus = async (req: Request, res: Response) => {
   try {
     const totalUsuarios = await prisma.user.count();
-    return res.status(200).json({ needsSetup: totalUsuarios === 0 });
+    return res.status(200).json({ needsSetup: totalUsuarios === 0, requiereCodigo: totalUsuarios === 0 && !!process.env.MOSTRADOR_SETUP_CODE });
   } catch (error) {
     console.error("Error al verificar estado de configuración inicial:", error);
     return res
@@ -72,6 +73,11 @@ export const register = async (req: Request, res: Response) => {
       return res.status(403).json({
         message: "El registro público está cerrado. Pide a un administrador que cree tu usuario.",
       });
+    }
+    // En un servidor en internet, quien llegue primero no debe poder quedarse con la cuenta de administrador.
+    const codigoRequerido = process.env.MOSTRADOR_SETUP_CODE;
+    if (codigoRequerido && String(req.body?.codigoInstalacion ?? "").trim() !== codigoRequerido) {
+      return res.status(403).json({ message: "El código de instalación no es correcto." });
     }
 
     const result = registerSchema.safeParse(req.body);
@@ -148,16 +154,28 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const { email, password } = result.data;
+    const origen = req.ip ?? "desconocido";
+
+    const espera = segundosDeBloqueo(origen, email);
+    if (espera !== null) {
+      res.setHeader("Retry-After", String(espera));
+      return res.status(429).json({
+        message: `Demasiados intentos fallidos. Espera ${Math.ceil(espera / 60)} minuto(s) e inténtalo de nuevo.`,
+      });
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      registrarFallo(origen, email);
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      registrarFallo(origen, email);
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
+    limpiarFallos(origen, email);
     if (!user.activo) {
       return res
         .status(403)

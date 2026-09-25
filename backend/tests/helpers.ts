@@ -1,12 +1,16 @@
 import request from "supertest";
 import { createApp } from "../src/app";
 import prisma from "../src/lib/prisma";
+import { reiniciarLimites } from "../src/lib/limiteIntentos";
 
 export const app = createApp();
 export const api = () => request(app);
 export { prisma };
 
 export async function resetDb() {
+  reiniciarLimites();
+  await prisma.presupuestoDetalle.deleteMany();
+  await prisma.presupuesto.deleteMany();
   await prisma.pagoCompra.deleteMany();
   await prisma.gasto.deleteMany();
   await prisma.inventarioMovimiento.deleteMany();

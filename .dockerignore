@@ -1,0 +1,12 @@
+.git
+**/node_modules
+desktop
+print-server
+**/dist
+**/build
+**/*.db
+**/*.db-journal
+backend/prisma/respaldos
+.env
+**/.env
+**/.env.*

@@ -52,6 +52,15 @@ export const authService = {
       return false;
     }
   },
+  /** ¿Pide el servidor un código de instalación para crear la cuenta inicial? (solo en la nube) */
+  requiereCodigoInstalacion: async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.get("/auth/setup-status");
+      return !!response.data.requiereCodigo;
+    } catch {
+      return false;
+    }
+  },
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const response = await apiClient.get("/auth/me");

@@ -28,8 +28,20 @@ import gastoRouter from "./routes/gastoRoute";
 // nunca sale de 127.0.0.1 (ver startServer). No hay nada externo que bloquear.
 export function createApp() {
   const app = express();
+  // En la nube el servidor va detrás del proxy del proveedor (HTTPS): así req.ip es el del cliente real.
+  const enNube = process.env.MOSTRADOR_MODO === "nube";
+  if (enNube) app.set("trust proxy", 1);
+  app.disable("x-powered-by");
 
-  app.use(cors());
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "same-origin");
+    if (enNube) res.setHeader("Strict-Transport-Security", "max-age=31536000");
+    next();
+  });
+  // Interfaz y API salen del mismo servidor: en la nube no se abre CORS a otros orígenes.
+  if (!enNube) app.use(cors());
   if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
   app.use(express.json());
 
@@ -40,6 +52,11 @@ export function createApp() {
       res.send("API local funcionando correctamente");
     });
   }
+
+  // Para la comprobación de salud del proveedor (no toca la base de datos).
+  app.get("/api/salud", (_req: Request, res: Response) => {
+    res.json({ ok: true });
+  });
 
   app.use("/api/auth", authRoute);
   app.use("/api/categorias", categoriaRouter);
