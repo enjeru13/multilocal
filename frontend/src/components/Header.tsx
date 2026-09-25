@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { FaKey, FaKeyboard, FaSearch, FaSignOutAlt } from "react-icons/fa";
+import { FaKey, FaKeyboard, FaSearch, FaSignOutAlt, FaVolumeUp } from "react-icons/fa";
 import ModalCambiarPassword from "./modal/ModalCambiarPassword";
+import ModalSonidos from "./modal/ModalSonidos";
 import SelectorTema from "./ui/SelectorTema";
 import Kbd from "../atajos/Kbd";
 import { useAuth } from "../hooks/useAuth";
@@ -26,6 +27,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const { abrirPaleta, abrirAyuda } = useAtajosContext();
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
+  const [sonidos, setSonidos] = useState(false);
 
   const nombre = user?.name || user?.email || "";
   const { pathname } = useLocation();
@@ -91,6 +93,7 @@ export default function Header() {
               {[
                 { icono: <FaKey />, texto: "Cambiar mi contraseña", accion: () => setCambiandoPassword(true) },
                 { icono: <FaKeyboard />, texto: "Atajos de teclado", accion: () => abrirAyuda(true) },
+                { icono: <FaVolumeUp />, texto: "Sonidos", accion: () => setSonidos(true) },
               ].map((o) => (
                 <MenuItem key={o.texto}>
                   <button
@@ -122,6 +125,7 @@ export default function Header() {
       </div>
 
       {cambiandoPassword && <ModalCambiarPassword onClose={() => setCambiandoPassword(false)} />}
+      {sonidos && <ModalSonidos onClose={() => setSonidos(false)} />}
     </header>
     </>
   );

@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { presupuestosService } from "../services/presupuestosService";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useAuth } from "./useAuth";
+import { reproducir } from "../sonidos/sonidos";
 
 interface Alertas {
   vencidos: number;
@@ -14,6 +15,10 @@ let actual: Alertas = VACIO;
 const oyentes = new Set<() => void>();
 let suscriptoresActivos = 0;
 let temporizador: ReturnType<typeof setInterval> | null = null;
+// Para avisar con sonido: al abrir si ya hay alertas y cada vez que aparecen más.
+let totalConocido: number | null = null;
+// Varios componentes piden a la vez al montarse: comparten la misma consulta en curso.
+let enCurso: Promise<void> | null = null;
 
 const suscribir = (cb: () => void) => {
   oyentes.add(cb);
@@ -27,9 +32,20 @@ function publicar(nuevo: Alertas) {
 }
 
 /** Vuelve a pedir las alertas; se llama tras crear, editar, cambiar de estado o convertir un presupuesto. */
-export async function refrescarAlertasPresupuestos() {
+export function refrescarAlertasPresupuestos(conSonido = false): Promise<void> {
+  if (enCurso) return enCurso;
+  enCurso = pedirAlertas(conSonido).finally(() => {
+    enCurso = null;
+  });
+  return enCurso;
+}
+
+async function pedirAlertas(conSonido: boolean) {
   try {
     const r = await presupuestosService.alertas();
+    const total = r.data.vencidos + r.data.porVencer;
+    if (conSonido && total > 0 && (totalConocido === null || total > totalConocido)) reproducir("alerta");
+    totalConocido = total;
     publicar({ vencidos: r.data.vencidos, porVencer: r.data.porVencer });
   } catch {
     // Sin conexión o módulo apagado: se conserva lo último que se supo.
@@ -48,9 +64,9 @@ export function useAlertasPresupuestos() {
   useEffect(() => {
     if (!activo) return;
     suscriptoresActivos += 1;
-    refrescarAlertasPresupuestos();
-    if (suscriptoresActivos === 1) temporizador = setInterval(refrescarAlertasPresupuestos, 5 * 60_000);
-    const alVolver = () => document.visibilityState === "visible" && refrescarAlertasPresupuestos();
+    refrescarAlertasPresupuestos(suscriptoresActivos === 1);
+    if (suscriptoresActivos === 1) temporizador = setInterval(() => refrescarAlertasPresupuestos(true), 5 * 60_000);
+    const alVolver = () => document.visibilityState === "visible" && refrescarAlertasPresupuestos(true);
     document.addEventListener("visibilitychange", alVolver);
     return () => {
       document.removeEventListener("visibilitychange", alVolver);
@@ -59,6 +75,7 @@ export function useAlertasPresupuestos() {
         clearInterval(temporizador);
         temporizador = null;
         actual = VACIO;
+        totalConocido = null;
       }
     };
   }, [activo]);

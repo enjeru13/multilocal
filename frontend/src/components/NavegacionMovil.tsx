@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaBars, FaDownload, FaKey, FaMoon, FaSignOutAlt, FaSun, FaDesktop, FaTimes, FaShareSquare } from "react-icons/fa";
+import { FaBars, FaDownload, FaKey, FaMoon, FaSignOutAlt, FaVolumeUp, FaSun, FaDesktop, FaTimes, FaShareSquare } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 import { useConfiguracion } from "../context/configuracionCore";
 import { useNavegacion } from "../experiencia/navegacion";
@@ -10,6 +10,7 @@ import Modal from "./ui/Modal";
 import InsigniaNav from "./presupuesto/InsigniaNav";
 import Button from "./ui/Button";
 import ModalCambiarPassword from "./modal/ModalCambiarPassword";
+import ModalSonidos from "./modal/ModalSonidos";
 
 const ROLES: Record<string, string> = { ADMIN: "Administrador", EMPLOYEE: "Empleado", CAJERO: "Cajero" };
 const activa = (ruta: string, to: string) => (to === "/" ? ruta === "/" : ruta === to || ruta.startsWith(`${to}/`));
@@ -76,6 +77,7 @@ export function MenuMovil({ open, onClose }: { open: boolean; onClose: () => voi
   const { preferencia, elegir } = useTema();
   const instalacion = useInstalarApp();
   const [password, setPassword] = useState(false);
+  const [sonidos, setSonidos] = useState(false);
   const [guiaIOS, setGuiaIOS] = useState(false);
 
   const negocio = config?.nombreNegocio?.trim() || "Mostrador";
@@ -157,6 +159,9 @@ export function MenuMovil({ open, onClose }: { open: boolean; onClose: () => voi
                 Instalar la app en este teléfono
               </Button>
             )}
+            <Button variant="secondary" className="w-full" leftIcon={<FaVolumeUp />} onClick={() => setSonidos(true)}>
+              Sonidos
+            </Button>
             <Button variant="secondary" className="w-full" leftIcon={<FaKey />} onClick={() => setPassword(true)}>
               Cambiar mi contraseña
             </Button>
@@ -198,6 +203,7 @@ export function MenuMovil({ open, onClose }: { open: boolean; onClose: () => voi
       )}
 
       {password && <ModalCambiarPassword onClose={() => setPassword(false)} />}
+      {sonidos && <ModalSonidos onClose={() => setSonidos(false)} />}
     </>
   );
 }

@@ -18,6 +18,7 @@ import { FormSkeleton } from "../components/Skeleton";
 import Button from "../components/ui/Button";
 import SelectorMonedas from "../components/ui/SelectorMonedas";
 import Interruptor from "../components/ui/Interruptor";
+import SeccionSonidos from "../components/config/SeccionSonidos";
 
 export default function PantallaConfiguracion() {
   const { refetch } = useConfiguracion();
@@ -453,6 +454,8 @@ export default function PantallaConfiguracion() {
           </div>
         </div>
       </section>
+
+      <SeccionSonidos />
 
       {/* FOOTER CON BOTÓN ACTUALIZADO */}
       <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-800 max-md:sticky max-md:bottom-0 max-md:z-20 max-md:-mx-4 max-md:-mb-4 max-md:px-4 max-md:py-3 max-md:pt-3 max-md:bg-white/95 max-md:dark:bg-gray-900/95 max-md:backdrop-blur">

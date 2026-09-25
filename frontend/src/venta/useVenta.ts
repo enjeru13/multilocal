@@ -12,6 +12,7 @@ import { reciboDeOrden } from "../utils/reciboData";
 import { calcularTotalAbonado } from "@lavanderia/shared/utils/pagoFinance";
 import { normalizarMoneda, type Moneda, type TasasConversion } from "../utils/monedaHelpers";
 import { totalesDeSeleccion } from "../utils/totales";
+import { reproducir } from "../sonidos/sonidos";
 
 export interface LineaVenta {
   servicio: Servicio;
@@ -136,6 +137,7 @@ export function useVenta({ precioEditable = false }: { precioEditable?: boolean 
         return [...prev, { servicio: s, cantidad }];
       });
       setUltimaAgregada(s.id);
+      reproducir("escaneo");
       // La línea recién tocada queda seleccionada.
       setSeleccion(() => {
         const idx = carrito.findIndex((l) => l.servicio.id === s.id);

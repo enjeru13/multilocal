@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useMonedas } from "../context/useMonedas";
+import { reproducir } from "../sonidos/sonidos";
 import { useEsCompacto } from "../hooks/useMediaQuery";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -117,6 +118,7 @@ export default function VentaMostrador() {
         toast.warning(`Solo hay ${s.stockActual} de "${s.nombreServicio}" en stock.`);
         return;
       }
+      reproducir("escaneo");
       setCarrito((prev) => {
         const existe = prev.find((l) => l.servicio.id === s.id);
         if (existe) {

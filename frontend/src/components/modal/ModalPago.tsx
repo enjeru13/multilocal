@@ -27,6 +27,7 @@ import { nombreCliente } from "../../utils/clienteHelpers";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { useAuth } from "../../hooks/useAuth";
 import { configuracionService } from "../../services/configuracionService";
+import { reproducir } from "../../sonidos/sonidos";
 
 interface Fila {
   id: number;
@@ -218,6 +219,7 @@ export default function ModalPago({ orden, onClose, onPagoRegistrado, tasas: tas
         });
       }
       toast.success(validas.length > 1 ? "Pagos registrados." : "Pago registrado.");
+      reproducir("cobro");
       const res = await ordenesService.getById(orden.id);
       if (res.data) onPagoRegistrado(res.data);
       onClose();

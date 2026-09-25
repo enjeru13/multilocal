@@ -18,6 +18,7 @@ import ModalDetalleOrden from "../components/modal/ModalDetalleOrden";
 import ModalPago from "../components/modal/ModalPago";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import { TableSkeleton } from "../components/Skeleton";
+import { reproducir } from "../sonidos/sonidos";
 
 type Columna = "PENDIENTE" | "LISTO" | "ENTREGADO";
 
@@ -96,6 +97,7 @@ export default function PantallaTablero() {
     try {
       const res = await ordenesService.update(o.id, { estado });
       reemplazar(res.data);
+      if (estado === "LISTO") reproducir("listo");
       toast.success(estado === "LISTO" ? `${et.orden} #${o.id} lista para entregar.` : estado === "ENTREGADO" ? `${et.orden} #${o.id} entregada.` : `${et.orden} #${o.id} de vuelta a "Por hacer".`);
     } catch (err) {
       toast.error(isAxiosError(err) ? err.response?.data?.message ?? "No se pudo actualizar." : "No se pudo actualizar.");

@@ -1,4 +1,6 @@
-import { ToastContainer } from "react-toastify";
+import { useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import { reproducir } from "../../sonidos/sonidos";
 import "react-toastify/dist/ReactToastify.css";
 import { useTema } from "../../tema/temaCore";
 import { useEsMovil } from "../../hooks/useMediaQuery";
@@ -8,6 +10,15 @@ export default function Toasts() {
   const { oscuro } = useTema();
   // En teléfono van arriba: abajo taparían la barra de navegación y los botones de cobro.
   const movil = useEsMovil();
+
+  // Cualquier error o aviso del sistema (sin stock, caja cerrada, permisos…) suena igual.
+  useEffect(
+    () =>
+      toast.onChange((aviso) => {
+        if (aviso.status === "added" && (aviso.type === "error" || aviso.type === "warning")) reproducir("error");
+      }),
+    []
+  );
   return (
     <ToastContainer
       position={movil ? "top-center" : "bottom-right"}
