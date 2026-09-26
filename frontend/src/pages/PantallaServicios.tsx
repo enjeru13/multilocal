@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { toast } from "react-toastify";
-import { FaPlus, FaTags, FaSearch, FaPercent, FaFileExcel, FaDownload } from "react-icons/fa";
+import { FaPlus, FaTags, FaSearch, FaPercent, FaFileExcel, FaDownload, FaBarcode } from "react-icons/fa";
 import { exportarExcel, fechaArchivo } from "../utils/exportarExcel";
 import { useNavigate } from "react-router-dom";
 import TablaServicios from "../components/tabla/TablaServicios";
@@ -258,6 +258,10 @@ export default function PantallaServicios() {
             leftIcon={<FaTags className="w-4 h-4" />}
           >
             Gestionar Categorías
+          </Button>
+
+          <Button onClick={() => navigate("/servicios/etiquetas")} variant="secondary" leftIcon={<FaBarcode className="w-4 h-4" />}>
+            Imprimir etiquetas
           </Button>
 
           <Button onClick={exportar} variant="secondary" leftIcon={<FaDownload className="w-4 h-4" />} disabled={servicios.length === 0}>
