@@ -10,7 +10,8 @@ import ModalInfoCliente from "../components/modal/ModalInfoCliente";
 import TablaClientes from "../components/tabla/TablaClientes";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import { toast } from "react-toastify";
-import { FaPlus, FaSearch } from "react-icons/fa";
+import { FaPlus, FaSearch, FaDownload } from "react-icons/fa";
+import { exportarExcel, fechaArchivo } from "../utils/exportarExcel";
 import { useAuth } from "../hooks/useAuth";
 import ControlesPaginacion from "../components/ControlesPaginacion";
 import { TableSkeleton } from "../components/Skeleton";
@@ -38,6 +39,29 @@ export default function PantallaClientes() {
   const [totalFilteredItems, setTotalFilteredItems] = useState(0);
 
   const { hasRole } = useAuth();
+
+  const exportar = async () => {
+    try {
+      await exportarExcel(
+        `clientes_${fechaArchivo()}.xlsx`,
+        "Clientes",
+        [
+          { titulo: "Nombre", ancho: 24, valor: (c: Cliente) => c.nombre },
+          { titulo: "Apellido", ancho: 20, valor: (c) => c.apellido },
+          { titulo: "Tipo", ancho: 12, valor: (c) => (c.tipo === "EMPRESA" ? "Empresa" : c.tipo === "NATURAL" ? "Persona" : null) },
+          { titulo: "Documento", ancho: 16, valor: (c) => c.identificacion },
+          { titulo: "Teléfono", ancho: 16, valor: (c) => c.telefono },
+          { titulo: "Teléfono 2", ancho: 16, valor: (c) => c.telefono_secundario },
+          { titulo: "Correo", ancho: 28, valor: (c) => c.email },
+          { titulo: "Dirección", ancho: 40, valor: (c) => c.direccion },
+        ],
+        clientes
+      );
+      toast.success(`${clientes.length} cliente(s) exportados a Excel.`);
+    } catch {
+      toast.error("No se pudo crear el archivo de Excel.");
+    }
+  };
 
   const cargarClientes = useCallback(async () => {
     try {
@@ -163,14 +187,20 @@ export default function PantallaClientes() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{et.clientes}</h1>
 
-        {/* 2. Botón reemplazado usando el componente UI */}
-        <Button
-          onClick={abrirNuevoCliente}
-          variant="primary"
-          leftIcon={<FaPlus className="w-4 h-4" />}
-        >
-          Nuevo {et.cliente}
-        </Button>
+        <div className="flex gap-3 flex-wrap justify-end">
+          {hasRole(["ADMIN", "EMPLOYEE"]) && (
+            <Button onClick={exportar} variant="secondary" leftIcon={<FaDownload className="w-4 h-4" />} disabled={clientes.length === 0}>
+              Exportar a Excel
+            </Button>
+          )}
+          <Button
+            onClick={abrirNuevoCliente}
+            variant="primary"
+            leftIcon={<FaPlus className="w-4 h-4" />}
+          >
+            Nuevo {et.cliente}
+          </Button>
+        </div>
       </div>
 
       <div className="mb-5 flex items-center gap-3 font-semibold">

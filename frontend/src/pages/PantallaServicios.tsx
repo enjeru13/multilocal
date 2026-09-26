@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { toast } from "react-toastify";
-import { FaPlus, FaTags, FaSearch, FaPercent, FaFileExcel } from "react-icons/fa";
+import { FaPlus, FaTags, FaSearch, FaPercent, FaFileExcel, FaDownload } from "react-icons/fa";
+import { exportarExcel, fechaArchivo } from "../utils/exportarExcel";
 import { useNavigate } from "react-router-dom";
 import TablaServicios from "../components/tabla/TablaServicios";
 import FormularioServicio from "../components/formulario/FormularioServicio";
@@ -27,6 +28,33 @@ import Button from "../components/ui/Button"; // 1. Importamos el Button
 export default function PantallaServicios() {
   const et = useEtiquetas();
   const navigate = useNavigate();
+
+  // Mismas columnas que la plantilla de importación: el archivo exportado se puede editar y volver a cargar.
+  const exportar = async () => {
+    try {
+      await exportarExcel(
+        `catalogo_${fechaArchivo()}.xlsx`,
+        "Catálogo",
+        [
+          { titulo: "Nombre", ancho: 36, valor: (s: Servicio) => s.nombreServicio },
+          { titulo: "Código", ancho: 16, valor: (s) => s.sku },
+          { titulo: "Código de barras", ancho: 18, valor: (s) => s.codigoBarras },
+          { titulo: "Precio", ancho: 12, formato: "#,##0.00", valor: (s) => s.precioBase },
+          { titulo: "Costo", ancho: 12, formato: "#,##0.00", valor: (s) => s.costoBase },
+          { titulo: "Existencias", ancho: 13, valor: (s) => (s.controlaStock ? s.stockActual : null) },
+          { titulo: "Mínimo", ancho: 10, valor: (s) => s.stockMinimo },
+          { titulo: "Categoría", ancho: 20, valor: (s) => (s as Servicio & { categoria?: { nombre: string } }).categoria?.nombre },
+          { titulo: "Unidad", ancho: 10, valor: (s) => s.unidadMedida },
+          { titulo: "Exento", ancho: 9, valor: (s) => (s.exentoImpuesto ? "Sí" : "No") },
+          { titulo: "Descripción", ancho: 40, valor: (s) => s.descripcion },
+        ],
+        servicios
+      );
+      toast.success(`${servicios.length} producto(s) exportados a Excel. Los precios están en ${monedaPrincipal}.`);
+    } catch {
+      toast.error("No se pudo crear el archivo de Excel.");
+    }
+  };
   const { config } = useConfiguracion();
   const inventario = !!config?.moduloInventario;
   const [servicios, setServicios] = useState<Servicio[]>([]);
@@ -230,6 +258,10 @@ export default function PantallaServicios() {
             leftIcon={<FaTags className="w-4 h-4" />}
           >
             Gestionar Categorías
+          </Button>
+
+          <Button onClick={exportar} variant="secondary" leftIcon={<FaDownload className="w-4 h-4" />} disabled={servicios.length === 0}>
+            Exportar a Excel
           </Button>
 
           {hasRole(["ADMIN"]) && (

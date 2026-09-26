@@ -232,6 +232,11 @@ export default function PantallaRespaldos() {
                 </div>
               ))}
             </dl>
+            {legado.resumen.abonadosCorregidos > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {legado.resumen.abonadosCorregidos} orden{legado.resumen.abonadosCorregidos === 1 ? "" : "es"} saldada{legado.resumen.abonadosCorregidos === 1 ? "" : "s"} traen el «abonado» mal guardado (mayor que el total); se ajusta al total. Los pagos no se tocan.
+              </p>
+            )}
             <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex gap-3 text-sm text-amber-900 dark:text-amber-200">
               <FaExclamationTriangle className="mt-0.5 shrink-0" />
               <p>

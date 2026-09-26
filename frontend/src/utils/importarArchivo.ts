@@ -33,10 +33,10 @@ export const CAMPOS: CampoImportable[] = [
   { id: "categoria", etiqueta: "Categoría", ayuda: "Las que no existan se crean solas.", sinonimos: ["categoria", "rubro", "familia", "linea", "grupo", "departamento", "tipo"] },
   { id: "unidad", etiqueta: "Unidad", ayuda: "unidad, kg, litro, metro… (kg, litro y metro admiten decimales).", sinonimos: ["unidad de medida", "unidad", "und", "um", "medida"] },
   { id: "exento", etiqueta: "Exento de impuesto", ayuda: "Sí o No.", sinonimos: ["exento", "exonerado", "iva", "impuesto"] },
-  { id: "descripcion", etiqueta: "Descripción adicional", ayuda: "Texto largo opcional.", sinonimos: ["descripcion larga", "observaciones", "notas", "nota"] },
+  { id: "descripcion", etiqueta: "Descripción adicional", ayuda: "Texto largo opcional.", sinonimos: ["descripcion larga", "descripcion", "observaciones", "notas", "nota"] },
 ];
 
-const ORDEN_DETECCION: CampoId[] = ["codigoBarras", "stockMinimo", "costo", "precio", "stock", "sku", "categoria", "unidad", "exento", "descripcion", "nombre"];
+const ORDEN_DETECCION: CampoId[] = ["codigoBarras", "stockMinimo", "costo", "precio", "stock", "sku", "categoria", "unidad", "exento", "nombre", "descripcion"];
 
 export const normalizarTitulo = (t: unknown) =>
   String(t ?? "")

@@ -17,6 +17,7 @@ export interface ResumenLegado {
   vueltos: number;
   usuarios: number;
   negocio: string | null;
+  abonadosCorregidos: number;
 }
 
 const binario = { headers: { "Content-Type": "application/octet-stream" }, maxBodyLength: Infinity } as const;

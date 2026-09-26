@@ -18,7 +18,13 @@ export interface ResumenLegado {
   vueltos: number;
   usuarios: number;
   negocio: string | null;
+  /** Órdenes saldadas cuyo «abonado» venía mal guardado (mayor que el total): se corrigen al importar. */
+  abonadosCorregidos: number;
 }
+
+// En el sistema anterior algunas órdenes saldadas quedaron con «abonado» en la moneda del pago (p. ej. 168000
+// pesos en una orden de $42). El estado y el faltante sí eran correctos: solo se ajusta el abonado al total.
+const abonadoIncoherente = (o: Fila) => Number(o.faltante) <= 0.005 && Number(o.abonado) > Number(o.total) + 0.01;
 
 const TABLAS_LEGADO = ["Categoria", "Cliente", "Servicio", "Orden", "DetalleOrden", "Pago", "VueltoEntregado", "User", "Configuracion"];
 
@@ -69,6 +75,7 @@ export function revisarLegado(ruta: string): ResumenLegado {
       vueltos: cuenta("VueltoEntregado"),
       usuarios: cuenta("User"),
       negocio: cfg?.nombreNegocio ?? null,
+      abonadosCorregidos: todas(db, "SELECT total, abonado, faltante FROM Orden").filter(abonadoIncoherente).length,
     };
   } finally {
     db.close();
@@ -178,7 +185,9 @@ export async function importarLegado(ruta: string, prisma: PrismaClient): Promis
               fechaEntrega: o.fechaEntrega ? fecha(o.fechaEntrega) : null,
               observaciones: o.observaciones,
               total: o.total,
-              abonado: o.abonado,
+              // Las columnas de desglose son nuevas: sin descuento ni impuesto, el subtotal es el total.
+              subtotal: o.total,
+              abonado: abonadoIncoherente(o) ? o.total : o.abonado,
               faltante: o.faltante,
               estadoPago: o.estadoPago,
               deliveredByUserId: o.deliveredByUserId,
@@ -195,6 +204,8 @@ export async function importarLegado(ruta: string, prisma: PrismaClient): Promis
               cantidad: d.cantidad,
               precioUnit: d.precioUnit,
               subtotal: d.subtotal,
+              // Sin descuento ni impuesto, lo que vale la línea (base) es su subtotal; los reportes de ganancia y el libro de ventas parten de ahí.
+              base: d.subtotal,
             })),
           });
         }
