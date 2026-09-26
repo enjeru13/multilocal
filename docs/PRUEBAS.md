@@ -16,6 +16,23 @@ Marca cada casilla al comprobarla. Si algo falla, escribe debajo **qué pantalla
 
 ---
 
+## Cuentas de prueba
+
+La app instalada **nace vacía: no trae ningún usuario ni contraseña**. La cuenta de administrador se crea tú en el
+asistente inicial (paso 1). Para las pruebas, crea estas (son solo para pruebas; **no reutilices contraseñas reales**):
+
+| Rol | Correo | Contraseña | Se crea en |
+|---|---|---|---|
+| Administrador | admin@prueba.local | Prueba-Admin-2026 | Asistente inicial, paso 1 |
+| Empleado | empleado@prueba.local | Prueba-Empleado-2026 | Usuarios → Nuevo usuario |
+| Cajero | cajero@prueba.local | Prueba-Cajero-2026 | Usuarios → Nuevo usuario |
+
+- Con los datos reales del sistema anterior (sección 3), **estas cuentas desaparecen**: al importar se reemplazan los usuarios y
+  entras con el usuario y la contraseña que ya usabas en el sistema anterior.
+- El servidor de pruebas que uso yo para revisar pantallas es temporal y se borra al terminar; no sirve para tus pruebas.
+
+---
+
 ## 1. Instalación
 
 - [ ] El instalador abre (Windows avisa «editor desconocido»: **Más información → Ejecutar de todos modos**).
