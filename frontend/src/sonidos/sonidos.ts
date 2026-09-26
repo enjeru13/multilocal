@@ -8,7 +8,7 @@ export type EventoSonido = "escaneo" | "cobro" | "error" | "alerta" | "listo";
 
 export const EVENTOS_SONIDO: { id: EventoSonido; titulo: string; detalle: string }[] = [
   { id: "cobro", titulo: "Cobro registrado", detalle: "Campanita cuando se registra un pago." },
-  { id: "error", titulo: "Errores y avisos", detalle: "Tono grave cuando algo no se puede hacer (sin stock, caja cerrada…)." },
+  { id: "error", titulo: "Errores y avisos", detalle: "Zumbido cuando algo no se puede hacer (sin stock, caja cerrada…)." },
   { id: "escaneo", titulo: "Producto agregado", detalle: "Pitido corto al escanear o agregar un producto a la venta." },
   { id: "alerta", titulo: "Presupuestos por atender", detalle: "Aviso suave al abrir el sistema y cuando aparece un presupuesto vencido o por vencer." },
   { id: "listo", titulo: "Orden lista", detalle: "Timbre cuando una orden pasa a «Lista» en el tablero." },
@@ -126,10 +126,13 @@ const MELODIAS: Record<EventoSonido, Nota[]> = {
     { en: 0.11, freq: 1320, dur: 0.32, tipo: "sine", vol: 0.8 },
     { en: 0.11, freq: 2640, dur: 0.2, tipo: "sine", vol: 0.15 },
   ],
-  // Grave y corto, con una caída.
+  // Zumbido descendente. Las bocinas de laptop casi no reproducen por debajo de ~300 Hz, así que se usa
+  // una onda con armónicos (diente de sierra) y un sobretono: se oye claro aunque el volumen sea medio.
   error: [
-    { en: 0, freq: 200, hasta: 140, dur: 0.22, tipo: "triangle", vol: 0.9 },
-    { en: 0.16, freq: 170, hasta: 120, dur: 0.24, tipo: "triangle", vol: 0.9 },
+    { en: 0, freq: 392, hasta: 294, dur: 0.2, tipo: "sawtooth", vol: 0.55 },
+    { en: 0, freq: 784, hasta: 588, dur: 0.2, tipo: "sine", vol: 0.5 },
+    { en: 0.19, freq: 330, hasta: 220, dur: 0.28, tipo: "sawtooth", vol: 0.55 },
+    { en: 0.19, freq: 660, hasta: 440, dur: 0.28, tipo: "sine", vol: 0.5 },
   ],
   // Tres notas suaves.
   alerta: [
@@ -156,8 +159,8 @@ export function reproducir(evento: EventoSonido, opciones: { forzar?: boolean } 
   if (!c) return;
   try {
     const salida = c.createGain();
-    // El volumen se aplica con curva cuadrática: el oído distingue mejor los pasos bajos.
-    salida.gain.value = actual.volumen * actual.volumen * 0.5;
+    // Curva suave (potencia 1,5): los pasos bajos del control siguen siendo audibles.
+    salida.gain.value = Math.pow(actual.volumen, 1.5) * 0.9;
     salida.connect(c.destination);
     const t0 = c.currentTime + 0.01;
     for (const n of MELODIAS[evento]) {

@@ -209,6 +209,9 @@ function crearVentana() {
   return win;
 }
 
+// Los sonidos (avisos al abrir, errores) deben poder sonar aunque todavía no se haya tocado la ventana.
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+
 app.whenReady().then(async () => {
   if (!isDev && !app.requestSingleInstanceLock()) {
     app.quit();
