@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { ServicioSchema } from "../schemas/servicio.schema";
 import prisma from "../lib/prisma";
 import { z } from "zod";
+import { aplicarImportacion, simularImportacion } from "../lib/importarProductos";
 
 // El costo es información del negocio: el cajero no lo ve.
 const ocultarCosto = <T extends { costoBase: number | null }>(s: T, role?: string): T =>
@@ -253,3 +254,59 @@ export async function ajustarPrecios(req: Request, res: Response) {
     return res.status(500).json({ message: "Error al ajustar los precios" });
   }
 }
+
+// --- Importación masiva desde una hoja de cálculo ---
+
+const celdaSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]).optional();
+const ImportarSchema = z.object({
+  moneda: z.enum(["USD", "VES", "COP"]).optional(),
+  simular: z.boolean().default(true),
+  filas: z
+    .array(
+      z.object({
+        fila: z.number().int().positive(),
+        nombre: celdaSchema,
+        sku: celdaSchema,
+        codigoBarras: celdaSchema,
+        precio: celdaSchema,
+        costo: celdaSchema,
+        stock: celdaSchema,
+        stockMinimo: celdaSchema,
+        categoria: celdaSchema,
+        unidad: celdaSchema,
+        exento: celdaSchema,
+        descripcion: celdaSchema,
+      })
+    )
+    .min(1, "El archivo no tiene filas para importar."),
+});
+
+// POST /api/servicios/importar — con simular=true solo muestra qué pasaría; con false lo aplica.
+export async function importarServicios(req: Request, res: Response) {
+  const r = ImportarSchema.safeParse(req.body);
+  if (!r.success) return res.status(400).json({ message: r.error.issues[0]?.message ?? "Datos inválidos.", detalles: r.error.format() });
+  try {
+    const config = await prisma.configuracion.findFirst();
+    const principal = normalizarMonedaServidor(config?.monedaPrincipal);
+    const opciones = {
+      moneda: r.data.moneda ?? principal,
+      principal,
+      tasas: { USD: 1, VES: config?.tasaVES ?? null, COP: config?.tasaCOP ?? null },
+      moduloInventario: !!config?.moduloInventario,
+    };
+    const resultado = r.data.simular
+      ? await simularImportacion(r.data.filas, opciones)
+      : await aplicarImportacion(r.data.filas, opciones, req.user?.id ?? null);
+    if ("sinTasa" in resultado) {
+      return res.status(400).json({ message: `Falta la tasa de ${opciones.moneda} en Configuración para convertir los precios a ${principal}.` });
+    }
+    return res.json(resultado);
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status) return res.status(status).json({ message: (error as Error).message });
+    console.error("Error al importar productos:", error);
+    return res.status(500).json({ message: "No se pudo importar el archivo. No se guardó nada." });
+  }
+}
+
+const normalizarMonedaServidor = (m: string | null | undefined): "USD" | "VES" | "COP" => (m === "VES" || m === "COP" ? m : "USD");

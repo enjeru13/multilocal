@@ -6,6 +6,7 @@ import {
   updateServicio,
   deleteServicio,
   ajustarPrecios,
+  importarServicios,
 } from "../controllers/servicioController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
@@ -26,6 +27,7 @@ router.get(
 );
 router.post("/", protect, authorizeRoles([Role.ADMIN]), createServicio);
 router.post("/ajuste-precios", protect, authorizeRoles([Role.ADMIN]), ajustarPrecios);
+router.post("/importar", protect, authorizeRoles([Role.ADMIN]), importarServicios);
 router.put("/:id", protect, authorizeRoles([Role.ADMIN]), updateServicio);
 router.delete("/:id", protect, authorizeRoles([Role.ADMIN]), deleteServicio);
 

@@ -30,7 +30,7 @@ export function construirLibroVentasCsv(d: LibroVentas): string {
 }
 
 export function exportarLibroVentasCsv(d: LibroVentas) {
-  const blob = new Blob(["﻿" + construirLibroVentasCsv(d)], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF" + construirLibroVentasCsv(d)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

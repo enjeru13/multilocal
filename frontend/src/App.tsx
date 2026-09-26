@@ -23,6 +23,7 @@ import PantallaEditarOrden from "./pages/PantallaEditarOrden";
 import PantallaInventario from "./pages/PantallaInventario";
 import PantallaProveedores from "./pages/PantallaProveedores";
 import PantallaCaja from "./pages/PantallaCaja";
+import PantallaImportarProductos from "./pages/PantallaImportarProductos";
 import PantallaPresupuestos from "./pages/PantallaPresupuestos";
 import PantallaPresupuesto from "./pages/PantallaPresupuesto";
 import PantallaVenta from "./pages/PantallaVenta";
@@ -91,6 +92,14 @@ function App() {
               element={
                 <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
                   <PantallaServicios />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="servicios/importar"
+              element={
+                <ProtectedRoute roles={["ADMIN"]}>
+                  <PantallaImportarProductos />
                 </ProtectedRoute>
               }
             />

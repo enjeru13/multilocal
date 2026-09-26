@@ -9,7 +9,42 @@ export interface ServicioConCategoria extends Servicio {
   categoria: Categoria;
 }
 
+export interface FilaImportacion {
+  fila: number;
+  nombre?: string | number | boolean | null;
+  sku?: string | number | boolean | null;
+  codigoBarras?: string | number | boolean | null;
+  precio?: string | number | boolean | null;
+  costo?: string | number | boolean | null;
+  stock?: string | number | boolean | null;
+  stockMinimo?: string | number | boolean | null;
+  categoria?: string | number | boolean | null;
+  unidad?: string | number | boolean | null;
+  exento?: string | number | boolean | null;
+  descripcion?: string | number | boolean | null;
+}
+
+export interface FilaImportada {
+  fila: number;
+  accion: "CREAR" | "ACTUALIZAR" | "ERROR";
+  nombre: string;
+  errores: string[];
+  avisos: string[];
+  coincide?: { id: number; nombre: string; por: "código" | "código de barras" | "nombre" };
+  cambios?: string[];
+}
+
+export interface ResultadoImportacion {
+  resumen: { total: number; crear: number; actualizar: number; sinCambios: number; errores: number };
+  filas: FilaImportada[];
+  aplicado: boolean;
+}
+
 export const servicioService = {
+  /** Con simular=true solo revisa el archivo; con false lo guarda. */
+  importar: (filas: FilaImportacion[], moneda: string, simular: boolean): Promise<{ data: ResultadoImportacion }> =>
+    apiClient.post("/servicios/importar", { filas, moneda, simular }),
+
   /**
    * @returns
    */

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { toast } from "react-toastify";
-import { FaPlus, FaTags, FaSearch, FaPercent } from "react-icons/fa";
+import { FaPlus, FaTags, FaSearch, FaPercent, FaFileExcel } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import TablaServicios from "../components/tabla/TablaServicios";
 import FormularioServicio from "../components/formulario/FormularioServicio";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
@@ -25,6 +26,7 @@ import Button from "../components/ui/Button"; // 1. Importamos el Button
 
 export default function PantallaServicios() {
   const et = useEtiquetas();
+  const navigate = useNavigate();
   const { config } = useConfiguracion();
   const inventario = !!config?.moduloInventario;
   const [servicios, setServicios] = useState<Servicio[]>([]);
@@ -229,6 +231,12 @@ export default function PantallaServicios() {
           >
             Gestionar Categorías
           </Button>
+
+          {hasRole(["ADMIN"]) && (
+            <Button onClick={() => navigate("/servicios/importar")} variant="secondary" leftIcon={<FaFileExcel className="w-4 h-4" />}>
+              Importar desde Excel
+            </Button>
+          )}
 
           {hasRole(["ADMIN"]) && (
             <Button onClick={() => setMostrarAjustePrecios(true)} variant="secondary" leftIcon={<FaPercent className="w-4 h-4" />}>

@@ -43,7 +43,7 @@ export function createApp() {
   // Interfaz y API salen del mismo servidor: en la nube no se abre CORS a otros orígenes.
   if (!enNube) app.use(cors());
   if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
-  app.use(express.json());
+  app.use(express.json({ limit: "10mb" })); // las importaciones de catálogo llevan miles de filas
 
   // App instalada: el mismo servidor entrega la interfaz (y así no hay orígenes distintos).
   const carpetaWeb = process.env.FRONTEND_DIR;
