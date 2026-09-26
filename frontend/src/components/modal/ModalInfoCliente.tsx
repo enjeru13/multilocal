@@ -1,14 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { FaUser, FaBuilding, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaFileSignature, FaPlus } from "react-icons/fa";
-import type { Cliente, Presupuesto } from "@lavanderia/shared/types/types";
+import { toast } from "react-toastify";
+import { FaUser, FaBuilding, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaFileSignature, FaPlus, FaWhatsapp, FaCopy, FaMoneyBillWave } from "react-icons/fa";
+import type { Cliente, CuentaPorCobrarCliente, Presupuesto } from "@lavanderia/shared/types/types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import { ModalEncabezado, ModalPie } from "../ui/Formulario";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { useAuth } from "../../hooks/useAuth";
 import { presupuestosService } from "../../services/presupuestosService";
+import { reportesService } from "../../services/reportesService";
+import { useMonedas } from "../../context/useMonedas";
+import { enlaceEstadoCuenta, textoEstadoCuenta } from "../../utils/estadoCuenta";
 import { formatearMoneda, normalizarMoneda } from "../../utils/monedaHelpers";
 import EtiquetaEstado from "../presupuesto/EtiquetaEstado";
 
@@ -29,6 +33,8 @@ function Dato({ icono, etiqueta, children }: { icono: ReactNode; etiqueta: strin
   );
 }
 
+const nombreDe = (c: Cliente) => [c.nombre, c.apellido].filter(Boolean).join(" ") || "cliente";
+
 export default function ModalInfoCliente({ cliente, onClose }: Props) {
   const et = useEtiquetas();
   const navigate = useNavigate();
@@ -37,6 +43,32 @@ export default function ModalInfoCliente({ cliente, onClose }: Props) {
   const verPresupuestos = !!config?.moduloPresupuestos && hasRole(["ADMIN", "EMPLOYEE"]);
   const moneda = normalizarMoneda(config?.monedaPrincipal ?? "USD");
   const [presupuestos, setPresupuestos] = useState<Presupuesto[] | null>(null);
+
+  // Lo que debe este cliente: se pide el reporte de cuentas por cobrar y se toma su parte.
+  const negocioMonedas = useMonedas();
+  const verCuenta = hasRole(["ADMIN", "EMPLOYEE"]);
+  const [cuenta, setCuenta] = useState<CuentaPorCobrarCliente | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!verCuenta) return;
+    reportesService
+      .porCobrar()
+      .then((r) => setCuenta(r.data.clientes.find((c) => c.clienteId === cliente.id) ?? null))
+      .catch(() => setCuenta(null));
+  }, [verCuenta, cliente.id]);
+
+  const opcionesCuenta = { negocio: config?.nombreNegocio || "nuestro negocio", moneda: negocioMonedas.principal, otras: negocioMonedas.otrasUsables, tasas: negocioMonedas.tasas, documento: et.ordenMin };
+  const conCuenta = cuenta ? { ...cuenta, nombre: nombreDe(cliente) } : null;
+  const enlaceCuenta = conCuenta ? enlaceEstadoCuenta(conCuenta, cliente.telefono, opcionesCuenta) : null;
+  const copiarCuenta = async () => {
+    if (!conCuenta) return;
+    try {
+      await navigator.clipboard.writeText(textoEstadoCuenta(conCuenta, opcionesCuenta));
+      toast.success("Estado de cuenta copiado.");
+    } catch {
+      toast.error("No se pudo copiar el texto.");
+    }
+  };
 
   useEffect(() => {
     if (!verPresupuestos) return;
@@ -77,6 +109,35 @@ export default function ModalInfoCliente({ cliente, onClose }: Props) {
         <Dato icono={<FaMapMarkerAlt />} etiqueta="Dirección">
           {cliente.direccion || vacio}
         </Dato>
+
+        {verCuenta && cuenta !== undefined && (
+          <div className="py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-2">
+              <FaMoneyBillWave /> Cuenta
+            </p>
+            {conCuenta ? (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-2.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-amber-900 dark:text-amber-200">
+                    Debe en {conCuenta.ordenes.length} {conCuenta.ordenes.length === 1 ? et.ordenMin : et.ordenesMin}
+                    {conCuenta.masAntigua > 0 && <span className="text-xs opacity-80"> · la más antigua, {conCuenta.masAntigua} días</span>}
+                  </span>
+                  <strong className="text-lg tabular-nums text-amber-900 dark:text-amber-100">{formatearMoneda(conCuenta.monto, negocioMonedas.principal)}</strong>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="whatsapp" size="sm" leftIcon={<FaWhatsapp />} disabled={!enlaceCuenta} title={enlaceCuenta ? undefined : "Falta un teléfono válido"} onClick={() => enlaceCuenta && window.open(enlaceCuenta, "_blank", "noopener")}>
+                    Enviar estado de cuenta
+                  </Button>
+                  <Button variant="secondary" size="sm" leftIcon={<FaCopy />} onClick={copiarCuenta}>
+                    Copiar texto
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">Está al día: no debe nada.</p>
+            )}
+          </div>
+        )}
 
         {verPresupuestos && (
           <div className="py-3">
