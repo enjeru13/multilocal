@@ -17,6 +17,7 @@ export type NavId =
   | "clientes"
   | "servicios"
   | "inventario"
+  | "conteos"
   | "proveedores"
   | "porPagar"
   | "caja"
@@ -58,7 +59,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     inicio: "/venta",
     secciones: [
       { titulo: "Venta", items: ["vender", "ordenes", "presupuestos", "resumen"] },
-      { titulo: "Productos", items: ["servicios", "inventario", "proveedores", "porPagar", "clientes"] },
+      { titulo: "Productos", items: ["servicios", "inventario", "conteos", "proveedores", "porPagar", "clientes"] },
       { titulo: "Finanzas", items: FINANZAS },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
     ],
@@ -74,7 +75,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     inicio: "/venta",
     secciones: [
       { titulo: "Mostrador", items: ["vender", "presupuestos", "ordenes", "clientes", "resumen"] },
-      { titulo: "Almacén", items: ["servicios", "inventario", "proveedores", "porPagar"] },
+      { titulo: "Almacén", items: ["servicios", "inventario", "conteos", "proveedores", "porPagar"] },
       { titulo: "Finanzas", items: FINANZAS },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
     ],
@@ -104,7 +105,7 @@ export const EXPERIENCIAS: Record<Rubro, Experiencia> = {
     modoVenta: "RECEPCION",
     inicio: "/",
     secciones: [
-      { titulo: "Gestión", items: ["recepcion", "vender", "ordenes", "presupuestos", "clientes", "servicios", "inventario", "proveedores", "porPagar"] },
+      { titulo: "Gestión", items: ["recepcion", "vender", "ordenes", "presupuestos", "clientes", "servicios", "inventario", "conteos", "proveedores", "porPagar"] },
       { titulo: "Finanzas", items: ["caja", "gastos", "reportes", "pagos", "estadoOrdenes"] },
       { titulo: "Sistema", items: ["configuracion", "usuarios", "respaldos"] },
     ],

@@ -22,6 +22,7 @@ import respaldoRouter from "./routes/respaldoRoute";
 import inventarioRouter from "./routes/inventarioRoute";
 import reporteRouter from "./routes/reporteRoute";
 import presupuestoRouter from "./routes/presupuestoRoute";
+import conteoRouter from "./routes/conteoRoute";
 import gastoRouter from "./routes/gastoRoute";
 
 // App 100% local: sin orígenes cloud, CORS abierto solo porque el server
@@ -77,6 +78,7 @@ export function createApp() {
   app.use("/api/inventario", inventarioRouter);
   app.use("/api/reportes", reporteRouter);
   app.use("/api/presupuestos", presupuestoRouter);
+  app.use("/api/conteos", conteoRouter);
   app.use("/api/gastos", gastoRouter);
 
   if (carpetaWeb) {

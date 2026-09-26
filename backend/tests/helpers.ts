@@ -9,6 +9,8 @@ export { prisma };
 
 export async function resetDb() {
   reiniciarLimites();
+  await prisma.conteoDetalle.deleteMany();
+  await prisma.conteoInventario.deleteMany();
   await prisma.presupuestoDetalle.deleteMany();
   await prisma.presupuesto.deleteMany();
   await prisma.pagoCompra.deleteMany();

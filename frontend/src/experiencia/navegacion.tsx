@@ -19,6 +19,7 @@ import {
   FaPlusCircle,
   FaColumns,
   FaFileSignature,
+  FaClipboardCheck,
 } from "react-icons/fa";
 import type { Configuracion, Role } from "@lavanderia/shared/types/types";
 import { ATAJO_BASE, experienciaDe, type Experiencia, type NavId } from "./experiencias";
@@ -56,6 +57,7 @@ const CATALOGO: Record<NavId, Def> = {
   clientes: { to: "/clientes", icon: <FaUsers />, roles: TODOS, label: (t) => t("cliente"), descripcion: "Fichas y contacto" },
   servicios: { to: "/servicios", icon: <FaTshirt />, roles: GESTION, label: (t) => t("servicio"), descripcion: "Precios, códigos y costos" },
   inventario: { to: "/inventario", icon: <FaBoxes />, roles: GESTION, label: () => "Inventario", descripcion: "Existencias y movimientos", visible: (c) => !!c?.moduloInventario },
+  conteos: { to: "/conteos", icon: <FaClipboardCheck />, roles: GESTION, label: () => "Conteo físico", descripcion: "Contar el inventario y ajustar diferencias", visible: (c) => !!c?.moduloInventario },
   proveedores: { to: "/proveedores", icon: <FaTruck />, roles: GESTION, label: () => "Proveedores", descripcion: "Compras y reposición", visible: (c) => !!c?.moduloProveedores },
   porPagar: { to: "/por-pagar", icon: <FaFileInvoiceDollar />, roles: GESTION, label: () => "Por pagar", descripcion: "Deudas con proveedores", visible: (c) => !!c?.moduloProveedores },
   caja: { to: "/caja", icon: <FaCashRegister />, roles: TODOS, label: () => "Caja", descripcion: "Apertura, movimientos y cierre", visible: (c) => !!c?.moduloCaja },

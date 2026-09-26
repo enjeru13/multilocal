@@ -71,9 +71,11 @@ describe("presupuestos", () => {
     expect(res.body.detalles[1]).toMatchObject({ servicioId: null, descripcion: "Instalación", exento: false });
     expect(res.body.detalles[0].descripcion).toBe("Aire acondicionado");
     // La validez por defecto sale de la configuración (10 días).
-    const dias = Math.round((new Date(res.body.validoHasta).getTime() - Date.now()) / 86_400_000);
-    expect(dias).toBeGreaterThanOrEqual(9);
-    expect(dias).toBeLessThanOrEqual(10);
+    // (se compara la fecha del calendario: comparar horas falla según la hora del día en que corra la prueba)
+    const esperada = new Date();
+    esperada.setDate(esperada.getDate() + 10);
+    const v = new Date(res.body.validoHasta);
+    expect([v.getFullYear(), v.getMonth(), v.getDate()]).toEqual([esperada.getFullYear(), esperada.getMonth(), esperada.getDate()]);
 
     expect((await prisma.servicio.findUnique({ where: { id: producto } }))!.stockActual).toBe(5);
     expect(await prisma.inventarioMovimiento.count()).toBe(0);

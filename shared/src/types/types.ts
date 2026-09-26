@@ -787,3 +787,51 @@ export interface PresupuestoInput {
   descuento?: DescuentoOrden | null;
   lineas: { servicioId?: number | null; descripcion?: string; cantidad: number; precio: number; exento?: boolean }[];
 }
+
+// ---- Toma de inventario físico ----
+
+export type EstadoConteo = "ABIERTO" | "APLICADO" | "CANCELADO";
+
+export interface ConteoDetalle {
+  id: number;
+  conteoId: number;
+  servicioId: number;
+  contado: number;
+  /** Al aplicar: lo que decía el sistema en ese momento. */
+  esperado: number | null;
+  diferencia: number | null;
+  costoUnit: number | null;
+  servicio: {
+    id: number;
+    nombreServicio: string;
+    sku: string | null;
+    codigoBarras: string | null;
+    stockActual: number;
+    costoBase: number | null;
+    permiteDecimales: boolean;
+    unidadMedida: string;
+  };
+}
+
+export interface ResumenConteo {
+  contados: number;
+  conDiferencia: number;
+  sobrantes: number;
+  faltantes: number;
+  valorSobrante: number;
+  valorFaltante: number;
+}
+
+export interface ConteoInventario {
+  id: number;
+  nombre: string | null;
+  categoriaId: string | null;
+  categoriaNombre?: string | null;
+  estado: EstadoConteo;
+  creadoEn: string;
+  aplicadoEn: string | null;
+  userName: string | null;
+  detalles?: ConteoDetalle[];
+  resumen?: ResumenConteo;
+  _count?: { detalles: number };
+}

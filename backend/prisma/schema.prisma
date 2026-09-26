@@ -73,6 +73,7 @@ model Servicio {
   compraDetalles      CompraDetalle[]
   movimientos         InventarioMovimiento[]
   presupuestoDetalles PresupuestoDetalle[]
+  conteoDetalles      ConteoDetalle[]
 
   @@index([categoriaId], map: "Servicio_categoriaId_fkey")
 }
@@ -533,5 +534,46 @@ model PresupuestoDetalle {
   servicio    Servicio?   @relation(fields: [servicioId], references: [id])
 
   @@index([presupuestoId])
+  @@index([servicioId])
+}
+
+enum EstadoConteo {
+  ABIERTO
+  APLICADO
+  CANCELADO
+}
+
+// Toma de inventario físico: se cuenta lo que hay en los estantes y al aplicar se ajustan las
+// existencias del sistema a lo contado, dejando un movimiento por cada diferencia.
+model ConteoInventario {
+  id          Int          @id @default(autoincrement())
+  nombre      String?
+  // Si se indica, el conteo abarca solo esa categoría.
+  categoriaId String?
+  estado      EstadoConteo @default(ABIERTO)
+  creadoEn    DateTime     @default(now())
+  aplicadoEn  DateTime?
+  userId      Int?
+  userName    String?
+
+  detalles ConteoDetalle[]
+
+  @@index([estado])
+}
+
+model ConteoDetalle {
+  id         Int    @id @default(autoincrement())
+  conteoId   Int
+  servicioId Int
+  contado    Float
+  // Se fijan al aplicar: lo que decía el sistema en ese momento y la diferencia resultante.
+  esperado   Float?
+  diferencia Float?
+  costoUnit  Float?
+
+  conteo   ConteoInventario @relation(fields: [conteoId], references: [id], onDelete: Cascade)
+  servicio Servicio         @relation(fields: [servicioId], references: [id])
+
+  @@unique([conteoId, servicioId])
   @@index([servicioId])
 }
