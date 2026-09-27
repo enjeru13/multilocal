@@ -146,6 +146,17 @@ Restauración: **Respaldos → Importar del sistema anterior** con la copia de `
 - [ ] Cambiar de impresora o de papel: la vista previa y el resultado coinciden.
 - [ ] Reporte de cuentas por cobrar impreso.
 
+### Impresión directa de tickets (solo app de Windows, ej. Xprinter XP-58IIH de 58 mm)
+
+Requisitos: driver de la impresora instalado en Windows (aparece en *Impresoras y escáneres*) y papel de 58 mm.
+- [ ] Cobrar/abrir un recibo → *Ticket* → *Rollo 58 mm*: aparece el selector **Impresora** con las impresoras del equipo.
+- [ ] Elegir la térmica y marcar **Imprimir sin diálogo**.
+- [ ] *Imprimir*: sale el ticket sin ventana de Windows y aparece «Enviado a la impresora.»
+- [ ] El ticket sale completo, sin cortes a los lados y sin páginas en blanco de más.
+- [ ] Apagar la impresora o quitar el cable e imprimir: avisa del error y abre el diálogo normal como respaldo.
+- [ ] Desmarcar «Imprimir sin diálogo»: vuelve a salir el diálogo de Windows.
+- [ ] En el navegador o en el teléfono el selector de impresora no aparece (todo sigue por el diálogo).
+
 ## 9. Clientes
 
 - [ ] Ficha de un cliente **que debe**: muestra el total y desde cuántos días.

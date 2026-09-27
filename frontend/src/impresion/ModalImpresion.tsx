@@ -5,7 +5,10 @@ import { FaPrint } from "react-icons/fa";
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
 import { ModalEncabezado, ModalPie, Segmentado } from "../components/ui/Formulario";
+import { toast } from "react-toastify";
 import { SelectorHoja, SelectorRollo } from "./SelectorPapel";
+import SelectorImpresora from "./SelectorImpresora";
+import { hayImpresionDirecta, imprimirTicketDirecto } from "./escritorio";
 import { HOJAS, MM_A_PX, usePreferenciasImpresion, type Formato } from "./preferencias";
 
 interface Props {
@@ -79,7 +82,25 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
       .hoja-reporte { width: 100% !important; }`;
   }, [formato, prefs.ticketMm, alturaMm, papel.css, horizontal]);
 
-  const imprimir = useReactToPrint({ contentRef: printRef, documentTitle, pageStyle });
+  const imprimirConDialogo = useReactToPrint({ contentRef: printRef, documentTitle, pageStyle });
+
+  // Ticket con impresión directa (versión de escritorio): sale sin diálogo. Si falla, se ofrece el diálogo de siempre.
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const imprimir = async () => {
+    const directa = formato === "ticket" && prefs.directa && !!prefs.impresoraTicket && hayImpresionDirecta();
+    if (!directa || !printRef.current) return imprimirConDialogo();
+    setImprimiendo(true);
+    try {
+      const r = await imprimirTicketDirecto(printRef.current, prefs.ticketMm, alturaMm, prefs.impresoraTicket);
+      if (r.ok) toast.success("Enviado a la impresora.");
+      else {
+        toast.error(`No se pudo imprimir directo: ${r.motivo ?? "error desconocido"}. Se abre el diálogo de impresión.`);
+        imprimirConDialogo();
+      }
+    } finally {
+      setImprimiendo(false);
+    }
+  };
 
   const escala =
     formato === "hoja"
@@ -122,10 +143,13 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
             />
           </>
         ) : (
-          <div className="flex items-center gap-2 text-[13px] text-gray-600 dark:text-gray-400">
-            Rollo
-            <SelectorRollo />
-          </div>
+          <>
+            <div className="flex items-center gap-2 text-[13px] text-gray-600 dark:text-gray-400">
+              Rollo
+              <SelectorRollo />
+            </div>
+            <SelectorImpresora />
+          </>
         )}
 
         <p className="ml-auto text-xs text-gray-500 dark:text-gray-400 max-w-sm">
@@ -159,7 +183,7 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
         <Button onClick={onClose} variant="secondary">
           Cerrar
         </Button>
-        <Button onClick={() => imprimir()} variant="primary" leftIcon={<FaPrint />} disabled={cargando || !!error}>
+        <Button onClick={() => void imprimir()} variant="primary" leftIcon={<FaPrint />} disabled={cargando || !!error || imprimiendo} isLoading={imprimiendo}>
           Imprimir
         </Button>
       </ModalPie>

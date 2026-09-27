@@ -13,6 +13,10 @@ export interface PreferenciasImpresion {
   ticketMm: number;
   /** Último formato elegido en la vista previa. */
   formato: Formato;
+  /** Versión de escritorio: impresora donde salen los tickets (nombre en Windows; vacío = sin elegir). */
+  impresoraTicket: string;
+  /** Versión de escritorio: mandar el ticket a esa impresora sin abrir el diálogo de impresión. */
+  directa: boolean;
 }
 
 export const HOJAS: Record<Hoja, { etiqueta: string; css: string; ancho: number; alto: number }> = {
@@ -27,7 +31,7 @@ export const TICKET_MIN = 40;
 export const TICKET_MAX = 120;
 
 const CLAVE = "mostrador.impresion";
-const PREDETERMINADAS: PreferenciasImpresion = { hoja: "CARTA", ticketMm: 80, formato: "hoja" };
+const PREDETERMINADAS: PreferenciasImpresion = { hoja: "CARTA", ticketMm: 80, formato: "hoja", impresoraTicket: "", directa: false };
 
 const limitarTicket = (mm: number) => Math.min(TICKET_MAX, Math.max(TICKET_MIN, Math.round(mm)));
 
@@ -40,6 +44,8 @@ function leer(): PreferenciasImpresion {
       hoja: p.hoja && p.hoja in HOJAS ? p.hoja : PREDETERMINADAS.hoja,
       ticketMm: typeof p.ticketMm === "number" ? limitarTicket(p.ticketMm) : PREDETERMINADAS.ticketMm,
       formato: p.formato === "ticket" ? "ticket" : "hoja",
+      impresoraTicket: typeof p.impresoraTicket === "string" ? p.impresoraTicket : "",
+      directa: p.directa === true,
     };
   } catch {
     return PREDETERMINADAS;

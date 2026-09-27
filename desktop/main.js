@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Menu, dialog, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, shell, ipcMain } = require("electron");
+const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
@@ -208,6 +209,54 @@ function crearVentana() {
   }
   return win;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Impresión directa de tickets (sin el diálogo de impresión de Windows)
+// ---------------------------------------------------------------------------------------------
+
+ipcMain.handle("impresoras:listar", async (evento) => {
+  try {
+    const lista = await evento.sender.getPrintersAsync();
+    return lista.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault }));
+  } catch {
+    return [];
+  }
+});
+
+// El ticket llega como un documento HTML completo (con sus estilos). Se dibuja en una ventana oculta y
+// se manda a la impresora elegida con el tamaño exacto del papel, sin márgenes.
+ipcMain.handle("impresion:ticket", async (_evento, datos) => {
+  const { html, anchoMm, altoMm, impresora } = datos || {};
+  if (typeof html !== "string" || !html || !(anchoMm > 0) || !(altoMm > 0)) return { ok: false, motivo: "Datos de impresión no válidos." };
+  if (typeof impresora !== "string" || !impresora) return { ok: false, motivo: "No hay una impresora elegida." };
+
+  const archivo = path.join(os.tmpdir(), `mostrador-ticket-${Date.now()}.html`);
+  let ventanaTicket = null;
+  try {
+    fs.writeFileSync(archivo, html, "utf8");
+    ventanaTicket = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false } });
+    await ventanaTicket.loadFile(archivo);
+    // Deja que termine de pintar (tipografías del sistema, ajuste de líneas) antes de imprimir.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return await new Promise((resolve) => {
+      ventanaTicket.webContents.print(
+        {
+          silent: true,
+          deviceName: impresora,
+          printBackground: true,
+          margins: { marginType: "none" },
+          pageSize: { width: Math.round(anchoMm * 1000), height: Math.round(altoMm * 1000) },
+        },
+        (ok, motivo) => resolve(ok ? { ok: true } : { ok: false, motivo: motivo || "La impresora no aceptó el trabajo." })
+      );
+    });
+  } catch (error) {
+    return { ok: false, motivo: error && error.message ? error.message : "No se pudo imprimir." };
+  } finally {
+    if (ventanaTicket && !ventanaTicket.isDestroyed()) ventanaTicket.destroy();
+    fs.promises.unlink(archivo).catch(() => undefined);
+  }
+});
 
 // Los sonidos (avisos al abrir, errores) deben poder sonar aunque todavía no se haya tocado la ventana.
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
