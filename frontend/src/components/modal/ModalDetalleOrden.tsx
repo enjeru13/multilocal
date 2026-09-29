@@ -351,7 +351,8 @@ export default function ModalDetalleOrden({
                 const reembolso = p.monto < 0;
                 const enPrincipal = calcularTotalAbonado([p], tasas, principalSeguro);
                 return (
-                  <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                  <li key={p.id} className="px-4 py-2.5">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       {editingPagoId === p.id ? (
                         <div className="flex items-center gap-1">
@@ -388,6 +389,17 @@ export default function ModalDetalleOrden({
                       <p className={`text-sm font-semibold tabular-nums ${reembolso ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>{formatearMoneda(p.monto, p.moneda)}</p>
                       {p.moneda !== principalSeguro && <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">≈ {formatearMoneda(enPrincipal, principalSeguro)}</p>}
                     </div>
+                  </div>
+                  {(p.vueltos?.length ?? 0) > 0 && (
+                    <ul className="mt-1.5 pl-3 border-l-2 border-amber-200 dark:border-amber-900 space-y-0.5">
+                      {p.vueltos!.map((v) => (
+                        <li key={v.id} className="flex items-center justify-between gap-4 text-xs text-amber-700 dark:text-amber-400">
+                          <span>Vuelto entregado</span>
+                          <span className="font-semibold tabular-nums">{formatearMoneda(v.monto, v.moneda as Moneda)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   </li>
                 );
               })}

@@ -46,7 +46,7 @@ describe("tablero de órdenes (lavandería)", () => {
     await estado(entregadaHoy.id, "ENTREGADO");
     const entregadaAyer = await nueva();
     await estado(entregadaAyer.id, "ENTREGADO");
-    await prisma.orden.update({ where: { id: entregadaAyer.id }, data: { fechaEntrega: new Date(Date.now() - 2 * 86_400_000) } });
+    await prisma.orden.update({ where: { id: entregadaAyer.id }, data: { entregadaEn: new Date(Date.now() - 2 * 86_400_000) } });
     const anulada = await nueva();
     await api().patch(`/api/ordenes/${anulada.id}/anular`).set(auth(admin));
 
@@ -66,6 +66,21 @@ describe("tablero de órdenes (lavandería)", () => {
     await api().post("/api/usuarios").set(auth(admin)).send({ email: "caj@test.com", password: "secreto1", name: "Caj", role: "CAJERO" });
     const cajero = (await login("caj@test.com", "secreto1")).body.token;
     expect((await api().get("/api/ordenes/tablero").set(auth(cajero))).status).toBe(200);
+  });
+
+  it("re-entregar (revertir y volver a marcar) refresca cuándo se entregó de verdad", async () => {
+    const o = await nueva();
+    await estado(o.id, "LISTO");
+    await estado(o.id, "ENTREGADO");
+    // Se entregó "hace 3 días" (como si se hubiera revertido tiempo atrás y quedado así).
+    await prisma.orden.update({ where: { id: o.id }, data: { entregadaEn: new Date(Date.now() - 3 * 86_400_000) } });
+    expect((await tablero()).map((x) => x.id)).not.toContain(o.id);
+
+    // Se revierte y se vuelve a entregar hoy: aunque "deliveredByUserId" ya estaba seteado
+    // desde la primera vez, entregadaEn debe refrescarse y volver a aparecer como entregada hoy.
+    await estado(o.id, "LISTO");
+    await estado(o.id, "ENTREGADO");
+    expect((await tablero()).map((x) => x.id)).toContain(o.id);
   });
 
   it("el resumen cuenta las listas por separado", async () => {

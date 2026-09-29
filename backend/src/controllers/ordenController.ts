@@ -193,7 +193,7 @@ export async function getTablero(req: Request, res: Response) {
       where: {
         OR: [
           { estado: { in: ["PENDIENTE", "LISTO"] } },
-          { estado: "ENTREGADO", fechaEntrega: { gte: inicioHoy } },
+          { estado: "ENTREGADO", entregadaEn: { gte: inicioHoy } },
         ],
       },
       include: {
@@ -402,6 +402,9 @@ export async function createOrden(req: AuthRequest, res: Response) {
             : fechaEntrega
             ? dayjs(fechaEntrega).toDate()
             : null,
+          // Cuándo se entregó de verdad (distinto de fechaEntrega, que es la fecha estimada):
+          // lo usa el tablero para "Entregado hoy". Una venta inmediata se entrega al crearse.
+          entregadaEn: entregaInmediata ? new Date() : null,
           ...(entregaInmediata && req.user
             ? {
                 deliveredByUserId: req.user.id,
@@ -504,6 +507,13 @@ export async function updateOrden(req: AuthRequest, res: Response) {
 
       if (fechaEntrega !== undefined) {
         datos.fechaEntrega = fechaEntrega === null ? null : dayjs(fechaEntrega).toDate();
+      }
+
+      // Cuándo se entregó de verdad: se refresca cada vez que entra a ENTREGADO (aunque ya
+      // se hubiera entregado antes y se haya revertido) — es lo que usa el tablero para saber
+      // qué se entregó hoy. Ojo: no confundir con fechaEntrega, que es la fecha estimada.
+      if (estado === "ENTREGADO" && ordenActual.estado !== "ENTREGADO") {
+        datos.entregadaEn = dayjs().toDate();
       }
 
       // Auto-captura de "Entregado por" solo si aún no estaba seteado.

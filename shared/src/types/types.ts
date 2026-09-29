@@ -288,6 +288,8 @@ export interface Orden {
   estado: EstadoOrden;
   fechaIngreso: string;
   fechaEntrega: string | null;
+  /** Cuándo se entregó de verdad (no confundir con fechaEntrega, que es la fecha estimada). */
+  entregadaEn: string | null;
   observaciones: string | null;
   total: number;
   subtotal: number;

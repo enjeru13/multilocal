@@ -90,6 +90,9 @@ model Orden {
   estado              EstadoOrden   @default(PENDIENTE)
   fechaIngreso        DateTime      @default(now())
   fechaEntrega        DateTime?
+  // Cuándo se entregó de verdad (el tablero la usa para "Entregado hoy"); no confundir con
+  // fechaEntrega, que es la fecha estimada/de referencia que se puede cargar antes de entregar.
+  entregadaEn         DateTime?
   observaciones       String?
   total               Float
   // Desglose del cobro. total = subtotal - descuento (+ impuesto si los
