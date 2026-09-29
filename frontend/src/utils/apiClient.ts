@@ -2,6 +2,9 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+/** URL de la foto de un producto (o null si no tiene). */
+export const urlImagenServicio = (imagen: string | null | undefined): string | null => (imagen ? `${API_URL}/archivos/imagenes/${imagen}` : null);
+
 const apiClient = axios.create({
   baseURL: `${API_URL}/api`,
   headers: {

@@ -48,6 +48,9 @@ export const ConfiguracionSchema = z.object({
   telefonoPrincipal: z.string().nullable().optional(),
   telefonoSecundario: z.string().nullable().optional(),
   mensajePieRecibo: z.string().nullable().optional(),
+  correoRemitente: z.string().nullable().optional(),
+  // Vacía o ausente = no se toca la que ya había guardada.
+  correoContrasena: z.string().optional(),
 
   rubro: RubroSchema.optional(),
   moduloInventario: z.boolean().optional(),

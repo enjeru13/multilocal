@@ -125,6 +125,13 @@ Restauración: **Respaldos → Importar del sistema anterior** con la copia de `
 - [ ] Probar también hoja A4 de etiquetas (si tienes).
 - [ ] Un producto sin código sale atenuado y no se puede marcar.
 
+**Foto del producto** (editar un producto ya guardado)
+- [ ] «Subir foto»: aparece en la miniatura del formulario y en la lista del catálogo.
+- [ ] «Cambiar foto»: la nueva reemplaza la anterior (no quedan dos).
+- [ ] «Quitar»: vuelve al ícono de cámara.
+- [ ] Subir un archivo que no sea foto (PDF, etc.): avisa el error, no rompe nada.
+- [ ] Un producto nuevo (sin guardar aún) no deja subir foto todavía.
+
 ## 7. Presupuestos
 
 - [ ] Nuevo presupuesto: cliente registrado, 1 producto del catálogo y 1 línea libre (instalación).
@@ -140,6 +147,9 @@ Restauración: **Respaldos → Importar del sistema anterior** con la copia de `
 
 - [ ] **Recibo en ticket** de 58 mm y de 80 mm: sin cortes, con «Comprobante no fiscal».
 - [ ] Recibo en hoja Carta y en A4.
+- [ ] **Correo** (Configuración → Correo): guardar Gmail + contraseña de aplicación, «Probar correo» llega a esa bandeja.
+- [ ] Recibo de un cliente con correo: botón «Correo» al lado de Imprimir manda el resumen del recibo.
+- [ ] Sin internet: el envío avisa el error en vez de quedarse pensando.
 - [ ] Reportes → *Imprimir → Resumen del periodo* en hoja.
 - [ ] **Libro de ventas** en bolívares: una fila por venta, exento / base imponible / IVA, tasa de cada día y totales.
 - [ ] Libro de ventas → Exportar CSV abre bien en Excel (columnas separadas).

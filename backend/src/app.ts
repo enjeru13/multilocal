@@ -4,6 +4,7 @@ import cors from "cors";
 import morgan from "morgan";
 
 import { protect } from "./middleware/authMiddleware";
+import { imagenesDir } from "./lib/archivos";
 
 // Rutas
 import clienteRouter from "./routes/clienteRoute";
@@ -24,6 +25,7 @@ import reporteRouter from "./routes/reporteRoute";
 import presupuestoRouter from "./routes/presupuestoRoute";
 import conteoRouter from "./routes/conteoRoute";
 import gastoRouter from "./routes/gastoRoute";
+import correoRouter from "./routes/correoRoute";
 
 // App 100% local: sin orígenes cloud, CORS abierto solo porque el server
 // nunca sale de 127.0.0.1 (ver startServer). No hay nada externo que bloquear.
@@ -59,6 +61,10 @@ export function createApp() {
     res.json({ ok: true });
   });
 
+  // Fotos de productos: son solo eso, fotos de catálogo, así que no llevan autenticación (un
+  // <img src> normal no puede mandar el token). El nombre de archivo no revela nada del negocio.
+  app.use("/archivos/imagenes", express.static(imagenesDir()));
+
   app.use("/api/auth", authRoute);
   app.use("/api/categorias", categoriaRouter);
   app.use("/api", protect);
@@ -80,6 +86,7 @@ export function createApp() {
   app.use("/api/presupuestos", presupuestoRouter);
   app.use("/api/conteos", conteoRouter);
   app.use("/api/gastos", gastoRouter);
+  app.use("/api/correo", correoRouter);
 
   if (carpetaWeb) {
     app.use(express.static(carpetaWeb));

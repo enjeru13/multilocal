@@ -15,6 +15,9 @@ build/
 *.db
 *.db-journal
 
+# Fotos de productos subidas en desarrollo
+backend/imagenes/
+
 # Electron packaging output
 desktop/out/
 desktop/dist/

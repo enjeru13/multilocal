@@ -1,4 +1,4 @@
-import { FaPen, FaTrashAlt, FaExclamationTriangle } from "react-icons/fa";
+import { FaPen, FaTrashAlt, FaExclamationTriangle, FaCamera } from "react-icons/fa";
 import { formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import type { Servicio } from "@lavanderia/shared/types/types";
 import { useAuth } from "../../hooks/useAuth";
@@ -6,6 +6,16 @@ import Button from "../ui/Button";
 import TarjetaRegistro from "../ui/TarjetaRegistro";
 import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
 import { estadoStock } from "../../utils/stockHelpers";
+import { urlImagenServicio } from "../../utils/apiClient";
+
+function MiniaturaServicio({ imagen, tamano = "w-9 h-9" }: { imagen: string | null; tamano?: string }) {
+  const url = urlImagenServicio(imagen);
+  return (
+    <div className={`${tamano} shrink-0 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center`}>
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <FaCamera className="text-gray-300 dark:text-gray-700" size={13} />}
+    </div>
+  );
+}
 
 type Props = {
   servicios: Servicio[];
@@ -38,7 +48,12 @@ export default function TablaServicios({ servicios, onEditar, onEliminar, moneda
         return (
           <TarjetaRegistro
             key={s.id}
-            titulo={s.nombreServicio}
+            titulo={
+              <span className="flex items-center gap-2.5">
+                <MiniaturaServicio imagen={s.imagen} />
+                {s.nombreServicio}
+              </span>
+            }
             destacado={<span className="text-indigo-700 dark:text-indigo-400">{formatearMoneda(s.precioBase, monedaPrincipal)}</span>}
             subtitulo={[s.categoria?.nombre || "Sin categoría", inventario ? s.sku || s.codigoBarras : null].filter(Boolean).join(" · ")}
             chips={
@@ -109,12 +124,17 @@ export default function TablaServicios({ servicios, onEditar, onEliminar, moneda
                 className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors duration-150 text-gray-700 dark:text-gray-300"
               >
                 <td className="px-6 py-4">
-                  <div className="text-gray-800 dark:text-gray-100 font-semibold">{s.nombreServicio}</div>
-                  {inventario && (s.sku || s.codigoBarras) && (
-                    <div className="text-xs text-gray-400 font-normal tabular-nums">
-                      {[s.sku, s.codigoBarras].filter(Boolean).join(" · ")}
+                  <div className="flex items-center gap-3">
+                    <MiniaturaServicio imagen={s.imagen} />
+                    <div>
+                      <div className="text-gray-800 dark:text-gray-100 font-semibold">{s.nombreServicio}</div>
+                      {inventario && (s.sku || s.codigoBarras) && (
+                        <div className="text-xs text-gray-400 font-normal tabular-nums">
+                          {[s.sku, s.codigoBarras].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-gray-700 dark:text-gray-400">{s.categoria?.nombre || "Sin Categoría"}</td>
                 <td className="px-6 py-4 text-indigo-700 dark:text-indigo-400 font-extrabold tabular-nums">

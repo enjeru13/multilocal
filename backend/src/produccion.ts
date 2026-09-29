@@ -30,6 +30,7 @@ function main() {
   process.env.NODE_ENV = "production";
   process.env.DATABASE_URL = `file:${dbPath.split(path.sep).join("/")}`;
   process.env.BACKUP_DIR = respaldos;
+  process.env.IMAGENES_DIR = path.join(datos, "imagenes");
 
   // La clave que firma las sesiones se crea una vez y se conserva: al reiniciar no se cierran sesiones.
   const archivoClave = path.join(datos, "clave-sesiones.txt");

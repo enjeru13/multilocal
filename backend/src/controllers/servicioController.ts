@@ -1,9 +1,12 @@
 // backend/src/controllers/servicioController.ts
 import { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import { ServicioSchema } from "../schemas/servicio.schema";
 import prisma from "../lib/prisma";
 import { z } from "zod";
 import { aplicarImportacion, simularImportacion } from "../lib/importarProductos";
+import { imagenesDir, borrarImagenServicio } from "../lib/archivos";
 
 // El costo es información del negocio: el cajero no lo ve.
 const ocultarCosto = <T extends { costoBase: number | null }>(s: T, role?: string): T =>
@@ -310,3 +313,60 @@ export async function importarServicios(req: Request, res: Response) {
 }
 
 const normalizarMonedaServidor = (m: string | null | undefined): "USD" | "VES" | "COP" => (m === "VES" || m === "COP" ? m : "USD");
+
+// --- Foto del producto ---
+
+const EXTENSION_POR_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+// POST /api/servicios/:id/imagen (multipart, campo "imagen")
+export async function subirImagenServicio(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  const archivo = req.file;
+  if (!archivo) return res.status(400).json({ message: "No se recibió ninguna imagen." });
+
+  const ext = EXTENSION_POR_MIME[archivo.mimetype];
+  if (!ext) return res.status(400).json({ message: "Formato no soportado. Usa una foto JPG, PNG o WEBP." });
+
+  try {
+    const existente = await prisma.servicio.findUnique({ where: { id } });
+    if (!existente) return res.status(404).json({ message: "Servicio no encontrado" });
+
+    borrarImagenServicio(id); // por si ya tenía una foto con otra extensión
+    const nombre = `servicio-${id}.${ext}`;
+    fs.writeFileSync(path.join(imagenesDir(), nombre), archivo.buffer);
+
+    const actualizado = await prisma.servicio.update({
+      where: { id },
+      data: { imagen: nombre },
+      include: { categoria: true },
+    });
+    return res.json(ocultarCosto(actualizado, req.user?.role));
+  } catch (error) {
+    console.error("Error al subir la imagen del servicio:", error);
+    return res.status(500).json({ message: "No se pudo guardar la imagen." });
+  }
+}
+
+// DELETE /api/servicios/:id/imagen
+export async function eliminarImagenServicio(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  try {
+    const existente = await prisma.servicio.findUnique({ where: { id } });
+    if (!existente) return res.status(404).json({ message: "Servicio no encontrado" });
+
+    borrarImagenServicio(id);
+    const actualizado = await prisma.servicio.update({
+      where: { id },
+      data: { imagen: null },
+      include: { categoria: true },
+    });
+    return res.json(ocultarCosto(actualizado, req.user?.role));
+  } catch (error) {
+    console.error("Error al eliminar la imagen del servicio:", error);
+    return res.status(500).json({ message: "No se pudo eliminar la imagen." });
+  }
+}

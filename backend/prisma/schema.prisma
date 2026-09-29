@@ -64,6 +64,8 @@ model Servicio {
   costoBase     Float?
   stockActual   Float   @default(0)
   stockMinimo   Float?
+  // Nombre del archivo en la carpeta de imágenes (no la ruta completa); null = sin foto.
+  imagen        String?
 
   // Productos sin IVA (p. ej. alimentos básicos) aunque el negocio cobre impuesto.
   exentoImpuesto Boolean @default(false)
@@ -188,6 +190,11 @@ model Configuracion {
   telefonoPrincipal  String?
   telefonoSecundario String?
   mensajePieRecibo   String?
+
+  // Envío de recibos por correo (Gmail con contraseña de aplicación, no la contraseña normal
+  // de la cuenta). Se guardan tal cual, como el resto de la configuración local del negocio.
+  correoRemitente  String?
+  correoContrasena String?
 
   rubro              Rubro            @default(GENERICO)
   moduloInventario   Boolean          @default(false)

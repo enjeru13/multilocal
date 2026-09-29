@@ -21,7 +21,9 @@ function serializarConfig(config: any, principalBloqueada = false) {
       terminologia = null;
     }
   }
-  return { ...config, terminologia, principalBloqueada };
+  // La contraseña de aplicación no sale nunca del servidor; solo si ya hay una guardada.
+  const { correoContrasena, ...resto } = config;
+  return { ...resto, terminologia, principalBloqueada, correoConfigurado: !!correoContrasena };
 }
 
 export async function getConfiguracion(req: Request, res: Response) {
@@ -63,7 +65,7 @@ export async function updateConfiguracion(req: Request, res: Response) {
     });
   }
 
-  const { terminologia, monedasActivas: activasPedidas, ...data } = result.data;
+  const { terminologia, monedasActivas: activasPedidas, correoContrasena, ...data } = result.data;
 
   try {
     const config = await prisma.configuracion.findFirst();
@@ -93,6 +95,8 @@ export async function updateConfiguracion(req: Request, res: Response) {
         ...(terminologia !== undefined && {
           terminologia: terminologia ? JSON.stringify(terminologia) : null,
         }),
+        // Vacía o ausente: se deja la que ya había. Con texto: se reemplaza.
+        ...(correoContrasena && { correoContrasena }),
       },
     });
 

@@ -25,6 +25,7 @@ export function reciboDeOrden(
       fechaEntrega: orden.fechaEntrega && dayjs(orden.fechaEntrega).isValid() ? dayjs(orden.fechaEntrega).toDate() : null,
       telefono: orden.cliente?.telefono ?? "",
       telefono_secundario: orden.cliente?.telefono_secundario ?? "",
+      email: orden.cliente?.email ?? null,
     },
     items:
       orden.detalles?.map((d) => ({

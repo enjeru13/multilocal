@@ -75,6 +75,8 @@ export interface Servicio {
   stockActual: number;
   stockMinimo: number | null;
   exentoImpuesto: boolean;
+  /** Nombre del archivo de la foto (servir desde /archivos/imagenes/<imagen>); null = sin foto. */
+  imagen: string | null;
 
   detalleOrdenes?: DetalleOrden[];
 }
@@ -417,6 +419,10 @@ export interface Configuracion {
   telefonoPrincipal: string | null;
   telefonoSecundario: string | null;
   mensajePieRecibo: string | null;
+  /** Remitente para mandar recibos por correo (Gmail). */
+  correoRemitente: string | null;
+  /** Solo en lectura: si ya se guardó una contraseña de aplicación (nunca se manda la contraseña real). */
+  correoConfigurado?: boolean;
 
   rubro: Rubro;
   moduloInventario: boolean;
@@ -452,8 +458,10 @@ export interface ConfiguracionCreate {
   mensajePieRecibo?: string | null;
 }
 
-export type ConfiguracionUpdatePayload = Omit<Partial<Configuracion>, "monedasActivas" | "principalBloqueada"> & {
+export type ConfiguracionUpdatePayload = Omit<Partial<Configuracion>, "monedasActivas" | "principalBloqueada" | "correoConfigurado"> & {
   monedasActivas?: Moneda[];
+  /** Vacía o ausente = no se toca; con texto = se reemplaza. Nunca se lee de vuelta. */
+  correoContrasena?: string;
 };
 
 export interface TasasConversion {
@@ -511,6 +519,7 @@ export interface ReciboClienteInfo {
   fechaEntrega?: Date | null;
   telefono: string;
   telefono_secundario?: string | null;
+  email?: string | null;
 }
 
 export interface ReciboLavanderiaInfo {

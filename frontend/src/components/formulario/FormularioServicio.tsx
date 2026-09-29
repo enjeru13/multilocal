@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MdOutlineLocalLaundryService } from "react-icons/md";
+import { FaCamera, FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import type {
   Servicio,
@@ -15,6 +16,8 @@ import { CampoMontoNumero } from "../ui/CampoMonto";
 import { Campo, Seccion, ModalEncabezado, ModalPie, Opcion, campo, campoError } from "../ui/Formulario";
 import { useConfiguracion } from "../../context/configuracionCore";
 import { useEtiquetas } from "../../context/configuracionCore";
+import { urlImagenServicio } from "../../utils/apiClient";
+import { servicioService } from "../../services/serviciosService";
 
 type FormularioServicioProps = {
   servicio?: Servicio;
@@ -54,6 +57,10 @@ export default function FormularioServicio({
   const [stockActual, setStockActual] = useState<number | null>(0);
   const [stockMinimo, setStockMinimo] = useState<number | null>(null);
 
+  const [imagenActual, setImagenActual] = useState<string | null>(null);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const inputImagenRef = useRef<HTMLInputElement>(null);
+
   const [errores, setErrores] = useState<{
     nombre?: string;
     precio?: string;
@@ -75,6 +82,7 @@ export default function FormularioServicio({
       setExentoImpuesto(servicio.exentoImpuesto ?? false);
       setStockActual(servicio.stockActual ?? 0);
       setStockMinimo(servicio.stockMinimo ?? null);
+      setImagenActual(servicio.imagen ?? null);
     } else {
       setNombre("");
       setPrecio(null);
@@ -88,9 +96,49 @@ export default function FormularioServicio({
       setExentoImpuesto(false);
       setStockActual(0);
       setStockMinimo(null);
+      setImagenActual(null);
     }
     setErrores({});
   }, [servicio]);
+
+  const elegirImagen = () => inputImagenRef.current?.click();
+
+  const subirImagen = async (archivo: File) => {
+    if (!servicio?.id) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(archivo.type)) {
+      toast.error("La foto debe ser JPG, PNG o WEBP.");
+      return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      toast.error("La foto pesa demasiado (máximo 5 MB).");
+      return;
+    }
+    setSubiendoImagen(true);
+    try {
+      const { data } = await servicioService.subirImagen(servicio.id, archivo);
+      setImagenActual(data.imagen);
+      toast.success("Foto actualizada.");
+    } catch {
+      toast.error("No se pudo subir la foto.");
+    } finally {
+      setSubiendoImagen(false);
+      if (inputImagenRef.current) inputImagenRef.current.value = "";
+    }
+  };
+
+  const quitarImagen = async () => {
+    if (!servicio?.id) return;
+    setSubiendoImagen(true);
+    try {
+      await servicioService.eliminarImagen(servicio.id);
+      setImagenActual(null);
+      toast.success("Foto eliminada.");
+    } catch {
+      toast.error("No se pudo eliminar la foto.");
+    } finally {
+      setSubiendoImagen(false);
+    }
+  };
 
   const guardar = async () => {
     const nuevosErrores: typeof errores = {};
@@ -178,6 +226,33 @@ export default function FormularioServicio({
       />
 
       <div className="px-4 sm:px-6 py-5 flex-1 overflow-y-auto space-y-6">
+        {servicio?.id ? (
+          <Seccion titulo="Foto">
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center shrink-0">
+                {imagenActual ? (
+                  <img src={urlImagenServicio(imagenActual) ?? undefined} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <FaCamera className="text-gray-400 dark:text-gray-600" size={22} />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input ref={inputImagenRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && subirImagen(e.target.files[0])} />
+                <Button type="button" size="sm" variant="secondary" onClick={elegirImagen} isLoading={subiendoImagen} disabled={subiendoImagen} leftIcon={<FaCamera />}>
+                  {imagenActual ? "Cambiar foto" : "Subir foto"}
+                </Button>
+                {imagenActual && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => void quitarImagen()} disabled={subiendoImagen} leftIcon={<FaTrash />}>
+                    Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Seccion>
+        ) : (
+          <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/40 rounded-lg px-3 py-2">Guarda primero para poder agregarle una foto.</p>
+        )}
+
         <Seccion titulo="Datos básicos">
           <Campo etiqueta={`Nombre del ${et.servicioMin}`} error={errores.nombre}>
             <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className={`${campo} ${conError("nombre")}`} placeholder="Ej. Lavado y secado por kilo" disabled={cargando} autoFocus />

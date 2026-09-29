@@ -82,6 +82,15 @@ export const servicioService = {
    */
   delete: (id: number): Promise<void> => apiClient.delete(`/servicios/${id}`),
 
+  /** Sube la foto del producto (reemplaza la anterior si tenía). */
+  subirImagen: (id: number, archivo: File): Promise<{ data: ServicioConCategoria }> => {
+    const form = new FormData();
+    form.append("imagen", archivo);
+    return apiClient.post(`/servicios/${id}/imagen`, form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
+
+  eliminarImagen: (id: number): Promise<{ data: ServicioConCategoria }> => apiClient.delete(`/servicios/${id}/imagen`),
+
   /** Sube o baja precios en %. Con simular=true solo devuelve qué cambiaría. */
   ajustarPrecios: (datos: {
     porcentaje: number;

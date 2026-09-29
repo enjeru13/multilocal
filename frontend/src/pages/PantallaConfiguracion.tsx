@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint, FaBoxes, FaTruck, FaCashRegister, FaCalendarAlt, FaAddressCard, FaUserCheck, FaFileSignature } from "react-icons/fa";
+import { FaCoins, FaStore, FaSave, FaLayerGroup, FaPercent, FaPrint, FaBoxes, FaTruck, FaCashRegister, FaCalendarAlt, FaAddressCard, FaUserCheck, FaFileSignature, FaEnvelope, FaPaperPlane } from "react-icons/fa";
 import { SelectorHoja, SelectorRollo } from "../impresion/SelectorPapel";
 import { MdSettings } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -11,6 +11,7 @@ import {
   type Moneda,
 } from "../utils/monedaHelpers";
 import { configuracionService } from "../services/configuracionService";
+import { correoService } from "../services/correoService";
 import { useConfiguracion } from "../context/configuracionCore";
 import { RUBRO_PRESETS } from "../constants/rubroPresets";
 import type { Configuracion, Rubro, Terminologia } from "@lavanderia/shared/types/types";
@@ -32,6 +33,10 @@ export default function PantallaConfiguracion() {
   const [telefonoPrincipal, setTelefonoPrincipal] = useState("");
   const [telefonoSecundario, setTelefonoSecundario] = useState("");
   const [mensajePieRecibo, setMensajePieRecibo] = useState("");
+  const [correoRemitente, setCorreoRemitente] = useState("");
+  const [correoContrasena, setCorreoContrasena] = useState("");
+  const [correoConfigurado, setCorreoConfigurado] = useState(false);
+  const [probandoCorreo, setProbandoCorreo] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +78,8 @@ export default function PantallaConfiguracion() {
         setTelefonoPrincipal(config.telefonoPrincipal ?? "");
         setTelefonoSecundario(config.telefonoSecundario ?? "");
         setMensajePieRecibo(config.mensajePieRecibo ?? "");
+        setCorreoRemitente(config.correoRemitente ?? "");
+        setCorreoConfigurado(!!config.correoConfigurado);
 
         const rubroActual = config.rubro ?? "GENERICO";
         setRubro(rubroActual);
@@ -147,6 +154,8 @@ export default function PantallaConfiguracion() {
         telefonoPrincipal: telefonoPrincipal.trim() || null,
         telefonoSecundario: telefonoSecundario.trim() || null,
         mensajePieRecibo: mensajePieRecibo.trim() || null,
+        correoRemitente: correoRemitente.trim() || null,
+        ...(correoContrasena.trim() && { correoContrasena: correoContrasena.trim() }),
         rubro,
         moduloInventario,
         moduloProveedores,
@@ -165,12 +174,43 @@ export default function PantallaConfiguracion() {
         descuentoMaxPct: maxDesc,
       });
       await refetch();
+      if (correoContrasena.trim()) {
+        setCorreoConfigurado(true);
+        setCorreoContrasena("");
+      }
       toast.success("Configuración guardada correctamente.");
     } catch (error) {
       console.error("Error al guardar configuración:", error);
       toast.error("Error al guardar la configuración.");
     } finally {
       setCargando(false);
+    }
+  };
+
+  const probarCorreo = async () => {
+    if (!correoRemitente.trim()) {
+      toast.error("Escribe primero el correo del negocio.");
+      return;
+    }
+    if (!correoConfigurado && !correoContrasena.trim()) {
+      toast.error("Escribe la contraseña de aplicación de Gmail.");
+      return;
+    }
+    setProbandoCorreo(true);
+    try {
+      if (correoContrasena.trim()) await guardarConfiguracion();
+      await correoService.enviar({
+        para: correoRemitente.trim(),
+        asunto: "Prueba de correo · Mostrador",
+        html: "<p>Si ves este correo, el envío desde Mostrador está funcionando.</p>",
+        texto: "Si ves este correo, el envío desde Mostrador está funcionando.",
+      });
+      toast.success(`Correo de prueba enviado a ${correoRemitente.trim()}.`);
+    } catch (error) {
+      const mensaje = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(mensaje || "No se pudo enviar el correo de prueba.");
+    } finally {
+      setProbandoCorreo(false);
     }
   };
 
@@ -278,6 +318,48 @@ export default function PantallaConfiguracion() {
               rows={4}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800/50 space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-3 text-gray-900 dark:text-gray-100">
+            <FaEnvelope size={24} className="text-sky-500 dark:text-sky-400" />
+            Correo
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Para mandar recibos por correo. Usa un Gmail del negocio con una contraseña de aplicación (no la contraseña normal de la cuenta).</p>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Correo remitente (Gmail)</label>
+            <input
+              type="email"
+              value={correoRemitente}
+              onChange={(e) => setCorreoRemitente(e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
+              placeholder="minegocio@gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Contraseña de aplicación</label>
+            <input
+              type="password"
+              value={correoContrasena}
+              onChange={(e) => setCorreoContrasena(e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base dark:text-gray-100 shadow-sm transition duration-200"
+              placeholder={correoConfigurado ? "•••••••••••••• (ya guardada, escribe para cambiarla)" : "Los 16 caracteres que da Google"}
+              autoComplete="new-password"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+              Se genera en la cuenta de Google → Seguridad → Verificación en 2 pasos → Contraseñas de aplicaciones. La cuenta necesita tener activada la verificación en 2 pasos.
+            </p>
+          </div>
+
+          <Button type="button" onClick={() => void probarCorreo()} variant="secondary" leftIcon={<FaPaperPlane />} isLoading={probandoCorreo} disabled={probandoCorreo}>
+            Probar correo
+          </Button>
         </div>
       </section>
 

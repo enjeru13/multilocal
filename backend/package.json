@@ -21,6 +21,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.12",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -28,6 +30,8 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.2.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^7.2.1",
     "node-gyp": "^9.4.1",
     "prisma": "6.19.2",
