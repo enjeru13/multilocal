@@ -73,7 +73,9 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
     const conEntrega = config?.moduloFechaEntrega !== false;
     const moneda = data?.moneda ?? "USD";
     const fmt = (n: number | undefined) => formatearMoneda(n ?? 0, moneda);
-    const tarjetas = 3 + (conEntrega ? 2 : 0) + (data?.porCobrar ? 1 : 0);
+    // Las cifras de dinero (ventas, cobrado, por cobrar) solo llegan del servidor si eres ADMIN.
+    const veDinero = data?.ventasHoy !== undefined;
+    const tarjetas = 1 + (conEntrega ? 2 : 0) + (veDinero ? 2 : 0) + (data?.porCobrar ? 1 : 0);
 
     return (
         <div
@@ -104,20 +106,24 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
                     />
                 </>
             )}
-            <StatCard
-                title="Ventas Hoy"
-                value={fmt(data?.ventasHoy)}
-                icon={FaMoneyBillWave}
-                colorName="indigo"
-                description="Total facturado hoy"
-            />
-            <StatCard
-                title="Cobrado Hoy"
-                value={fmt(data?.cobradoHoy)}
-                icon={FaHandHoldingUsd}
-                colorName="emerald"
-                description="Efectivo/Pago real"
-            />
+            {veDinero && (
+                <>
+                    <StatCard
+                        title="Ventas Hoy"
+                        value={fmt(data?.ventasHoy)}
+                        icon={FaMoneyBillWave}
+                        colorName="indigo"
+                        description="Total facturado hoy"
+                    />
+                    <StatCard
+                        title="Cobrado Hoy"
+                        value={fmt(data?.cobradoHoy)}
+                        icon={FaHandHoldingUsd}
+                        colorName="emerald"
+                        description="Efectivo/Pago real"
+                    />
+                </>
+            )}
             {data?.porCobrar && (
                 <StatCard
                     title="Por cobrar"

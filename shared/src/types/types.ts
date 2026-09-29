@@ -646,9 +646,9 @@ export interface DashboardData {
   pendientes: number;
   listas: number;
   entregadas: number;
-  ventasHoy: number;
-  cobradoHoy: number;
-  // Solo para ADMIN/EMPLOYEE
+  // Cifras de dinero: solo vienen cuando quien pide el dashboard es ADMIN.
+  ventasHoy?: number;
+  cobradoHoy?: number;
   ultimos7?: SerieReportePunto[];
   porCobrar?: PorCobrarResumen;
   porPagar?: PorCobrarResumen;

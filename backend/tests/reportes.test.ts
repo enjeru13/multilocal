@@ -133,13 +133,26 @@ describe("reportes y dashboard", () => {
       expect(res.body.porCobrar).toEqual({ cantidad: 2, monto: 40 });
     });
 
-    it("al cajero le da solo las tarjetas del día", async () => {
+    it("al cajero solo le da lo operativo: nada de dinero", async () => {
       const cajero = (await login("caja@test.com", "secreto1")).body.token;
       const res = await api().get("/api/reportes/dashboard").set(auth(cajero));
       expect(res.status).toBe(200);
-      expect(res.body.ventasHoy).toBe(26);
+      expect(res.body).toMatchObject({ moneda: "USD", totalOrdenes: 3, pendientes: 3 });
+      expect(res.body.ventasHoy).toBeUndefined();
+      expect(res.body.cobradoHoy).toBeUndefined();
       expect(res.body.ultimos7).toBeUndefined();
       expect(res.body.porCobrar).toBeUndefined();
+    });
+
+    it("a un empleado (no admin) tampoco le llega el dinero", async () => {
+      await api().post("/api/usuarios").set(auth(token)).send({ email: "empleado@test.com", password: "secreto1", name: "Empleado", role: "EMPLOYEE" });
+      const empleado = (await login("empleado@test.com", "secreto1")).body.token;
+      const res = await api().get("/api/reportes/dashboard").set(auth(empleado));
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ moneda: "USD", totalOrdenes: 3, pendientes: 3 });
+      expect(res.body.ventasHoy).toBeUndefined();
+      expect(res.body.porCobrar).toBeUndefined();
+      expect(res.body.ultimos7).toBeUndefined();
     });
 
     it("avisa del stock bajo", async () => {

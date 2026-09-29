@@ -194,8 +194,9 @@ export async function getResumen(req: Request, res: Response) {
   }
 }
 
-// GET /api/reportes/dashboard — tarjetas del inicio (todos los roles) más
-// tendencia y alertas para quien administra.
+// GET /api/reportes/dashboard — tarjetas del inicio. Lo operativo (cuántas órdenes hay) lo ve
+// cualquier rol; las cifras de dinero (ventas, cobrado, por cobrar, tendencia, alertas) son solo
+// para ADMIN: un empleado o cajero no debería ver cuánto entra la caja en el día.
 export async function getDashboard(req: Request, res: Response) {
   try {
     const { principal, tasas } = await cargarContexto();
@@ -210,17 +211,22 @@ export async function getDashboard(req: Request, res: Response) {
     const cuenta = (estado: string) => porEstado.find((e) => e.estado === estado)?._count ?? 0;
     const vigentes = porEstado.filter((e) => e.estado !== "CANCELADO").reduce((s, e) => s + e._count, 0);
 
+    // Lo operativo (cuántas órdenes hay y en qué estado) lo ve cualquiera que use el sistema.
     const base = {
       moneda: principal,
       totalOrdenes: vigentes,
       pendientes: cuenta("PENDIENTE"),
       listas: cuenta("LISTO"),
       entregadas: cuenta("ENTREGADO"),
+    };
+
+    // El dinero (ventas, cobrado, por cobrar, tendencia) es solo para quien administra el negocio.
+    if (req.user?.role !== "ADMIN") return res.json(base);
+
+    const financiero = {
       ventasHoy: resumirVentas(hoy.ordenes).total,
       cobradoHoy: resumirCobros(hoy.pagos, tasas, principal).total,
     };
-
-    if (req.user?.role === "CAJERO") return res.json(base);
 
     const desde7 = new Date(inicioHoy);
     desde7.setDate(desde7.getDate() - 6);
@@ -235,6 +241,7 @@ export async function getDashboard(req: Request, res: Response) {
 
     return res.json({
       ...base,
+      ...financiero,
       ultimos7: serieTemporal(semana.ordenes, semana.pagos, desde7, finHoy, "dia", tasas, principal),
       porCobrar: sinCobrar,
       porPagar: sinPagar,

@@ -23,14 +23,16 @@ export default function PanelMonedas({ data }: { data: DashboardData | null }) {
   const esAdmin = hasRole(["ADMIN"]);
   const sinTasa = pares.filter((p) => p.tasa === null);
 
-  const hoy = data
-    ? activas.map((m) => ({
-        moneda: m,
-        ventas: convertirDesdePrincipal(data.ventasHoy, m, tasas, principal),
-        cobrado: convertirDesdePrincipal(data.cobradoHoy, m, tasas, principal),
-        ok: negocio.disponible(m),
-      }))
-    : [];
+  // Lo vendido/cobrado hoy es dinero: el servidor solo lo manda si eres ADMIN.
+  const hoy =
+    data && data.ventasHoy !== undefined && data.cobradoHoy !== undefined
+      ? activas.map((m) => ({
+          moneda: m,
+          ventas: convertirDesdePrincipal(data.ventasHoy as number, m, tasas, principal),
+          cobrado: convertirDesdePrincipal(data.cobradoHoy as number, m, tasas, principal),
+          ok: negocio.disponible(m),
+        }))
+      : [];
 
   return (
     <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-5 mb-8">
