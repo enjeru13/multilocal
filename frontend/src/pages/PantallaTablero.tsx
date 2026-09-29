@@ -157,43 +157,45 @@ export default function PantallaTablero() {
 
   return (
     <div className="p-4 sm:p-6 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <FaColumns className="text-blue-600" /> Tablero
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400">Arrastra las tarjetas o usa los botones para avanzar cada {et.ordenMin}.</p>
+      <header className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
+              <FaColumns className="text-blue-600" /> Tablero
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 max-sm:text-sm">Arrastra las tarjetas o usa los botones para avanzar cada {et.ordenMin}.</p>
+          </div>
+          <button type="button" onClick={cargar} title="Actualizar" aria-label="Actualizar" className="shrink-0 p-2 text-gray-400 hover:text-blue-600 cursor-pointer">
+            <FaSyncAlt />
+          </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 max-sm:w-full">
-          <form onSubmit={rapida} className="flex items-center gap-2 max-sm:w-full">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+          <form onSubmit={rapida} className="flex items-center gap-2">
             <input
               ref={inputRapido}
               value={entregaRapida}
               onChange={(e) => setEntregaRapida(e.target.value)}
               placeholder={`N° de ${et.ordenMin} para entregar`}
               inputMode="numeric"
-              className="w-52 max-sm:flex-1 max-sm:w-auto px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+              className="flex-1 sm:w-52 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
               aria-label="Entrega rápida por número"
             />
-            <Kbd combo="F2" className="text-gray-400" />
+            <Kbd combo="F2" className="text-gray-400 max-sm:hidden" />
           </form>
-          <div className="relative max-sm:w-full">
+          <div className="relative">
             <FaSearch className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400" size={12} />
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder={`Buscar ${et.clienteMin} o prenda`}
-              className="pl-8 pr-3 py-2 w-56 max-sm:w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+              className="pl-8 pr-3 py-2 w-full sm:w-56 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
             <input type="checkbox" checked={soloVencidas} onChange={(e) => setSoloVencidas(e.target.checked)} className="accent-red-600 w-4 h-4" />
             Solo vencidas
           </label>
-          <button type="button" onClick={cargar} title="Actualizar" className="p-2 text-gray-400 hover:text-blue-600 cursor-pointer">
-            <FaSyncAlt />
-          </button>
         </div>
       </header>
 

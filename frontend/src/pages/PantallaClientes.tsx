@@ -184,10 +184,10 @@ export default function PantallaClientes() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{et.clientes}</h1>
 
-        <div className="flex gap-3 flex-wrap justify-end">
+        <div className="flex gap-3 flex-wrap">
           {hasRole(["ADMIN", "EMPLOYEE"]) && (
             <Button onClick={exportar} variant="secondary" leftIcon={<FaDownload className="w-4 h-4" />} disabled={clientes.length === 0}>
               Exportar a Excel

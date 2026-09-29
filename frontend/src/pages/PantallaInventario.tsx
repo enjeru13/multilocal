@@ -114,7 +114,7 @@ export default function PantallaInventario() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Inventario</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

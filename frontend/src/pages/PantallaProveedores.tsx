@@ -94,7 +94,7 @@ export default function PantallaProveedores() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Proveedores</h1>
         <Button
           onClick={() => {
