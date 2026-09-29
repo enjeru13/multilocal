@@ -176,7 +176,7 @@ function App() {
             <Route
               path="gastos"
               element={
-                <ProtectedRoute roles={["ADMIN", "EMPLOYEE"]}>
+                <ProtectedRoute roles={["ADMIN"]}>
                   <PantallaGastos />
                 </ProtectedRoute>
               }

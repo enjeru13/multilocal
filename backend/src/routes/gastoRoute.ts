@@ -5,8 +5,9 @@ import { Role } from "@prisma/client";
 
 const router = Router();
 
-router.get("/", protect, authorizeRoles([Role.ADMIN, Role.EMPLOYEE]), listarGastos);
-router.post("/", protect, authorizeRoles([Role.ADMIN, Role.EMPLOYEE]), crearGasto);
+// Los gastos son dinero que sale del negocio: solo el administrador los ve.
+router.get("/", protect, authorizeRoles([Role.ADMIN]), listarGastos);
+router.post("/", protect, authorizeRoles([Role.ADMIN]), crearGasto);
 router.delete("/:id", protect, authorizeRoles([Role.ADMIN]), eliminarGasto);
 
 export default router;

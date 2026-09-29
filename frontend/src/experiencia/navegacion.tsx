@@ -61,7 +61,7 @@ const CATALOGO: Record<NavId, Def> = {
   proveedores: { to: "/proveedores", icon: <FaTruck />, roles: GESTION, label: () => "Proveedores", descripcion: "Compras y reposición", visible: (c) => !!c?.moduloProveedores },
   porPagar: { to: "/por-pagar", icon: <FaFileInvoiceDollar />, roles: GESTION, label: () => "Por pagar", descripcion: "Deudas con proveedores", visible: (c) => !!c?.moduloProveedores },
   caja: { to: "/caja", icon: <FaCashRegister />, roles: TODOS, label: () => "Caja", descripcion: "Apertura, movimientos y cierre", visible: (c) => !!c?.moduloCaja },
-  gastos: { to: "/gastos", icon: <FaMoneyCheckAlt />, roles: GESTION, label: () => "Gastos", descripcion: "Alquiler, servicios, sueldos…" },
+  gastos: { to: "/gastos", icon: <FaMoneyCheckAlt />, roles: ["ADMIN"], label: () => "Gastos", descripcion: "Alquiler, servicios, sueldos…" },
   reportes: { to: "/reportes", icon: <FaChartLine />, roles: ["ADMIN"], label: () => "Reportes", descripcion: "Ventas, ganancia y cobros" },
   pagos: { to: "/pagos", icon: <FaMoneyBillWave />, roles: ["ADMIN"], label: () => "Pagos", descripcion: "Historial de cobros" },
   estadoOrdenes: { to: "/estado-ordenes", icon: <FaChartBar />, roles: ["ADMIN"], label: (t) => `Estado de ${t("orden")}`, descripcion: "Seguimiento detallado" },

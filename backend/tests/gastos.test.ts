@@ -123,12 +123,13 @@ describe("gastos y cuentas por pagar", () => {
       expect(caja.id).toBeGreaterThan(0);
     });
 
-    it("solo el administrador borra gastos", async () => {
+    it("los gastos son solo del administrador: un empleado normal no los ve, registra ni borra", async () => {
       const g = (await gasto({})).body;
       const emp = await api().post("/api/usuarios").set(auth(admin)).send({ email: "emp@test.com", password: "secreto1", name: "E", role: "EMPLOYEE" });
       expect(emp.status).toBe(201);
       const tokenEmp = (await login("emp@test.com", "secreto1")).body.token;
-      expect((await gasto({}, tokenEmp)).status).toBe(201);
+      expect((await gasto({}, tokenEmp)).status).toBe(403);
+      expect((await api().get("/api/gastos").set(auth(tokenEmp))).status).toBe(403);
       expect((await api().delete(`/api/gastos/${g.id}`).set(auth(tokenEmp))).status).toBe(403);
     });
   });
