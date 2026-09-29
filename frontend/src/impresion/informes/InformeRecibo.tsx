@@ -1,5 +1,8 @@
+import { useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { toast } from "react-toastify";
+import { FaEnvelope } from "react-icons/fa";
 import type { ReciboData } from "@lavanderia/shared/types/types";
 import { convertirDesdePrincipal, formatearMoneda, type Moneda } from "../../utils/monedaHelpers";
 import { useEtiquetas } from "../../context/configuracionCore";
@@ -7,6 +10,9 @@ import { useMonedas } from "../../context/useMonedas";
 import { FirmasImpresas, HojaReporte, NotaImpresa, SeccionImpresa, TablaImpresa } from "../Hoja";
 import { TicketPapel, TkEncabezado, TkLinea, TkPie, TkRenglon, TkSeparador, TkTitulo } from "../Ticket";
 import ModalImpresion from "../ModalImpresion";
+import Button from "../../components/ui/Button";
+import { correoService } from "../../services/correoService";
+import { correoRecibo } from "../../utils/correoRecibo";
 
 interface Props {
   open: boolean;
@@ -39,12 +45,36 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
   const etiquetaImpuesto = d ? `${d.impuestoNombre}${d.impuestoTasa ? ` ${d.impuestoTasa}%` : ""}` : "";
   const pie = datos.mensajePieRecibo || "Conserve este comprobante para cualquier reclamo.";
 
+  const [enviando, setEnviando] = useState(false);
+  const enviarPorCorreo = async () => {
+    const para = datos.clienteInfo.email;
+    if (!para) return;
+    setEnviando(true);
+    try {
+      const { asunto, html, texto } = correoRecibo(datos, principal);
+      await correoService.enviar({ para, asunto, html, texto });
+      toast.success(`Recibo enviado a ${para}.`);
+    } catch (error) {
+      const mensaje = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(mensaje || "No se pudo enviar el correo.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
     <ModalImpresion
       open={open}
       onClose={onClose}
       titulo={`Vista previa · Recibo ${numero}`}
       documentTitle={`Recibo_${datos.numeroOrden ?? ""}`}
+      accionesExtra={
+        datos.clienteInfo.email && (
+          <Button onClick={() => void enviarPorCorreo()} variant="secondary" leftIcon={<FaEnvelope />} isLoading={enviando} disabled={enviando} title={`Enviar a ${datos.clienteInfo.email}`}>
+            Correo
+          </Button>
+        )
+      }
       ticket={(ref) => (
         <TicketPapel ref={ref}>
           <TkEncabezado titulo={titulo} subtitulo={saldada ? "PAGADO" : "PENDIENTE DE PAGO"} />
@@ -58,9 +88,8 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
           {datos.atendio && <TkLinea etiqueta="Atendió" valor={datos.atendio} apilar />}
 
           <TkSeparador />
-          <div className="flex justify-between font-black" style={{ fontSize: "0.85em" }}>
-            <span>DESCRIPCIÓN</span>
-            <span>IMPORTE</span>
+          <div className="font-black" style={{ fontSize: "0.85em" }}>
+            <TkLinea etiqueta="DESCRIPCIÓN" valor="IMPORTE" />
           </div>
           <div className="mt-1">
             {datos.items.map((i, k) => (
@@ -82,7 +111,7 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
             <TkLinea key={o.moneda} etiqueta={<span style={{ fontSize: "0.85em" }}>en {o.moneda}</span>} valor={<span style={{ fontSize: "0.9em" }}>{o.texto}</span>} />
           ))}
           {d && d.impuesto > 0 && d.impuestoIncluido && base !== null && (
-            <p className="mt-1" style={{ fontSize: "0.8em" }}>
+            <p data-tk="texto" className="mt-1" style={{ fontSize: "0.8em" }}>
               Incluye {etiquetaImpuesto}: {fmt(d.impuesto)} (base {fmt(base)})
             </p>
           )}
@@ -100,13 +129,13 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
               ))}
             </>
           )}
-          <TkLinea etiqueta="Abonado" valor={fmt(datos.abono)} />
           {saldada ? (
-            <p className="mt-1 text-center font-black border border-black py-0.5" style={{ fontSize: "1.1em" }}>
+            <p data-tk="texto" data-centrado data-negrita className="mt-1 text-center font-black border border-black py-0.5" style={{ fontSize: "1.1em" }}>
               *** PAGADO ***
             </p>
           ) : (
             <>
+              <TkLinea etiqueta="Abonado" valor={fmt(datos.abono)} />
               <TkLinea etiqueta="RESTA POR PAGAR" valor={fmt(restante)} fuerte />
               {enOtras(restante).map((o) => (
                 <TkLinea key={o.moneda} etiqueta={<span style={{ fontSize: "0.85em" }}>en {o.moneda}</span>} valor={<span style={{ fontSize: "0.9em" }}>{o.texto}</span>} />
@@ -117,17 +146,22 @@ export default function ImprimirRecibo({ open, onClose, datos }: Props) {
           {datos.observaciones && (
             <>
               <TkTitulo>Observaciones</TkTitulo>
-              <p className="leading-tight break-words">{datos.observaciones}</p>
+              <p data-tk="texto" className="leading-tight break-words">
+                {datos.observaciones}
+              </p>
             </>
           )}
 
           <TkPie>
-            <p className="font-black uppercase" style={{ fontSize: "1.1em" }}>
+            <p data-tk="texto" data-centrado data-negrita className="font-black uppercase" style={{ fontSize: "1.1em" }}>
               ¡Gracias por su preferencia!
             </p>
-            <p className="leading-tight mt-0.5">{pie}</p>
-            <p className="font-bold uppercase mt-1">Comprobante no fiscal</p>
-            <p className="leading-tight">No es una factura ni da derecho a crédito fiscal.</p>
+            <p data-tk="texto" data-centrado className="leading-tight mt-0.5">
+              {pie}
+            </p>
+            <p data-tk="texto" data-centrado data-negrita data-mayus className="font-bold uppercase mt-1">
+              Comprobante no fiscal
+            </p>
           </TkPie>
         </TicketPapel>
       )}

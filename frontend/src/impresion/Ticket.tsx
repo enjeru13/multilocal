@@ -44,32 +44,55 @@ export function TkEncabezado({ titulo, subtitulo }: { titulo: string; subtitulo?
   const rif = config?.rif?.replace(/^RIF:?\s*/i, "");
   return (
     <div className="text-center">
-      <p className="font-black uppercase leading-tight" style={{ fontSize: "1.25em" }}>
+      <p data-tk="texto" data-centrado data-negrita data-grande className="font-black uppercase leading-tight" style={{ fontSize: "1.25em" }}>
         {config?.nombreNegocio || "Mi negocio"}
       </p>
-      {rif && <p style={{ fontSize: "0.85em" }}>RIF {rif}</p>}
+      {rif && (
+        <p data-tk="texto" data-centrado style={{ fontSize: "0.85em" }}>
+          RIF {rif}
+        </p>
+      )}
       {config?.direccion && (
-        <p className="leading-tight" style={{ fontSize: "0.8em" }}>
+        <p data-tk="texto" data-centrado className="leading-tight" style={{ fontSize: "0.8em" }}>
           {config.direccion}
         </p>
       )}
-      {config?.telefonoPrincipal && <p style={{ fontSize: "0.85em" }}>Tel. {config.telefonoPrincipal}</p>}
+      {config?.telefonoPrincipal && (
+        <p data-tk="texto" data-centrado style={{ fontSize: "0.85em" }}>
+          WhatsApp {config.telefonoPrincipal}
+        </p>
+      )}
+      {config?.telefonoSecundario && (
+        <p data-tk="texto" data-centrado style={{ fontSize: "0.85em" }}>
+          Tel. {config.telefonoSecundario}
+        </p>
+      )}
       <TkSeparador fuerte />
-      <p className="font-black uppercase" style={{ fontSize: "1.05em" }}>
+      <p data-tk="texto" data-centrado data-negrita className="font-black uppercase" style={{ fontSize: "1.05em" }}>
         {titulo}
       </p>
-      {subtitulo && <p style={{ fontSize: "0.85em" }}>{subtitulo}</p>}
-      <p style={{ fontSize: "0.8em" }}>{dayjs().format("DD/MM/YYYY hh:mm A")}</p>
+      {subtitulo && (
+        <p data-tk="texto" data-centrado style={{ fontSize: "0.85em" }}>
+          {subtitulo}
+        </p>
+      )}
+      <p data-tk="texto" data-centrado style={{ fontSize: "0.8em" }}>
+        {dayjs().format("DD/MM/YYYY hh:mm A")}
+      </p>
     </div>
   );
 }
 
 export function TkSeparador({ fuerte = false }: { fuerte?: boolean }) {
-  return <div className={`my-1.5 border-t ${fuerte ? "border-t-2" : ""} border-dashed border-black`} />;
+  return <div data-tk="separador" data-fuerte={fuerte ? "1" : undefined} className={`my-1.5 border-t ${fuerte ? "border-t-2" : ""} border-dashed border-black`} />;
 }
 
 export function TkTitulo({ children }: { children: ReactNode }) {
-  return <p className="mt-2 mb-0.5 font-black uppercase" style={{ fontSize: "0.95em" }}>{children}</p>;
+  return (
+    <p data-tk="texto" data-negrita data-mayus className="mt-2 mb-0.5 font-black uppercase" style={{ fontSize: "0.95em" }}>
+      {children}
+    </p>
+  );
 }
 
 /**
@@ -79,7 +102,7 @@ export function TkTitulo({ children }: { children: ReactNode }) {
 export function TkLinea({ etiqueta, valor, fuerte = false, sangria = false, apilar = false }: { etiqueta: ReactNode; valor?: ReactNode; fuerte?: boolean; sangria?: boolean; apilar?: boolean }) {
   if (apilar && valor !== undefined) {
     return (
-      <div className={sangria ? "pl-2" : ""}>
+      <div data-tk="linea" data-fuerte={fuerte ? "1" : undefined} data-sangria={sangria ? "1" : undefined} data-apilar="1" className={sangria ? "pl-2" : ""}>
         <p style={{ fontSize: "0.8em" }} className="uppercase leading-tight">
           {etiqueta}
         </p>
@@ -88,7 +111,13 @@ export function TkLinea({ etiqueta, valor, fuerte = false, sangria = false, apil
     );
   }
   return (
-    <div className={`flex justify-between items-baseline gap-2 ${fuerte ? "font-black" : ""} ${sangria ? "pl-2" : ""}`} style={fuerte ? { fontSize: "1.1em" } : undefined}>
+    <div
+      data-tk="linea"
+      data-fuerte={fuerte ? "1" : undefined}
+      data-sangria={sangria ? "1" : undefined}
+      className={`flex justify-between items-baseline gap-2 ${fuerte ? "font-black" : ""} ${sangria ? "pl-2" : ""}`}
+      style={fuerte ? { fontSize: "1.1em" } : undefined}
+    >
       <span className="min-w-0 break-words">{etiqueta}</span>
       {valor !== undefined && <span className="shrink-0 tabular-nums text-right">{valor}</span>}
     </div>
@@ -98,7 +127,7 @@ export function TkLinea({ etiqueta, valor, fuerte = false, sangria = false, apil
 /** Renglón de detalle: nombre arriba, y debajo cantidad × precio y el importe. */
 export function TkRenglon({ nombre, detalle, valor }: { nombre: string; detalle?: string; valor: string }) {
   return (
-    <div className="mb-1 break-inside-avoid">
+    <div data-tk="renglon" className="mb-1 break-inside-avoid">
       <p className="font-bold leading-tight break-words">{nombre}</p>
       <div className="flex justify-between gap-2" style={{ fontSize: "0.9em" }}>
         <span>{detalle}</span>
@@ -122,7 +151,9 @@ export function TkFirma({ etiqueta }: { etiqueta: string }) {
   return (
     <div className="mt-8 text-center">
       <div className="border-t border-black" />
-      <p style={{ fontSize: "0.8em" }}>{etiqueta}</p>
+      <p data-tk="texto" data-centrado style={{ fontSize: "0.8em" }}>
+        {etiqueta}
+      </p>
     </div>
   );
 }

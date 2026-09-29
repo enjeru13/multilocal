@@ -6,8 +6,9 @@ contextBridge.exposeInMainWorld("mostradorEscritorio", {
   /** Impresoras instaladas en este equipo: [{ name, displayName, isDefault }]. */
   listarImpresoras: () => ipcRenderer.invoke("impresoras:listar"),
   /**
-   * Manda un ticket a la impresora sin abrir el diálogo de impresión.
-   * `html` es un documento completo; `anchoMm`/`altoMm` el tamaño del papel. Devuelve { ok, motivo? }.
+   * Manda un ticket a la impresora sin abrir el diálogo de impresión, en crudo (ESC/POS).
+   * `lineas` son los renglones ya extraídos del ticket; `columnas`, el ancho de texto del rollo.
+   * Devuelve { ok, motivo? }.
    */
   imprimirTicket: (datos) => ipcRenderer.invoke("impresion:ticket", datos),
 });

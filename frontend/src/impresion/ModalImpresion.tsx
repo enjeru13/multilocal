@@ -29,6 +29,8 @@ interface Props {
   /** Mientras se piden los datos del reporte. */
   cargando?: boolean;
   error?: string | null;
+  /** Botones extra al lado de Imprimir (p. ej. «Enviar por correo»). */
+  accionesExtra?: ReactNode;
 }
 
 const MARGEN_HOJA_MM = 14;
@@ -38,7 +40,7 @@ const MARGEN_HOJA_MM = 14;
  * (Carta/A4/Oficio, o el ancho del rollo térmico) y la orientación; recuerda la elección
  * de este equipo y le dice al diálogo de impresión el tamaño de papel exacto.
  */
-export default function ModalImpresion({ open, onClose, titulo, subtitulo, documentTitle, hoja, ticket, horizontal: horizontalInicial = false, controles, cargando = false, error = null }: Props) {
+export default function ModalImpresion({ open, onClose, titulo, subtitulo, documentTitle, hoja, ticket, horizontal: horizontalInicial = false, controles, cargando = false, error = null, accionesExtra }: Props) {
   const [prefs, guardar] = usePreferenciasImpresion();
   const formato: Formato = hoja && ticket ? prefs.formato : ticket ? "ticket" : "hoja";
   const [horizontal, setHorizontal] = useState(horizontalInicial);
@@ -91,7 +93,7 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
     if (!directa || !printRef.current) return imprimirConDialogo();
     setImprimiendo(true);
     try {
-      const r = await imprimirTicketDirecto(printRef.current, prefs.ticketMm, alturaMm, prefs.impresoraTicket);
+      const r = await imprimirTicketDirecto(printRef.current, prefs.ticketMm, prefs.impresoraTicket);
       if (r.ok) toast.success("Enviado a la impresora.");
       else {
         toast.error(`No se pudo imprimir directo: ${r.motivo ?? "error desconocido"}. Se abre el diálogo de impresión.`);
@@ -183,6 +185,7 @@ export default function ModalImpresion({ open, onClose, titulo, subtitulo, docum
         <Button onClick={onClose} variant="secondary">
           Cerrar
         </Button>
+        {accionesExtra}
         <Button onClick={() => void imprimir()} variant="primary" leftIcon={<FaPrint />} disabled={cargando || !!error || imprimiendo} isLoading={imprimiendo}>
           Imprimir
         </Button>

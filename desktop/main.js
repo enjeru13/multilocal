@@ -3,7 +3,7 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
-const { spawn } = require("child_process");
+const { spawn, execFile } = require("child_process");
 
 // Nombre del producto en un solo lugar (ventana, carpeta de datos). El nombre del instalador
 // está en la sección "build" de package.json; ambos se cambian juntos al definir la marca.
@@ -212,6 +212,14 @@ function crearVentana() {
 
 // ---------------------------------------------------------------------------------------------
 // Impresión directa de tickets (sin el diálogo de impresión de Windows)
+//
+// Probamos primero a dibujar el ticket en una ventana oculta y mandarlo con webContents.print(),
+// pidiéndole a Chromium el tamaño exacto del rollo (pageSize/preferCSSPageSize). En la práctica,
+// el driver de varias impresoras térmicas baratas (Xprinter XP-58 entre ellas) ignora ese tamaño
+// y usa su hoja por defecto (carta/A4): el ticket sale diminuto sobre una tira larguísima de papel.
+// Por eso el ticket se arma como texto ESC/POS -tal como lo hacía el sistema anterior con
+// PrintNode- y se manda en crudo (RAW) a la impresora: sin diálogo de Windows, sin negociar
+// tamaño de página, a prueba de ese bug de los drivers.
 // ---------------------------------------------------------------------------------------------
 
 ipcMain.handle("impresoras:listar", async (evento) => {
@@ -223,37 +231,190 @@ ipcMain.handle("impresoras:listar", async (evento) => {
   }
 });
 
-// El ticket llega como un documento HTML completo (con sus estilos). Se dibuja en una ventana oculta y
-// se manda a la impresora elegida con el tamaño exacto del papel, sin márgenes.
-ipcMain.handle("impresion:ticket", async (_evento, datos) => {
-  const { html, anchoMm, altoMm, impresora } = datos || {};
-  if (typeof html !== "string" || !html || !(anchoMm > 0) || !(altoMm > 0)) return { ok: false, motivo: "Datos de impresión no válidos." };
-  if (typeof impresora !== "string" || !impresora) return { ok: false, motivo: "No hay una impresora elegida." };
+const ESC = "\x1B";
+const GS = "\x1D";
+const CENTRAR = `${ESC}\x61\x01`;
+const IZQUIERDA = `${ESC}\x61\x00`;
+const NEGRITA_ON = `${ESC}\x45\x01`;
+const NEGRITA_OFF = `${ESC}\x45\x00`;
+const TAMANO_NORMAL = `${GS}\x21\x00`;
+const TAMANO_GRANDE = `${GS}\x21\x11`; // doble ancho y doble alto
+const PAGINA_DE_CODIGOS = `${ESC}\x74\x13`; // tabla 19: CP858 (occidental con €), la misma que usaba el sistema anterior
 
-  const archivo = path.join(os.tmpdir(), `mostrador-ticket-${Date.now()}.html`);
-  let ventanaTicket = null;
+// Tabla mínima de acentos/eñes a CP858 (=CP850 salvo el símbolo del euro). Lo que no está en la
+// tabla y no es ASCII sale como "?": en un ticket eso son casos rarísimos (otro alfabeto, emoji).
+const CP858 = {
+  "á": 0xa0, "é": 0x82, "í": 0xa1, "ó": 0xa2, "ú": 0xa3, "ñ": 0xa4, "Ñ": 0xa5,
+  "ü": 0x81, "Ü": 0x9a, "¿": 0xa8, "¡": 0xad, "Á": 0xb5, "É": 0x90, "Í": 0xd6,
+  "Ó": 0xe0, "Ú": 0xe9, "°": 0xf8, "€": 0xd5, "ª": 0xa6, "º": 0xa7,
+};
+
+function bytesCp858(texto) {
+  const bytes = [];
+  for (const c of texto) {
+    const codigo = c.codePointAt(0);
+    bytes.push(codigo < 128 ? codigo : CP858[c] ?? 0x3f);
+  }
+  return Buffer.from(bytes);
+}
+
+/** Reparte `texto` en líneas de a lo sumo `ancho` caracteres, sin cortar palabras cuando se puede. */
+function partirEnAncho(texto, ancho) {
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const lineas = [];
+  let actual = "";
+  for (const palabra of palabras) {
+    const prueba = actual ? `${actual} ${palabra}` : palabra;
+    if (prueba.length > ancho) {
+      if (actual) lineas.push(actual);
+      let resto = palabra;
+      while (resto.length > ancho) {
+        lineas.push(resto.slice(0, ancho));
+        resto = resto.slice(ancho);
+      }
+      actual = resto;
+    } else {
+      actual = prueba;
+    }
+  }
+  if (actual || lineas.length === 0) lineas.push(actual);
+  return lineas;
+}
+
+/** Etiqueta a la izquierda, valor a la derecha; si no caben en una línea, el valor baja con la etiqueta. */
+function lineaDosColumnas(etiqueta, valor, ancho) {
+  const espacio = ancho - etiqueta.length - valor.length;
+  if (espacio >= 1) return `${etiqueta}${" ".repeat(espacio)}${valor}`;
+  const filas = partirEnAncho(etiqueta, ancho);
+  const ultima = filas.pop() ?? "";
+  const espacioUltima = Math.max(1, ancho - ultima.length - valor.length);
+  filas.push(`${ultima}${" ".repeat(espacioUltima)}${valor}`);
+  return filas.join("\n");
+}
+
+/** Arma el texto ESC/POS a partir de las líneas ya extraídas del ticket (ver frontend/src/impresion/escpos.ts). */
+function construirEscPos(lineas, ancho) {
+  let out = PAGINA_DE_CODIGOS;
+  for (const l of lineas) {
+    if (l.tipo === "separador") {
+      out += `${(l.fuerte ? "=" : "-").repeat(ancho)}\n`;
+    } else if (l.tipo === "texto") {
+      out += l.centrado ? CENTRAR : IZQUIERDA;
+      if (l.grande) out += TAMANO_GRANDE;
+      if (l.negrita) out += NEGRITA_ON;
+      const texto = l.mayus ? l.texto.toUpperCase() : l.texto;
+      const anchoTexto = l.grande ? Math.max(8, Math.floor(ancho / 2)) : ancho;
+      for (const fila of partirEnAncho(texto, anchoTexto)) out += `${fila}\n`;
+      if (l.negrita) out += NEGRITA_OFF;
+      if (l.grande) out += `${TAMANO_NORMAL}\n`; // aire debajo del nombre del negocio
+      out += IZQUIERDA;
+    } else if (l.tipo === "linea") {
+      if (l.fuerte) out += NEGRITA_ON;
+      out += `${lineaDosColumnas(l.etiqueta ?? "", l.valor ?? "", ancho)}\n`;
+      if (l.fuerte) out += `${NEGRITA_OFF}\n`; // aire después de totales y encabezados en negrita
+    } else if (l.tipo === "renglon") {
+      out += NEGRITA_ON;
+      for (const fila of partirEnAncho(l.nombre ?? "", ancho)) out += `${fila}\n`;
+      out += NEGRITA_OFF;
+      if (l.detalle || l.valor) out += `${lineaDosColumnas(l.detalle ?? "", l.valor ?? "", ancho)}\n`;
+      out += "\n"; // aire entre artículos
+    }
+  }
+  out += "\n\n\n\n";
+  return out;
+}
+
+// Pequeño script de PowerShell (clásico "RawPrinterHelper") que abre la cola de impresión de
+// Windows en modo RAW y escribe los bytes tal cual: así se evita agregar un módulo nativo de
+// Node solo para esto. Se escribe una vez a un archivo temporal y se reusa entre impresiones.
+const SCRIPT_IMPRESION_RAW = `param([string]$Impresora, [string]$Archivo)
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class MostradorRawPrint {
+  [StructLayout(LayoutKind.Sequential)]
+  public class DOCINFOA {
+    [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+  }
+  [DllImport("winspool.Drv", EntryPoint="OpenPrinterA", SetLastError=true, CharSet=CharSet.Ansi, ExactSpelling=true)]
+  public static extern bool OpenPrinter(string szPrinter, out IntPtr hPrinter, IntPtr pd);
+  [DllImport("winspool.Drv", EntryPoint="ClosePrinter", SetLastError=true, ExactSpelling=true)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="StartDocPrinterA", SetLastError=true, CharSet=CharSet.Ansi, ExactSpelling=true)]
+  public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, DOCINFOA di);
+  [DllImport("winspool.Drv", EntryPoint="EndDocPrinter", SetLastError=true, ExactSpelling=true)]
+  public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="StartPagePrinter", SetLastError=true, ExactSpelling=true)]
+  public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="EndPagePrinter", SetLastError=true, ExactSpelling=true)]
+  public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="WritePrinter", SetLastError=true, ExactSpelling=true)]
+  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+  public static bool Enviar(string impresora, byte[] bytes) {
+    IntPtr hPrinter;
+    DOCINFOA di = new DOCINFOA();
+    di.pDocName = "Mostrador - Ticket";
+    di.pDataType = "RAW";
+    if (!OpenPrinter(impresora, out hPrinter, IntPtr.Zero)) return false;
+    try {
+      if (!StartDocPrinter(hPrinter, 1, di)) return false;
+      try {
+        if (!StartPagePrinter(hPrinter)) return false;
+        try {
+          IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
+          Marshal.Copy(bytes, 0, p, bytes.Length);
+          int escritos;
+          bool ok = WritePrinter(hPrinter, p, bytes.Length, out escritos);
+          Marshal.FreeCoTaskMem(p);
+          return ok;
+        } finally { EndPagePrinter(hPrinter); }
+      } finally { EndDocPrinter(hPrinter); }
+    } finally { ClosePrinter(hPrinter); }
+  }
+}
+"@
+$bytes = [System.IO.File]::ReadAllBytes($Archivo)
+$ok = [MostradorRawPrint]::Enviar($Impresora, $bytes)
+if (-not $ok) { [Console]::Error.WriteLine("La impresora rechazó el trabajo (¿apagada, sin papel o desconectada?)."); exit 1 }
+`;
+
+let scriptImpresionListo = null;
+function rutaScriptImpresion() {
+  if (!scriptImpresionListo) {
+    scriptImpresionListo = path.join(os.tmpdir(), "mostrador-imprimir-raw.ps1");
+    fs.writeFileSync(scriptImpresionListo, SCRIPT_IMPRESION_RAW, "utf8");
+  }
+  return scriptImpresionListo;
+}
+
+// El ticket llega ya partido en líneas simples (ver escpos.ts): así no depende de que Chromium o
+// el driver de la impresora sepan negociar un tamaño de página custom.
+ipcMain.handle("impresion:ticket", async (_evento, datos) => {
+  const { lineas, columnas, impresora } = datos || {};
+  if (!Array.isArray(lineas) || lineas.length === 0 || !(columnas > 0)) return { ok: false, motivo: "Datos de impresión no válidos." };
+  if (typeof impresora !== "string" || !impresora) return { ok: false, motivo: "No hay una impresora elegida." };
+  if (process.platform !== "win32") return { ok: false, motivo: "La impresión directa solo existe en Windows." };
+
+  const texto = construirEscPos(lineas, Math.round(columnas));
+  const archivo = path.join(os.tmpdir(), `mostrador-ticket-${Date.now()}.bin`);
   try {
-    fs.writeFileSync(archivo, html, "utf8");
-    ventanaTicket = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false } });
-    await ventanaTicket.loadFile(archivo);
-    // Deja que termine de pintar (tipografías del sistema, ajuste de líneas) antes de imprimir.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    fs.writeFileSync(archivo, bytesCp858(texto));
     return await new Promise((resolve) => {
-      ventanaTicket.webContents.print(
-        {
-          silent: true,
-          deviceName: impresora,
-          printBackground: true,
-          margins: { marginType: "none" },
-          pageSize: { width: Math.round(anchoMm * 1000), height: Math.round(altoMm * 1000) },
-        },
-        (ok, motivo) => resolve(ok ? { ok: true } : { ok: false, motivo: motivo || "La impresora no aceptó el trabajo." })
+      execFile(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", rutaScriptImpresion(), "-Impresora", impresora, "-Archivo", archivo],
+        { windowsHide: true, timeout: 15000 },
+        (error, _stdout, stderr) => {
+          if (error) resolve({ ok: false, motivo: (stderr && stderr.trim()) || error.message || "No se pudo imprimir." });
+          else resolve({ ok: true });
+        }
       );
     });
   } catch (error) {
     return { ok: false, motivo: error && error.message ? error.message : "No se pudo imprimir." };
   } finally {
-    if (ventanaTicket && !ventanaTicket.isDestroyed()) ventanaTicket.destroy();
     fs.promises.unlink(archivo).catch(() => undefined);
   }
 });
