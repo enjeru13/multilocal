@@ -23,6 +23,15 @@ const ejecutar = (cmd, cwd = raiz, env = {}) => {
 };
 // En Windows un antivirus o un proceso recién cerrado puede retener un archivo unos segundos.
 const quitar = (p) => fs.rmSync(p, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 });
+// Igual, pero sin tumbar el build: para carpetas descartables (como gen/, ya copiado lo que
+// importa) no vale la pena fallar todo el empaquetado si el antivirus la retiene más de la cuenta.
+const quitarSinFallar = (p) => {
+  try {
+    quitar(p);
+  } catch (e) {
+    console.warn(`Aviso: no se pudo borrar ${p} (se queda ahí, no afecta el instalador). ${e.message}`);
+  }
+};
 const leer = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
 
 const back = leer(path.join(raiz, "backend", "package.json"));
@@ -66,7 +75,7 @@ fs.writeFileSync(path.join(gen, "package.json"), JSON.stringify({ name: "gen", p
 ejecutar(`npm install --no-audit --no-fund --loglevel=error prisma@${prismaVersion} @prisma/client@${prismaVersion}`, gen);
 ejecutar("npx prisma generate --schema prisma/schema.prisma", gen, { DATABASE_URL: "file:./generar.db" });
 fs.cpSync(path.join(gen, "node_modules", ".prisma"), path.join(servidor, "node_modules", ".prisma"), { recursive: true });
-quitar(gen);
+quitarSinFallar(gen);
 
 // Recorte: motores y variantes de Prisma que esta app (SQLite, motor nativo) no usa.
 const borrar = (dir, patron) => {
