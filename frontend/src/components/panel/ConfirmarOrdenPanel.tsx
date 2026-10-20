@@ -25,9 +25,12 @@ interface Props {
   tasas: TasasConversion;
   isFormValid: boolean;
   isSaving: boolean;
-  /** Excepción puntual: esta venta no lleva impuesto. Solo ADMIN y con el impuesto activo. */
+  /** Excepción puntual: esta venta no lleva impuesto aunque el negocio lo cobre normalmente. */
   sinImpuesto?: boolean;
   onSinImpuesto?: (v: boolean) => void;
+  /** Excepción puntual: esta venta sí lleva impuesto aunque el negocio lo tenga apagado. */
+  conImpuesto?: boolean;
+  onConImpuesto?: (v: boolean) => void;
 }
 
 export default function ConfirmarOrdenPanel({
@@ -42,11 +45,17 @@ export default function ConfirmarOrdenPanel({
   isSaving,
   sinImpuesto = false,
   onSinImpuesto,
+  conImpuesto = false,
+  onConImpuesto,
 }: Props) {
   const et = useEtiquetas();
   const { config } = useConfiguracion();
   const { hasRole } = useAuth();
-  const veImpuesto = !!config?.impuestoActivo && hasRole(["ADMIN"]) && !!onSinImpuesto;
+  const esAdmin = hasRole(["ADMIN"]);
+  // El impuesto está prendido por defecto: este checkbox es la excepción de QUITARLO.
+  // Apagado por defecto: el checkbox es la excepción de AGREGARLO. Solo tiene sentido uno a la vez.
+  const veQuitarImpuesto = !!config?.impuestoActivo && esAdmin && !!onSinImpuesto;
+  const veAgregarImpuesto = !config?.impuestoActivo && esAdmin && !!onConImpuesto;
   const totalCalculado = totales.total;
 
   const negocio = useMonedas();
@@ -69,7 +78,7 @@ export default function ConfirmarOrdenPanel({
 
       <div className="max-w-md mx-auto w-full space-y-3">
         <DescuentoControl value={descuento} onChange={onDescuento} disabled={isSaving} />
-        {veImpuesto && (
+        {veQuitarImpuesto && (
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -79,7 +88,20 @@ export default function ConfirmarOrdenPanel({
               className="accent-blue-600 w-4 h-4 cursor-pointer"
             />
             <FaFileInvoiceDollar className="text-gray-400" size={13} />
-            Esta venta no lleva impuesto (excepción)
+            Esta venta no lleva {config?.impuestoNombre || "impuesto"} (excepción)
+          </label>
+        )}
+        {veAgregarImpuesto && (
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={conImpuesto}
+              onChange={(e) => onConImpuesto?.(e.target.checked)}
+              disabled={isSaving}
+              className="accent-blue-600 w-4 h-4 cursor-pointer"
+            />
+            <FaFileInvoiceDollar className="text-gray-400" size={13} />
+            Cobrar {config?.impuestoNombre || "impuesto"} en esta venta (excepción)
           </label>
         )}
         <DesgloseTotales totales={totales} moneda={monedaPrincipal} />

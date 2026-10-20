@@ -127,7 +127,7 @@ export default function PantallaConfiguracion() {
   const guardarConfiguracion = async () => {
     const tasaImp = parseFloat(impuestoTasa.replace(",", "."));
     const maxDesc = parseFloat(descuentoMaxPct.replace(",", "."));
-    if (impuestoActivo && (isNaN(tasaImp) || tasaImp < 0 || tasaImp > 100)) {
+    if (isNaN(tasaImp) || tasaImp < 0 || tasaImp > 100) {
       toast.error("La tasa del impuesto debe estar entre 0 y 100.");
       return;
     }
@@ -469,26 +469,26 @@ export default function PantallaConfiguracion() {
           Impuestos y descuentos
         </h2>
 
-        <Interruptor variante="tarjeta" activo={impuestoActivo} onChange={setImpuestoActivo} icono={<FaPercent />} titulo="Cobrar impuesto en las ventas" detalle="Se calcula solo en cada venta y se muestra desglosado." />
+        <Interruptor variante="tarjeta" activo={impuestoActivo} onChange={setImpuestoActivo} icono={<FaPercent />} titulo="Cobrar impuesto en las ventas" detalle="Se calcula solo en cada venta y se muestra desglosado. Apagado, se puede cobrar igual como excepción en una venta puntual." />
 
-        {impuestoActivo && (
-          <div className="space-y-4 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Nombre del impuesto</label>
-                <input type="text" value={impuestoNombre} maxLength={20} onChange={(e) => setImpuestoNombre(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="IVA" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Tasa (%)</label>
-                <input type="text" inputMode="decimal" value={impuestoTasa} onChange={(e) => setImpuestoTasa(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="16" />
-              </div>
+        <div className="space-y-4 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Nombre del impuesto</label>
+              <input type="text" value={impuestoNombre} maxLength={20} onChange={(e) => setImpuestoNombre(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="IVA" />
             </div>
-            <Interruptor variante="tarjeta" activo={preciosIncluyenImpuesto} onChange={setPreciosIncluyenImpuesto} titulo="Los precios ya incluyen el impuesto" detalle="Activo: el total no cambia y el impuesto se muestra desglosado. Apagado: se suma encima del precio." />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Puedes marcar productos como exentos en su ficha. Las ventas ya hechas conservan el impuesto con que se cobraron.
-            </p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Tasa (%)</label>
+              <input type="text" inputMode="decimal" value={impuestoTasa} onChange={(e) => setImpuestoTasa(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-950 text-sm dark:text-gray-100" placeholder="16" />
+            </div>
           </div>
-        )}
+          {impuestoActivo && (
+            <Interruptor variante="tarjeta" activo={preciosIncluyenImpuesto} onChange={setPreciosIncluyenImpuesto} titulo="Los precios ya incluyen el impuesto" detalle="Activo: el total no cambia y el impuesto se muestra desglosado. Apagado: se suma encima del precio." />
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Puedes marcar productos como exentos en su ficha. Las ventas ya hechas conservan el impuesto con que se cobraron.
+          </p>
+        </div>
 
         <div className="pt-4 border-t border-gray-200 dark:border-gray-800 max-w-xs">
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">

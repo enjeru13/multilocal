@@ -294,6 +294,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
     entregaInmediata,
     descuento,
     sinImpuesto,
+    conImpuesto,
   } = result.data;
 
   try {
@@ -364,7 +365,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
       });
     }
 
-    const totales = calcularTotales(lineas, opcionesTotales(config, descuento));
+    const totales = calcularTotales(lineas, opcionesTotales(config, descuento, !!conImpuesto));
     const tope = descuentoExcedeTope(req.user?.role, config, totales);
     if (tope !== null) {
       return res.status(403).json({
@@ -395,8 +396,9 @@ export async function createOrden(req: AuthRequest, res: Response) {
           descuentoTipo: totales.descuento > 0 ? descuento?.tipo ?? null : null,
           descuentoValor: totales.descuento > 0 ? descuento?.valor ?? null : null,
           impuesto: totales.impuesto,
-          impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          impuestoTasa: config?.impuestoActivo || conImpuesto ? config?.impuestoTasa : null,
           sinImpuesto: !!sinImpuesto,
+          conImpuesto: !!conImpuesto,
           tasaVES: config?.tasaVES ?? null,
           tasaCOP: config?.tasaCOP ?? null,
           observaciones,
@@ -469,7 +471,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
   }
 
   // Solo se aceptan los campos validados: nada de total/abonado desde fuera.
-  const { fechaEntrega, estado, servicios, observaciones, clienteId, descuento, sinImpuesto } = result.data;
+  const { fechaEntrega, estado, servicios, observaciones, clienteId, descuento, sinImpuesto, conImpuesto } = result.data;
 
   try {
     const ordenActual = await prisma.orden.findUnique({
@@ -492,6 +494,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
     const reemplazaLineas = Array.isArray(servicios) && servicios.length > 0;
     const cambiaDescuento = descuento !== undefined;
     const cambiaSinImpuesto = sinImpuesto !== undefined && sinImpuesto !== ordenActual.sinImpuesto;
+    const cambiaConImpuesto = conImpuesto !== undefined && conImpuesto !== ordenActual.conImpuesto;
     if ((reemplazaLineas || cambiaDescuento) && ordenActual.devuelto > 0) {
       return res.status(409).json({
         message: "La orden tiene devoluciones: ya no se pueden cambiar sus artículos ni el descuento.",
@@ -557,8 +560,9 @@ export async function updateOrden(req: AuthRequest, res: Response) {
       }
 
       // Reemplazo de artículos, descuento o la excepción de impuesto: se recalcula todo el desglose.
-      if (reemplazaLineas || cambiaDescuento || cambiaSinImpuesto) {
+      if (reemplazaLineas || cambiaDescuento || cambiaSinImpuesto || cambiaConImpuesto) {
         const sinImpuestoFinal = sinImpuesto !== undefined ? sinImpuesto : ordenActual.sinImpuesto;
+        const conImpuestoFinal = conImpuesto !== undefined ? conImpuesto : ordenActual.conImpuesto;
         const costoPrevio = new Map(ordenActual.detalles.map((d) => [d.servicioId, d.costoUnit]));
         const entrada: Array<{
           servicioId: number;
@@ -605,7 +609,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
           ? { tipo: ordenActual.descuentoTipo as "PORCENTAJE" | "MONTO", valor: ordenActual.descuentoValor }
           : null;
 
-        const totales = calcularTotales(entrada, opcionesTotales(config, descuentoFinal));
+        const totales = calcularTotales(entrada, opcionesTotales(config, descuentoFinal, conImpuestoFinal));
         const tope = descuentoExcedeTope(req.user?.role, config, totales);
         if (tope !== null) {
           throw new ErrorHttp(403, `Tu descuento máximo es ${tope}%. Pide autorización a un administrador.`);
@@ -634,8 +638,9 @@ export async function updateOrden(req: AuthRequest, res: Response) {
           descuentoTipo: totales.descuento > 0 ? descuentoFinal?.tipo ?? null : null,
           descuentoValor: totales.descuento > 0 ? descuentoFinal?.valor ?? null : null,
           impuesto: totales.impuesto,
-          impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          impuestoTasa: config?.impuestoActivo || conImpuestoFinal ? config?.impuestoTasa : null,
           sinImpuesto: sinImpuestoFinal,
+          conImpuesto: conImpuestoFinal,
           faltante,
           // Mismo criterio (epsilon) que el resto del sistema.
           estadoPago: obtenerEstadoPagoRaw(totales.total, Number(ordenActual.abonado)),

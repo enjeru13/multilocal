@@ -85,6 +85,33 @@ describe("descuentos, impuestos y devoluciones", () => {
       expect(r.body).toMatchObject({ total: 10, impuesto: 0, impuestoTasa: null });
     });
 
+    it("conImpuesto cobra en una venta puntual aunque el negocio lo tenga apagado", async () => {
+      await configurar({ impuestoActivo: false, impuestoTasa: 16, preciosIncluyenImpuesto: false });
+      const r = await vender(admin, [{ servicioId: item, cantidad: 1 }], { conImpuesto: true });
+      expect(r.body).toMatchObject({ total: 11.6, impuesto: 1.6, impuestoTasa: 16, conImpuesto: true });
+      // Un producto exento sigue exento aunque se fuerce el impuesto en la venta.
+      const r2 = await vender(admin, [{ servicioId: exento, cantidad: 1 }], { conImpuesto: true });
+      expect(r2.body).toMatchObject({ total: 10, impuesto: 0 });
+    });
+
+    it("sinImpuesto exime una venta puntual aunque el negocio lo tenga prendido", async () => {
+      await configurar({ impuestoActivo: true, impuestoTasa: 16, preciosIncluyenImpuesto: false });
+      const r = await vender(admin, [{ servicioId: item, cantidad: 1 }], { sinImpuesto: true });
+      expect(r.body).toMatchObject({ total: 10, impuesto: 0, sinImpuesto: true });
+    });
+
+    it("editar una orden puede agregar o quitar la excepción de impuesto después", async () => {
+      await configurar({ impuestoActivo: false, impuestoTasa: 16, preciosIncluyenImpuesto: false });
+      const creada = await vender(admin, [{ servicioId: item, cantidad: 1 }]);
+      expect(creada.body.impuesto).toBe(0);
+
+      const conExcepcion = await api().put(`/api/ordenes/${creada.body.id}`).set(auth(admin)).send({ conImpuesto: true });
+      expect(conExcepcion.body).toMatchObject({ total: 11.6, impuesto: 1.6, conImpuesto: true });
+
+      const sinExcepcion = await api().put(`/api/ordenes/${creada.body.id}`).set(auth(admin)).send({ conImpuesto: false });
+      expect(sinExcepcion.body).toMatchObject({ total: 10, impuesto: 0, conImpuesto: false });
+    });
+
     it("la configuración valida la tasa", async () => {
       const res = await api().put("/api/configuracion").set(auth(admin)).send({ nombreNegocio: "X", monedaPrincipal: "USD", impuestoTasa: 150 });
       expect(res.status).toBe(400);

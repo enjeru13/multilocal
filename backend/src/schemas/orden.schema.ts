@@ -79,8 +79,10 @@ export const ordenSchema = z.object({
   // Venta de mostrador: nace entregada, sin flujo de entrega posterior.
   entregaInmediata: z.boolean().optional(),
 
-  // Excepción puntual: esta venta no lleva impuesto aunque el catálogo sí lo cobre normalmente.
+  // Excepciones puntuales (una sola a la vez, según si el negocio cobra impuesto por defecto):
+  // sinImpuesto fuerza que no lo lleve; conImpuesto fuerza que sí lo lleve aunque esté apagado.
   sinImpuesto: z.boolean().optional(),
+  conImpuesto: z.boolean().optional(),
 
   estado: z.enum(["PENDIENTE", "ENTREGADO"], {
     errorMap: () => ({ message: "Estado de orden inválido" }),
@@ -107,6 +109,7 @@ export const ordenUpdateSchema = z
     observaciones: z.string().nullable().optional(),
     fechaEntrega: fechaTransformada.optional(),
     sinImpuesto: z.boolean().optional(),
+    conImpuesto: z.boolean().optional(),
 
     // Aquí reutilizamos el mismo esquema de item que ya incluye 'precio'
     servicios: z

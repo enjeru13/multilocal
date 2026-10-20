@@ -65,6 +65,7 @@ export default function PantallaPrincipal() {
   const [observaciones, setObservaciones] = useState("");
   const [descuento, setDescuento] = useState<DescuentoOrden | null>(null);
   const [sinImpuesto, setSinImpuesto] = useState(false);
+  const [conImpuesto, setConImpuesto] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState("");
 
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
@@ -104,8 +105,8 @@ export default function PantallaPrincipal() {
   }, []);
 
   const totales = useMemo(
-    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto),
-    [serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto]
+    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto, conImpuesto),
+    [serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto, conImpuesto]
   );
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function PantallaPrincipal() {
       servicios: serviciosSeleccionados, // Aquí van incluidos los precios personalizados
       descuento: descuento && descuento.valor > 0 ? descuento : null,
       sinImpuesto,
+      conImpuesto,
     };
 
     try {
@@ -265,6 +267,8 @@ export default function PantallaPrincipal() {
         isSaving={isSaving}
         sinImpuesto={sinImpuesto}
         onSinImpuesto={setSinImpuesto}
+        conImpuesto={conImpuesto}
+        onConImpuesto={setConImpuesto}
       />
 
       {compacto && serviciosSeleccionados.length > 0 && (

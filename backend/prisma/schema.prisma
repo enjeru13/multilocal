@@ -103,9 +103,12 @@ model Orden {
   descuentoValor      Float?
   impuesto            Float         @default(0)
   impuestoTasa        Float?
-  // Excepción puntual: esta venta no lleva impuesto aunque el catálogo sí lo cobre normalmente
-  // (se puede marcar al crearla o corregirla después editándola).
+  // Excepciones puntuales por venta (una sola tiene sentido a la vez, según si el negocio
+  // cobra impuesto por defecto o no): sinImpuesto fuerza que NO lleve, aunque el negocio lo
+  // tenga prendido; conImpuesto fuerza que SÍ lleve, aunque el negocio lo tenga apagado. En
+  // ambos casos, un artículo exento en el catálogo se queda exento igual.
   sinImpuesto         Boolean       @default(false)
+  conImpuesto         Boolean       @default(false)
   // Tasas del día de la venta (unidades por 1 USD), para el libro de ventas. Nulas en ventas anteriores a este registro.
   tasaVES             Float?
   tasaCOP             Float?

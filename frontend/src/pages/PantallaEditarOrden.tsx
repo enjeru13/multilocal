@@ -45,6 +45,7 @@ export default function EditarOrdenPage() {
   const [observaciones, setObservaciones] = useState("");
   const [descuento, setDescuento] = useState<DescuentoOrden | null>(null);
   const [sinImpuesto, setSinImpuesto] = useState(false);
+  const [conImpuesto, setConImpuesto] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [monedaPrincipal, setMonedaPrincipal] = useState<Moneda>("USD");
   const [tasas, setTasas] = useState<TasasConversion>({});
@@ -94,6 +95,7 @@ export default function EditarOrdenPage() {
             : null
         );
         setSinImpuesto(!!orden.sinImpuesto);
+        setConImpuesto(!!orden.conImpuesto);
 
         if (orden.fechaEntrega) {
           setFechaEntrega(dayjs(orden.fechaEntrega).format("YYYY-MM-DD"));
@@ -131,8 +133,8 @@ export default function EditarOrdenPage() {
   }, [cliente, serviciosSeleccionados, clienteObligatorio]);
 
   const totales = useMemo(
-    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto),
-    [serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto]
+    () => totalesDeSeleccion(serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto, conImpuesto),
+    [serviciosSeleccionados, serviciosCatalogo, config, descuento, sinImpuesto, conImpuesto]
   );
 
   // 3. LOGICA ÚNICA: ACTUALIZAR EN VEZ DE CREAR
@@ -147,6 +149,7 @@ export default function EditarOrdenPage() {
       servicios: serviciosSeleccionados, // Enviamos la lista con precios
       descuento: descuento && descuento.valor > 0 ? descuento : null,
       sinImpuesto,
+      conImpuesto,
     };
 
     try {
@@ -233,6 +236,8 @@ export default function EditarOrdenPage() {
         isSaving={isSaving}
         sinImpuesto={sinImpuesto}
         onSinImpuesto={setSinImpuesto}
+        conImpuesto={conImpuesto}
+        onConImpuesto={setConImpuesto}
       />
     </div>
   );

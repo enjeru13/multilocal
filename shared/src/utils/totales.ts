@@ -19,6 +19,8 @@ export interface OpcionesTotales {
   preciosIncluyenImpuesto: boolean;
   descuentoTipo?: DescuentoTipo | null;
   descuentoValor?: number | null;
+  /** Excepción puntual: cobra impuesto en esta venta aunque el negocio lo tenga apagado. */
+  forzarImpuesto?: boolean;
 }
 
 export interface LineaEntrada {
@@ -57,7 +59,7 @@ export function calcularTotales(entrada: LineaEntrada[], opciones: OpcionesTotal
   const subtotales = entrada.map((l) => r2(l.subtotal));
   const subtotal = r2(subtotales.reduce((s, n) => s + n, 0));
   const descuento = calcularDescuento(subtotal, opciones.descuentoTipo, opciones.descuentoValor);
-  const tasa = opciones.impuestoActivo && opciones.impuestoTasa > 0 ? opciones.impuestoTasa / 100 : 0;
+  const tasa = (opciones.impuestoActivo || opciones.forzarImpuesto) && opciones.impuestoTasa > 0 ? opciones.impuestoTasa / 100 : 0;
 
   let repartido = 0;
   const lineas: LineaCalculada[] = entrada.map((l, i) => {

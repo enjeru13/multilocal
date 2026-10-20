@@ -20,7 +20,8 @@ export function opcionesTotales(
     impuestoTasa?: number | null;
     preciosIncluyenImpuesto?: boolean | null;
   } | null,
-  descuento?: { tipo: DescuentoTipo; valor: number } | null
+  descuento?: { tipo: DescuentoTipo; valor: number } | null,
+  forzarImpuesto?: boolean
 ): OpcionesTotales {
   return {
     impuestoActivo: !!config?.impuestoActivo,
@@ -28,6 +29,7 @@ export function opcionesTotales(
     preciosIncluyenImpuesto: config?.preciosIncluyenImpuesto ?? true,
     descuentoTipo: descuento?.tipo ?? null,
     descuentoValor: descuento?.valor ?? null,
+    forzarImpuesto,
   };
 }
 
