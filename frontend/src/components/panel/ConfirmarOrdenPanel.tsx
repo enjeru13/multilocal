@@ -8,9 +8,10 @@ import {
   type Moneda,
   type TasasConversion,
 } from "../../utils/monedaHelpers";
-import { FaDollarSign, FaRegTimesCircle, FaPlusCircle } from "react-icons/fa";
+import { FaDollarSign, FaRegTimesCircle, FaPlusCircle, FaFileInvoiceDollar } from "react-icons/fa";
 import Button from "../ui/Button";
-import { useEtiquetas } from "../../context/configuracionCore";
+import { useConfiguracion, useEtiquetas } from "../../context/configuracionCore";
+import { useAuth } from "../../hooks/useAuth";
 import DescuentoControl from "../venta/DescuentoControl";
 import DesgloseTotales from "../venta/DesgloseTotales";
 
@@ -24,6 +25,9 @@ interface Props {
   tasas: TasasConversion;
   isFormValid: boolean;
   isSaving: boolean;
+  /** Excepción puntual: esta venta no lleva impuesto. Solo ADMIN y con el impuesto activo. */
+  sinImpuesto?: boolean;
+  onSinImpuesto?: (v: boolean) => void;
 }
 
 export default function ConfirmarOrdenPanel({
@@ -36,8 +40,13 @@ export default function ConfirmarOrdenPanel({
   tasas,
   isFormValid,
   isSaving,
+  sinImpuesto = false,
+  onSinImpuesto,
 }: Props) {
   const et = useEtiquetas();
+  const { config } = useConfiguracion();
+  const { hasRole } = useAuth();
+  const veImpuesto = !!config?.impuestoActivo && hasRole(["ADMIN"]) && !!onSinImpuesto;
   const totalCalculado = totales.total;
 
   const negocio = useMonedas();
@@ -60,6 +69,19 @@ export default function ConfirmarOrdenPanel({
 
       <div className="max-w-md mx-auto w-full space-y-3">
         <DescuentoControl value={descuento} onChange={onDescuento} disabled={isSaving} />
+        {veImpuesto && (
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={sinImpuesto}
+              onChange={(e) => onSinImpuesto?.(e.target.checked)}
+              disabled={isSaving}
+              className="accent-blue-600 w-4 h-4 cursor-pointer"
+            />
+            <FaFileInvoiceDollar className="text-gray-400" size={13} />
+            Esta venta no lleva impuesto (excepción)
+          </label>
+        )}
         <DesgloseTotales totales={totales} moneda={monedaPrincipal} />
       </div>
 

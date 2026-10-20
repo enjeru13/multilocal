@@ -269,6 +269,8 @@ export interface OrdenCreate {
   observaciones?: string | null;
   fechaEntrega?: string | null;
   servicios: ServicioSeleccionado[];
+  /** Excepción puntual: esta venta no lleva impuesto aunque el catálogo sí lo cobre normalmente. */
+  sinImpuesto?: boolean;
 }
 
 export interface OrdenUpdatePayload {
@@ -280,6 +282,7 @@ export interface OrdenUpdatePayload {
   deliveredByUserName?: string | null;
   servicios?: ServicioSeleccionado[];
   descuento?: DescuentoOrden | null;
+  sinImpuesto?: boolean;
 }
 
 export interface Orden {
@@ -298,6 +301,8 @@ export interface Orden {
   descuentoValor: number | null;
   impuesto: number;
   impuestoTasa: number | null;
+  /** Excepción puntual: esta venta no lleva impuesto aunque el catálogo sí lo cobre normalmente. */
+  sinImpuesto: boolean;
   /** Valor ya devuelto al cliente (el total ya lo descuenta). */
   devuelto: number;
   abonado: number;

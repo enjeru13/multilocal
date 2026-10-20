@@ -293,6 +293,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
     fechaEntrega,
     entregaInmediata,
     descuento,
+    sinImpuesto,
   } = result.data;
 
   try {
@@ -358,7 +359,8 @@ export async function createOrden(req: AuthRequest, res: Response) {
         // Costo congelado al vender: base para reportes de ganancia.
         costoUnit: servicio.costoBase,
         subtotal: r2(precioUnit * item.cantidad),
-        exento: servicio.exentoImpuesto,
+        // Excepción puntual de esta venta (sinImpuesto) además de lo que diga el catálogo.
+        exento: servicio.exentoImpuesto || !!sinImpuesto,
       });
     }
 
@@ -394,6 +396,7 @@ export async function createOrden(req: AuthRequest, res: Response) {
           descuentoValor: totales.descuento > 0 ? descuento?.valor ?? null : null,
           impuesto: totales.impuesto,
           impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          sinImpuesto: !!sinImpuesto,
           tasaVES: config?.tasaVES ?? null,
           tasaCOP: config?.tasaCOP ?? null,
           observaciones,
@@ -466,7 +469,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
   }
 
   // Solo se aceptan los campos validados: nada de total/abonado desde fuera.
-  const { fechaEntrega, estado, servicios, observaciones, clienteId, descuento } = result.data;
+  const { fechaEntrega, estado, servicios, observaciones, clienteId, descuento, sinImpuesto } = result.data;
 
   try {
     const ordenActual = await prisma.orden.findUnique({
@@ -488,6 +491,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
 
     const reemplazaLineas = Array.isArray(servicios) && servicios.length > 0;
     const cambiaDescuento = descuento !== undefined;
+    const cambiaSinImpuesto = sinImpuesto !== undefined && sinImpuesto !== ordenActual.sinImpuesto;
     if ((reemplazaLineas || cambiaDescuento) && ordenActual.devuelto > 0) {
       return res.status(409).json({
         message: "La orden tiene devoluciones: ya no se pueden cambiar sus artículos ni el descuento.",
@@ -552,8 +556,9 @@ export async function updateOrden(req: AuthRequest, res: Response) {
         }
       }
 
-      // Reemplazo de artículos y/o descuento: se recalcula todo el desglose.
-      if (reemplazaLineas || cambiaDescuento) {
+      // Reemplazo de artículos, descuento o la excepción de impuesto: se recalcula todo el desglose.
+      if (reemplazaLineas || cambiaDescuento || cambiaSinImpuesto) {
+        const sinImpuestoFinal = sinImpuesto !== undefined ? sinImpuesto : ordenActual.sinImpuesto;
         const costoPrevio = new Map(ordenActual.detalles.map((d) => [d.servicioId, d.costoUnit]));
         const entrada: Array<{
           servicioId: number;
@@ -578,7 +583,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
                 ? costoPrevio.get(item.servicioId)!
                 : servicioDb.costoBase,
               subtotal: r2(precioUnit * item.cantidad),
-              exento: servicioDb.exentoImpuesto,
+              exento: servicioDb.exentoImpuesto || sinImpuestoFinal,
             });
           }
         } else {
@@ -589,7 +594,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
               precioUnit: d.precioUnit,
               costoUnit: d.costoUnit,
               subtotal: d.subtotal,
-              exento: d.servicio.exentoImpuesto,
+              exento: d.servicio.exentoImpuesto || sinImpuestoFinal,
             });
           }
         }
@@ -630,6 +635,7 @@ export async function updateOrden(req: AuthRequest, res: Response) {
           descuentoValor: totales.descuento > 0 ? descuentoFinal?.valor ?? null : null,
           impuesto: totales.impuesto,
           impuestoTasa: config?.impuestoActivo ? config.impuestoTasa : null,
+          sinImpuesto: sinImpuestoFinal,
           faltante,
           // Mismo criterio (epsilon) que el resto del sistema.
           estadoPago: obtenerEstadoPagoRaw(totales.total, Number(ordenActual.abonado)),

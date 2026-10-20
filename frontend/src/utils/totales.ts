@@ -34,12 +34,13 @@ export function totalesDeSeleccion(
   seleccion: ServicioSeleccionado[],
   catalogo: Servicio[],
   config: Partial<ConfigImpuestos> | null | undefined,
-  descuento?: DescuentoOrden | null
+  descuento?: DescuentoOrden | null,
+  sinImpuesto?: boolean
 ): TotalesCalculados {
   const lineas = seleccion.map((item) => {
     const servicio = catalogo.find((s) => s.id === item.servicioId);
     const precio = item.precio ?? servicio?.precioBase ?? 0;
-    return { subtotal: r2(precio * item.cantidad), exento: servicio?.exentoImpuesto };
+    return { subtotal: r2(precio * item.cantidad), exento: !!servicio?.exentoImpuesto || !!sinImpuesto };
   });
   return calcularTotales(lineas, opcionesDeConfig(config, descuento));
 }

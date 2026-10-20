@@ -70,9 +70,11 @@ export default function ModalDetalleOrden({
   );
   const [cargandoConfiguracion, setCargandoConfiguracion] = useState(true);
 
-  // --- ESTADOS PARA EDICIÓN DE FECHA DE PAGO ---
+  // --- ESTADOS PARA EDICIÓN DE UN PAGO (fecha, monto, moneda) ---
   const [editingPagoId, setEditingPagoId] = useState<number | null>(null);
   const [editDateValue, setEditDateValue] = useState("");
+  const [editMontoValue, setEditMontoValue] = useState("");
+  const [editMonedaValue, setEditMonedaValue] = useState<Moneda>("USD");
   const [guardandoFechaPago, setGuardandoFechaPago] = useState(false);
 
   const { hasRole, user } = useAuth();
@@ -153,15 +155,18 @@ export default function ModalDetalleOrden({
     hasRole,
   ]);
 
-  // --- FUNCIONES PARA EDICIÓN DE FECHA DE PAGO ---
+  // --- FUNCIONES PARA EDICIÓN DE UN PAGO ---
   const handleEditPagoClick = (pago: Pago) => {
     setEditingPagoId(pago.id);
     setEditDateValue(dayjs(pago.fechaPago).format("YYYY-MM-DD"));
+    setEditMontoValue(String(pago.monto));
+    setEditMonedaValue(normalizarMoneda(pago.moneda));
   };
 
   const handleCancelEditPago = () => {
     setEditingPagoId(null);
     setEditDateValue("");
+    setEditMontoValue("");
   };
 
   const handleSaveFechaPago = async (pagoId: number) => {
@@ -169,21 +174,25 @@ export default function ModalDetalleOrden({
       toast.error("La fecha no puede estar vacía");
       return;
     }
+    const monto = parseFloat(editMontoValue.replace(",", "."));
+    if (isNaN(monto) || monto <= 0) {
+      toast.error("El monto debe ser un número mayor que 0.");
+      return;
+    }
 
     setGuardandoFechaPago(true);
     try {
       const nuevaFechaISO = dayjs(editDateValue).toISOString();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await pagosService.update(pagoId, { fechaPago: nuevaFechaISO } as any);
+      await pagosService.update(pagoId, { fechaPago: nuevaFechaISO, monto, moneda: editMonedaValue });
 
-      toast.success("Fecha del pago actualizada");
+      toast.success("Pago actualizado.");
 
       const res = await ordenesService.getById(orden.id);
       onPagoRegistrado(res.data);
       handleCancelEditPago();
     } catch (error) {
-      console.error("Error actualizando fecha de pago:", error);
-      toast.error("Error al actualizar la fecha.");
+      console.error("Error actualizando el pago:", error);
+      toast.error("Error al actualizar el pago.");
     } finally {
       setGuardandoFechaPago(false);
     }
@@ -355,26 +364,51 @@ export default function ModalDetalleOrden({
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       {editingPagoId === p.id ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="date"
-                            value={editDateValue}
-                            onChange={(e) => setEditDateValue(e.target.value)}
-                            disabled={guardandoFechaPago}
-                            className="text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100"
-                          />
-                          <button onClick={() => handleSaveFechaPago(p.id)} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer" title="Guardar">
-                            <FaCheck size={11} />
-                          </button>
-                          <button onClick={handleCancelEditPago} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 disabled:opacity-50 cursor-pointer" title="Cancelar">
-                            <FaTimes size={11} />
-                          </button>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="date"
+                              value={editDateValue}
+                              onChange={(e) => setEditDateValue(e.target.value)}
+                              disabled={guardandoFechaPago}
+                              className="text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100"
+                            />
+                            <button onClick={() => handleSaveFechaPago(p.id)} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer" title="Guardar">
+                              <FaCheck size={11} />
+                            </button>
+                            <button onClick={handleCancelEditPago} disabled={guardandoFechaPago} className="p-1.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 disabled:opacity-50 cursor-pointer" title="Cancelar">
+                              <FaTimes size={11} />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={editMontoValue}
+                              onChange={(e) => setEditMontoValue(e.target.value)}
+                              disabled={guardandoFechaPago}
+                              placeholder="Monto"
+                              className="w-24 text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 tabular-nums"
+                            />
+                            <select
+                              value={editMonedaValue}
+                              onChange={(e) => setEditMonedaValue(e.target.value as Moneda)}
+                              disabled={guardandoFechaPago}
+                              className="text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-1.5 py-1 bg-white dark:bg-gray-800 dark:text-gray-100"
+                            >
+                              {negocio.activas.map((m) => (
+                                <option key={m} value={m}>
+                                  {m}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                           {dayjs(p.fechaPago).format("DD/MM/YYYY")}
                           {hasRole(["ADMIN"]) && (
-                            <button onClick={() => handleEditPagoClick(p)} className="text-gray-400 hover:text-blue-600 cursor-pointer" title="Editar fecha" aria-label="Editar fecha del pago">
+                            <button onClick={() => handleEditPagoClick(p)} className="text-gray-400 hover:text-blue-600 cursor-pointer" title="Corregir fecha, monto o moneda" aria-label="Editar pago">
                               <FaEdit size={11} />
                             </button>
                           )}
