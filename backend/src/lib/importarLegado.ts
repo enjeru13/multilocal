@@ -105,6 +105,10 @@ export async function importarLegado(ruta: string, prisma: PrismaClient): Promis
     await prisma.$transaction(
       async (tx) => {
         // Se vacía en orden de dependencias (hijos primero).
+        await tx.conteoDetalle.deleteMany();
+        await tx.conteoInventario.deleteMany();
+        await tx.presupuestoDetalle.deleteMany();
+        await tx.presupuesto.deleteMany();
         await tx.pagoCompra.deleteMany();
         await tx.gasto.deleteMany();
         await tx.inventarioMovimiento.deleteMany();

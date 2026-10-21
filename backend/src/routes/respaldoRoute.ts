@@ -6,6 +6,7 @@ import {
   restaurarGuardado,
   restaurarArchivo,
   importarDesdeLegado,
+  empezarDeCeroDesdeArchivo,
 } from "../controllers/respaldoController";
 import { protect, authorizeRoles } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
@@ -29,6 +30,13 @@ router.post(
   ...soloAdmin,
   express.raw({ type: "application/octet-stream", limit: "500mb" }),
   importarDesdeLegado
+);
+
+router.post(
+  "/empezar-de-cero",
+  ...soloAdmin,
+  express.raw({ type: "application/octet-stream", limit: "500mb" }),
+  empezarDeCeroDesdeArchivo
 );
 
 export default router;

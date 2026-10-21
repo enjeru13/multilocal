@@ -20,6 +20,12 @@ export interface ResumenLegado {
   abonadosCorregidos: number;
 }
 
+export interface ResumenEmpezarDeCero {
+  categorias: number;
+  clientes: number;
+  servicios: number;
+}
+
 const binario = { headers: { "Content-Type": "application/octet-stream" }, maxBodyLength: Infinity } as const;
 
 export const respaldosService = {
@@ -49,4 +55,10 @@ export const respaldosService = {
       headers: { "Content-Type": "application/octet-stream" },
       maxBodyLength: Infinity,
     }),
+  /** Cuenta clientes/servicios/categorías de un respaldo de Mostrador, sin tocar nada. */
+  revisarEmpezarDeCero: (archivo: File): Promise<{ data: { resumen: ResumenEmpezarDeCero } }> =>
+    apiClient.post("/respaldos/empezar-de-cero?simular=1", archivo, binario),
+  /** Borra todo menos usuarios y configuración, y trae clientes/servicios/categorías del archivo. */
+  empezarDeCero: (archivo: File): Promise<{ data: { resumen: ResumenEmpezarDeCero; respaldoPrevio: string } }> =>
+    apiClient.post("/respaldos/empezar-de-cero", archivo, binario),
 };

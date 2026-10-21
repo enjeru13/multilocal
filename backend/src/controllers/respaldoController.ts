@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import prisma from "../lib/prisma";
 import { ArchivoNoValido, importarLegado, revisarLegado } from "../lib/importarLegado";
+import { ArchivoNoValido as ArchivoMostradorNoValido, empezarDeCero, revisarParaEmpezarDeCero } from "../lib/empezarDeCero";
 import {
   getBackupDir,
   listarRespaldos,
@@ -91,6 +92,32 @@ export async function importarDesdeLegado(req: Request, res: Response) {
     if (error instanceof ArchivoNoValido) return res.status(400).json({ message: error.message });
     console.error("Error al importar datos del sistema anterior:", error);
     return res.status(500).json({ message: "No se pudo importar. Tus datos actuales no se modificaron." });
+  } finally {
+    fs.rmSync(temporal, { force: true });
+  }
+}
+
+// POST /api/respaldos/empezar-de-cero[?simular=1] — trae solo clientes, servicios y categorías de
+// un respaldo de Mostrador (cuerpo = archivo .db) y borra el resto (órdenes, pagos, caja, gastos,
+// compras, presupuestos, conteos). Mantiene los usuarios y la configuración tal como están ahora.
+export async function empezarDeCeroDesdeArchivo(req: Request, res: Response) {
+  const cuerpo = req.body as Buffer;
+  if (!Buffer.isBuffer(cuerpo) || cuerpo.length === 0) {
+    return res.status(400).json({ message: "No se recibió ningún archivo." });
+  }
+  const temporal = path.join(os.tmpdir(), `empezar-de-cero-${Date.now()}.db`);
+  try {
+    fs.writeFileSync(temporal, cuerpo);
+    const resumen = revisarParaEmpezarDeCero(temporal);
+    if (req.query.simular) return res.json({ simulacion: true, resumen });
+
+    const respaldoPrevio = await crearRespaldo("previo");
+    await empezarDeCero(temporal, prisma);
+    return res.json({ message: "Listo: se trajeron los clientes, servicios y categorías; el resto se borró.", resumen, respaldoPrevio });
+  } catch (error: any) {
+    if (error instanceof ArchivoMostradorNoValido) return res.status(400).json({ message: error.message });
+    console.error("Error al empezar de cero:", error);
+    return res.status(500).json({ message: "No se pudo hacer la operación. Tus datos actuales no se modificaron." });
   } finally {
     fs.rmSync(temporal, { force: true });
   }

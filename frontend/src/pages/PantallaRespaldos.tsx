@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
-import { FaDatabase, FaDownload, FaUndo, FaUpload, FaPlus, FaFileImport, FaExclamationTriangle } from "react-icons/fa";
-import { respaldosService, type Respaldo, type ResumenLegado } from "../services/respaldosService";
+import { FaDatabase, FaDownload, FaUndo, FaUpload, FaPlus, FaFileImport, FaExclamationTriangle, FaBroom } from "react-icons/fa";
+import { respaldosService, type Respaldo, type ResumenLegado, type ResumenEmpezarDeCero } from "../services/respaldosService";
 import Button from "../components/ui/Button";
 import ConfirmacionModal from "../components/modal/ConfirmacionModal";
 import Modal from "../components/ui/Modal";
@@ -31,7 +31,9 @@ export default function PantallaRespaldos() {
   const [aRestaurar, setARestaurar] = useState<string | File | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
   const inputLegado = useRef<HTMLInputElement>(null);
+  const inputCero = useRef<HTMLInputElement>(null);
   const [legado, setLegado] = useState<{ archivo: File; resumen: ResumenLegado } | null>(null);
+  const [cero, setCero] = useState<{ archivo: File; resumen: ResumenEmpezarDeCero } | null>(null);
 
   // Primero se revisa el archivo (sin cambiar nada) y se muestra lo que trae.
   const revisarLegado = async (archivo: File) => {
@@ -56,6 +58,32 @@ export default function PantallaRespaldos() {
       setTimeout(() => (window.location.href = "/login"), 1400);
     } catch (err) {
       toast.error(msgError(err, "No se pudo importar."));
+      setTrabajando(false);
+    }
+  };
+
+  const revisarCero = async (archivo: File) => {
+    setTrabajando(true);
+    try {
+      const res = await respaldosService.revisarEmpezarDeCero(archivo);
+      setCero({ archivo, resumen: res.data.resumen });
+    } catch (err) {
+      toast.error(msgError(err, "No se pudo leer el archivo."));
+    } finally {
+      setTrabajando(false);
+    }
+  };
+
+  const confirmarCero = async () => {
+    if (!cero) return;
+    setTrabajando(true);
+    try {
+      await respaldosService.empezarDeCero(cero.archivo);
+      toast.success("Listo: clientes, servicios y categorías traídos; el resto se borró.");
+      setCero(null);
+    } catch (err) {
+      toast.error(msgError(err, "No se pudo hacer la operación."));
+    } finally {
       setTrabajando(false);
     }
   };
@@ -124,6 +152,9 @@ export default function PantallaRespaldos() {
         <Button onClick={() => inputLegado.current?.click()} variant="secondary" leftIcon={<FaFileImport size={12} />} isLoading={trabajando && !legado}>
           Importar del sistema anterior…
         </Button>
+        <Button onClick={() => inputCero.current?.click()} variant="secondary" leftIcon={<FaBroom size={12} />} isLoading={trabajando && !cero}>
+          Empezar de cero con clientes y servicios…
+        </Button>
         <input
           ref={inputLegado}
           type="file"
@@ -132,6 +163,17 @@ export default function PantallaRespaldos() {
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) revisarLegado(f);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={inputCero}
+          type="file"
+          accept=".db"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) revisarCero(f);
             e.target.value = "";
           }}
         />
@@ -250,6 +292,43 @@ export default function PantallaRespaldos() {
             </Button>
             <Button variant="primary" onClick={importarLegado} isLoading={trabajando}>
               Importar y reemplazar
+            </Button>
+          </ModalPie>
+        </Modal>
+      )}
+
+      {cero && (
+        <Modal open onClose={() => !trabajando && setCero(null)} maxWidth="max-w-lg">
+          <ModalEncabezado icono={<FaBroom />} titulo="Empezar de cero con clientes y servicios" subtitulo={cero.archivo.name} onClose={() => !trabajando && setCero(null)} />
+          <div className="px-4 sm:px-6 py-5 space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">El archivo trae:</p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+              {(
+                [
+                  ["Clientes", cero.resumen.clientes],
+                  ["Servicios", cero.resumen.servicios],
+                  ["Categorías", cero.resumen.categorias],
+                ] as const
+              ).map(([k, v]) => (
+                <div key={k} className="flex justify-between border-b border-gray-100 dark:border-gray-800 py-1">
+                  <dt className="text-gray-500 dark:text-gray-400">{k}</dt>
+                  <dd className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{v.toLocaleString("es")}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex gap-3 text-sm text-amber-900 dark:text-amber-200">
+              <FaExclamationTriangle className="mt-0.5 shrink-0" />
+              <p>
+                Esto <strong>borra órdenes, pagos, caja, gastos, compras, presupuestos y conteos</strong> actuales, y reemplaza clientes/servicios/categorías por los del archivo. Tus usuarios y la configuración del negocio se quedan igual. Antes se guarda una copia de lo que hay ahora.
+              </p>
+            </div>
+          </div>
+          <ModalPie>
+            <Button variant="secondary" onClick={() => setCero(null)} disabled={trabajando}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={confirmarCero} isLoading={trabajando}>
+              Empezar de cero
             </Button>
           </ModalPie>
         </Modal>
